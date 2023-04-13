@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html>
  
-
 <head>
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+1p" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/hannari.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/kokoro.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Mincho" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nikukyu.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet">
+
     <link rel="icon" href="./img/favicon2/favicon.ico" />
     <script src="js/bouyomichan_client.js"></script>
 
@@ -203,7 +211,21 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="so">ソマリ語</option>
 </select>　　
 
-フォント名：<input type="text" name="speech_text_font" id="speech_text_font" size="30" oninput="updateOptionValues();" /><BR>
+フォント　：
+<select name="speech_text_font_selector" id="speech_text_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontFamily = this.value; selectFont();">
+<!-- <select name="speech_text_font_selector" id="speech_text_font_selector" onchange="selectFont();"> -->
+    <option value="direct">[直接指定]</option>
+    <option value="M PLUS\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="Hannari">はんなり明朝</option>
+    <option value="Kokoro">こころ明朝</option>
+    <option value="Sawarabi Mincho">さわらび明朝</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nikukyu">ニクキュウ</option>
+    <option value="Nico Moji">ニコモジ</option>
+    <option value="Noto Sans JP">Noto Sans JP</option>
+</select>　
+フォント（直接指定）：<input type="text" name="speech_text_font" id="speech_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 
 
 翻訳言語（１）：
@@ -228,7 +250,21 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="so">ソマリ語</option>
 </select>　　
 
-フォント名：<input type="text" name="trans_text_font" id="trans_text_font" size="30" oninput="updateOptionValues();" /><BR>
+フォント　：
+<select name="trans_text_font_selector" id="trans_text_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontFamily = this.value; selectFont();">
+<!-- <select name="speech_text_font_selector" id="speech_text_font_selector" onchange="selectFont();"> -->
+    <option value="direct">[直接指定]</option>
+    <option value="M PLUS\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="Hannari">はんなり明朝</option>
+    <option value="Kokoro">こころ明朝</option>
+    <option value="Sawarabi Mincho">さわらび明朝</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nikukyu">ニクキュウ</option>
+    <option value="Nico Moji">ニコモジ</option>
+    <option value="Noto Sans JP">Noto Sans JP</option>
+</select>　
+フォント（直接指定）：<input type="text" name="trans_text_font" id="trans_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 
 
 翻訳言語（２）：
@@ -253,7 +289,21 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="so">ソマリ語</option>
 </select>　　
 
-フォント名：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="updateOptionValues();" /><BR>
+フォント　：
+<select name="trans_text2_font_selector" id="trans_text2_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; selectFont();">
+<!-- <select name="speech_text_font_selector" id="speech_text_font_selector" onchange="selectFont();"> -->
+    <option value="direct">[直接指定]</option>
+    <option value="M PLUS\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="Hannari">はんなり明朝</option>
+    <option value="Kokoro">こころ明朝</option>
+    <option value="Sawarabi Mincho">さわらび明朝</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nikukyu">ニクキュウ</option>
+    <option value="Nico Moji">ニコモジ</option>
+    <option value="Noto Sans JP">Noto Sans JP</option>
+</select>　
+フォント（直接指定）：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 
 ↑言語設定は，即反映されないので，設定後リロードしてみてね．（なんで変わらんのかなー(´・ω・｀)）<BR>
 <BR>
@@ -300,7 +350,9 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         , "size2", "weight2", "color2", "st_color2", "st_width2"
         , "size3", "weight3", "color3", "st_color3", "st_width3"
         , "timer", "short_pause"
-        , "bouyomi", "anti_sexual", "speech_text_font", "trans_text_font", "trans_text2_font"];
+        , "bouyomi", "anti_sexual"
+        , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector"
+        , "speech_text_font", "trans_text_font", "trans_text2_font"];
 
     // 翻訳画面とURLを初期化 ///////////////
     document.getElementById('asr_frame').src = base_url;
@@ -308,7 +360,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
 
     // 設定の復元 ////////////////////
-    const config = JSON.parse(localStorage.ninshikiChan_20210721_config || '{}');
+    const config = JSON.parse(localStorage.jimakuChan_config || '{}');
     for (const p of config_values) {
         if(config[p] != null) document.getElementById(p).value = config[p];
     }
@@ -320,7 +372,32 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     document.getElementById('bouyomi').checked = config['bouyomi'];
     document.getElementById('anti_sexual').checked = config['anti_sexual'];
 
+    // フォントの直接入力の場合，テキストフィールドを有効化 ////////////////////
+    function selectFont() {
+        var speech_text_font_selector = document.getElementById('speech_text_font_selector').value;
+        var trans_text_font_selector = document.getElementById('trans_text_font_selector').value;
+        var trans_text2_font_selector = document.getElementById('trans_text2_font_selector').value;
+        console.log("フォントテキストエリア: " + speech_text_font_selector);
+        if (speech_text_font_selector === "direct") {
+            speech_text_font.disabled = false;
+        } else {
+            speech_text_font.disabled = true;
+        }
 
+        if (trans_text_font_selector === "direct") {
+            trans_text_font.disabled = false;
+        } else {
+            trans_text_font.disabled = true;
+        }
+
+        if (trans_text2_font_selector === "direct") {
+            trans_text2_font.disabled = false;
+        } else {
+            trans_text2_font.disabled = true;
+        }
+
+        updateOptionValues();
+    }
 
     // URLに付けるオプションの値をアップデート //////////
     function updateOptionValues(only_url=false) {
@@ -346,6 +423,18 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         if(whiteSpace != '') {new_url = new_url + "&whiteSpace=" + whiteSpace;} 
         if(trans != 'none') {new_url = new_url + "&trans=" + trans;} 
         if(trans2 != 'none') {new_url = new_url + "&trans2=" + trans2;} 
+
+
+        // font の処理
+        if (speech_text_font_selector !== "direct") {
+            speech_text_font = speech_text_font_selector;
+        }
+        if (trans_text_font_selector !== "direct") {
+            trans_text_font = trans_text_font_selector;
+        }
+        if (trans_text2_font_selector !== "direct") {
+            trans_text2_font = trans_text2_font_selector;
+        }
         if(speech_text_font != '') {new_url = new_url + "&speech_text_font=" + speech_text_font;} 
         if(trans_text_font != '') {new_url = new_url + "&trans_text_font=" + trans_text_font;} 
         if(trans_text2_font != '') {new_url = new_url + "&trans_text2_font=" + trans_text2_font;} 
@@ -363,7 +452,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         }
 
         // 設定の保存
-        localStorage.ninshikiChan_20210721_config = JSON.stringify(config);
+        localStorage.jimakuChan_config = JSON.stringify(config);
 
         // 認識ちゃん画面の更新 ///////
         if(only_url == false) {
