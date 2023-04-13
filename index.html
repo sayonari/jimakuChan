@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+ 
+
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet">
+    <link rel="icon" href="./img/favicon2/favicon.ico" />
+    <script src="js/bouyomichan_client.js"></script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5RNP0LDER8');
+    </script>
+    <!-- END: Google tag (gtag.js) -->
+
+    <title>jimakuChan: 音声認識字幕ちゃん [CONFIG]</title>
+
+    <style type="text/css">
+
+        button, input, select, textarea {
+            /* font-family : inherit; */
+            /* font-family: 'メイリオ', Meiryo,sans-serif; */
+            /* font-size   : 300%; */
+            /* color  : black; */
+            font-weight : 0;
+            /*text-align  : center;       /* left, center, right */
+            vertical-align : top;    /* top, middle, bottom */
+            -webkit-text-stroke-color: rgb(21, 0, 141);
+            -webkit-text-stroke-width: 0px;
+        }
+
+        html {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            /* font-family:'07NikumaruFont'; */
+        }
+        table {
+            width: 100%;
+            /* table-layout: fixed; */
+        }
+        table.btm_table {
+            position:absolute;
+            /* bottom:0; */
+        }
+
+        table td {
+            /*word-break: break-all;*/
+            overflow-wrap : break-word;
+        }
+    </style>
+
+    <style>
+        /* prepare the selectors to add a stroke to */
+
+        .stroke-single-imb{
+            /* position: absolute; */
+            left: 0;
+            right: 0;
+            margin: 0;
+            /* -webkit-text-stroke: 0px #0000FF;  */
+        }
+
+        .stroke-single-bg{
+            position: absolute;
+            left: 0;
+            right: 0;
+            margin: auto;
+            /* -webkit-text-stroke: 3px #FF0000;  */
+        }
+        /* add a single stroke */
+        .stroke-single-fg{
+            position: absolute;
+            left: 0;
+            right: 0;
+            margin: auto;
+            /* -webkit-text-stroke: 0px #FFFFFF; */
+        }
+    </style>
+
+
+</head>
+ 
+
+<body>
+
+<!-- # 動作例表示画面 ######################### -->
+<iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
+
+<!-- # API key text box ##################### -->
+Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /><BR>
+↑ここにKEYを入れたら翻訳結果も出る．キーの作成方法はこちら：<a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">http://www.sayonari.com/trans_asr/index_asr.html</a><BR>
+<BR>
+
+<!-- # 背景の色 ############################## -->
+　　　　文字色 フチ色<BR>
+認識　：<input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
+<input id="st_color1" type="color" value="#000000" oninput="changeTextColor('bg',this.value,1); updateOptionValues(only_url=true)" />
+
+　　背景色：<input id="bgcolor" type="color" value="#00ff00" oninput="document.getElementById('asr_frame').contentWindow.document.bgColor=this.value; changeTextColor('imb',this.value,1); updateOptionValues(only_url=true)" />
+
+<BR>
+翻訳１：<input id="color2" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,2); updateOptionValues(only_url=true)" />
+<input id="st_color2" type="color" value="#000000" oninput="changeTextColor('bg',this.value,2); updateOptionValues(only_url=true)" /><BR>
+翻訳２：<input id="color3" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,3); updateOptionValues(only_url=true)" />
+<input id="st_color3" type="color" value="#000000" oninput="changeTextColor('bg',this.value,3); updateOptionValues(only_url=true)" /><BR>
+<BR>
+
+<!-- # テキストフォント ########################
+フォント名： <input type="text" name="font" id="font" size="60" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('result_text').style.fontFamily = getParam('font'); updateOptionValues()"><BR>
+         -->
+
+<!-- # テキストサイズ ######################### -->
+　　　　　　　サイズ　　　　　　　ウェイト　　　　　　　 縁取り　<BR>
+認識　：
+<input id="size1" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_size_view1">25</span>px 
+
+<input id="weight1" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontWeight = this.value; document.getElementById('text_weight_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_weight_view1">900</span> 
+
+<input id="st_width1" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,1); document.getElementById('text_st_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_st_size_view1">6</span>pt
+<BR>
+
+翻訳１：
+<input id="size2" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_size_view2">25</span>px 
+
+<input id="weight2" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontWeight = this.value; document.getElementById('text_weight_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_weight_view2">900</span> 
+
+<input id="st_width2" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,2); document.getElementById('text_st_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_st_size_view2">6</span>pt
+<BR>
+
+翻訳２：
+<input id="size3" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_size_view3">25</span>px 
+
+<input id="weight3" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontWeight = this.value; document.getElementById('text_weight_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_weight_view3">900</span> 
+
+<input id="st_width3" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,3); document.getElementById('text_st_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_st_size_view3">6</span>pt
+<BR>
+
+<BR>
+<!-- # テキストの揃え ######################### -->
+テキストの位置：　
+左右：
+<select id="textAlign" onchange="updateOptionValues()">
+    <option value="left">左寄せ</option>
+    <option value="center" selected>中央寄せ</option>
+    <option value="right">右寄せ</option>
+</select>
+
+　上下：
+<select id="v_align" onchange="updateOptionValues()">
+    <option value="top" selected>上</option>
+    <option value="bottom">下</option>
+</select><BR>
+
+<!-- # テキストの改行 ######################### -->
+テキストの改行：
+<select id="whiteSpace" onchange="updateOptionValues()">
+    <option value="nowrap">改行しない</option>
+    <option value="" selected>画面端で改行</option>
+</select><BR>
+<BR>
+
+<!-- # テキスト表示項目 ####################### -->
+音声認識言語　：
+<select id="recog" onchange="updateOptionValues(only_url=false);">
+    <option value="ja" selected>日本語</option>
+    <option value="en">英語</option>
+    <option value="ko">韓国語</option>
+    <option value="zh-CN">中国語</option>
+    <option value="zh-TW">台湾語</option>
+    <option value="fr">フランス語</option>
+    <option value="it">イタリア語</option>
+    <option value="de">ドイツ語</option>
+    <option value="ru">ロシア語</option>
+    <option value="es">スペイン語</option>
+    <option value="pt">ポルトガル語</option>
+    <option value="nl">オランダ語</option>
+    <option value="id">インドネシア語</option>
+    <option value="vi">ベトナム語</option>
+    <option value="th">タイ語</option>
+    <option value="ar">アラビア語</option>
+    <option value="so">ソマリ語</option>
+</select>　　
+
+フォント名：<input type="text" name="speech_text_font" id="speech_text_font" size="30" oninput="updateOptionValues();" /><BR>
+
+
+翻訳言語（１）：
+<select id="trans" onchange="updateOptionValues(only_url=false);">
+    <option value="none">なし</option>
+    <option value="ja">日本語</option>
+    <option value="en" selected>英語</option>
+    <option value="ko">韓国語</option>
+    <option value="zh-CN">中国語</option>
+    <option value="zh-TW">台湾語</option>
+    <option value="fr">フランス語</option>
+    <option value="it">イタリア語</option>
+    <option value="de">ドイツ語</option>
+    <option value="ru">ロシア語</option>
+    <option value="es">スペイン語</option>
+    <option value="pt">ポルトガル語</option>
+    <option value="nl">オランダ語</option>
+    <option value="id">インドネシア語</option>
+    <option value="vi">ベトナム語</option>
+    <option value="th">タイ語</option>
+    <option value="ar">アラビア語</option>
+    <option value="so">ソマリ語</option>
+</select>　　
+
+フォント名：<input type="text" name="trans_text_font" id="trans_text_font" size="30" oninput="updateOptionValues();" /><BR>
+
+
+翻訳言語（２）：
+<select id="trans2" onchange="updateOptionValues(only_url=false);">
+    <option value="none" selected>なし</option>
+    <option value="ja">日本語</option>
+    <option value="en">英語</option>
+    <option value="ko">韓国語</option>
+    <option value="zh-CN">中国語</option>
+    <option value="zh-TW">台湾語</option>
+    <option value="fr">フランス語</option>
+    <option value="it">イタリア語</option>
+    <option value="de">ドイツ語</option>
+    <option value="ru">ロシア語</option>
+    <option value="es">スペイン語</option>
+    <option value="pt">ポルトガル語</option>
+    <option value="nl">オランダ語</option>
+    <option value="id">インドネシア語</option>
+    <option value="vi">ベトナム語</option>
+    <option value="th">タイ語</option>
+    <option value="ar">アラビア語</option>
+    <option value="so">ソマリ語</option>
+</select>　　
+
+フォント名：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="updateOptionValues();" /><BR>
+
+↑言語設定は，即反映されないので，設定後リロードしてみてね．（なんで変わらんのかなー(´・ω・｀)）<BR>
+<BR>
+
+<!-- # テキスト表示を●秒後に消す ######################### -->
+何ミリ秒後に文を消す？　　　：　
+<input type="text" name="timer" id="timer" size="10" oninput="updateOptionValues();" />ミリ秒（半角数字で入れてね．1000ミリ秒 = 1秒）<BR>
+
+<!-- # 文の終わり ######################### -->
+何ミリ秒黙ったら文を区切る？：　
+<input type="text" name="short_pause" value="750" id="short_pause" size="10" oninput="updateOptionValues();" />ミリ秒（半角数字で入れてね．1000ミリ秒 = 1秒）<BR>
+（500：すぐ切る｜750：普通｜1000：つなぐ　調整して．何も入れないと，これまでと同じ動作になる．）<BR>
+<BR>
+
+
+<!-- # 棒読みちゃん連携 ######################### -->
+棒読みちゃん連携を使う：<input type="checkbox" id="bouyomi" onchange="updateOptionValues()"> ← 使う場合チェック入れる．詳細 → <a target="_blank" href="https://twitter.com/sayonari/status/1386937837682003968">twitter</a><BR>
+<BR>
+
+<!-- # センシティブワード対応する！ ######################### -->
+センシティブワード対応（***に置き換え）を<font color="red">やめる</font>：<input type="checkbox" id="anti_sexual" onchange="updateOptionValues()"> <BR>
+↑動作が重いときは，チェックを付けて機能をOFFにしたら，解決するかもね．<BR>
+<BR>
+
+<!-- # URL view & copy button ############### -->
+URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
+<BR>
+　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');">
+　<a id="open_link" target="_blank" href="">[別窓で開く]</a><BR>
+<BR><BR><BR><BR>
+テスト中<BR>
+</body>
+
+
+
+<script type="text/javascript">
+    const currentURL = window.location.href;
+    let base_url = currentURL.replace("index.html", "");
+    base_url += "main.html?";
+
+    // config 値　一覧 ////////////////
+    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "recog", "trans", "trans2", "bgcolor"
+        , "size1", "weight1", "color1", "st_color1", "st_width1"
+        , "size2", "weight2", "color2", "st_color2", "st_width2"
+        , "size3", "weight3", "color3", "st_color3", "st_width3"
+        , "timer", "short_pause"
+        , "bouyomi", "anti_sexual", "speech_text_font", "trans_text_font", "trans_text2_font"];
+
+    // 翻訳画面とURLを初期化 ///////////////
+    document.getElementById('asr_frame').src = base_url;
+    document.getElementById('url').innerHTML = base_url;
+
+
+    // 設定の復元 ////////////////////
+    const config = JSON.parse(localStorage.ninshikiChan_20210721_config || '{}');
+    for (const p of config_values) {
+        if(config[p] != null) document.getElementById(p).value = config[p];
+    }
+    for (var i=0; i<3; i++) {
+        if(config['size' + String(i+1)] != null) document.getElementById('text_size_view' + String(i+1)).innerHTML = config['size' + String(i+1)];
+        if(config['weight' + String(i+1)] != null) document.getElementById('text_weight_view' + String(i+1)).innerHTML = config['weight' + String(i+1)];
+        if(config['st_width' + String(i+1)] != null) document.getElementById('text_st_size_view' + String(i+1)).innerHTML = config['st_width' + String(i+1)];
+    }
+    document.getElementById('bouyomi').checked = config['bouyomi'];
+    document.getElementById('anti_sexual').checked = config['anti_sexual'];
+
+
+
+    // URLに付けるオプションの値をアップデート //////////
+    function updateOptionValues(only_url=false) {
+        for (const p of config_values) {
+            eval("var " + p + " = document.getElementById('" + p + "').value;");
+        }
+        eval("var bouyomi = document.getElementById('bouyomi').checked;");
+        eval("var anti_sexual = document.getElementById('anti_sexual').checked;");
+
+        var new_url = base_url + "textAlign=" + textAlign + "&v_align=" + v_align 
+                     + "&recog=" + recog 
+                     + "&bgcolor=" + bgcolor
+
+                     + "&size1=" + size1 + "&weight1=" + weight1 + "&color1=" + color1
+                     + "&st_color1=" + st_color1 + "&st_width1=" + st_width1
+
+                     + "&size2=" + size2 + "&weight2=" + weight2 + "&color2=" + color2
+                     + "&st_color2=" + st_color2 + "&st_width2=" + st_width2
+
+                     + "&size3=" + size3 + "&weight3=" + weight3 + "&color3=" + color3
+                     + "&st_color3=" + st_color3 + "&st_width3=" + st_width3;
+
+        if(whiteSpace != '') {new_url = new_url + "&whiteSpace=" + whiteSpace;} 
+        if(trans != 'none') {new_url = new_url + "&trans=" + trans;} 
+        if(trans2 != 'none') {new_url = new_url + "&trans2=" + trans2;} 
+        if(speech_text_font != '') {new_url = new_url + "&speech_text_font=" + speech_text_font;} 
+        if(trans_text_font != '') {new_url = new_url + "&trans_text_font=" + trans_text_font;} 
+        if(trans_text2_font != '') {new_url = new_url + "&trans_text2_font=" + trans_text2_font;} 
+
+        if(timer != '') {new_url = new_url + "&timer=" + timer;} 
+        if(short_pause != '') {new_url = new_url + "&short_pause=" + short_pause;} 
+
+        if(bouyomi == true) {new_url = new_url + "&bouyomi=" + bouyomi;}
+        if(anti_sexual == true) {new_url = new_url + "&anti_sexual=" + "false";}
+        if(gas_key != '') {new_url = new_url + "&gas_key=" + gas_key;}
+   
+        // config の更新
+        for (const p of config_values) {
+            config[p] = eval(p);
+        }
+
+        // 設定の保存
+        localStorage.ninshikiChan_20210721_config = JSON.stringify(config);
+
+        // 認識ちゃん画面の更新 ///////
+        if(only_url == false) {
+            document.getElementById('asr_frame').src = new_url;
+        }
+
+        document.getElementById('url').innerHTML = new_url;
+        document.getElementById('open_link').href = new_url;
+
+        return 0;
+    }
+    updateOptionValues()
+
+
+    // テキストの色変え ---------------------------
+    function changeTextColor(type, color, id) {
+        var text_layer = ['fg','bg','imb'];
+        var lang_line = ['speech_text','trans_text','trans_text2'];
+
+        if(type == "fg") { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.color = color;}
+        else { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.webkitTextStrokeColor = color; }
+    }
+
+    function setTextBorder(width, id) {
+        var lang_line = ['speech_text','trans_text','trans_text2'];
+
+        document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-bg").style.webkitTextStrokeWidth = width + 'pt';
+        document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-imb").style.webkitTextStrokeWidth = width + 'pt';
+   }
+
+    function changeText(text, id){
+        var text_layer = ['fg','bg','imb'];
+        var lang_line = ['speech_text','trans_text','trans_text2'];
+
+        for (const tl of text_layer){ 
+            document.getElementById('asr_frame').contentWindow.document.getElementById(ll[id-1] + '-' + tl).innerHTML = text;
+        }         
+    }
+
+</script>
+
+
+
+
+
+</html>
