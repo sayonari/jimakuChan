@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css?family=M+PLUS+1p" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/earlyaccess/hannari.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/earlyaccess/kokoro.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Mincho" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/earlyaccess/nikukyu.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css?family=Hachi+Maru+Pop" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Yusei+Magic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Reggae+One" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+
+    <link href="./font.css" rel="stylesheet">
 
     <link rel="icon" href="./img/favicon2/favicon.ico" />
     <script src="js/bouyomichan_client.js"></script>
@@ -30,11 +32,6 @@
     <title>jimakuChan: 音声認識字幕ちゃん [CONFIG]</title>
 
     <style type="text/css">
-        @font-face {
-            font-family: 'Nikumaru';
-            src: url('./font/nikumaru.otf') format('opentype');
-        }
-
         button, input, select, textarea {
             /* font-family : inherit; */
             /* font-family: 'メイリオ', Meiryo,sans-serif; */
@@ -112,7 +109,7 @@
 <iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
 
 <!-- # API key text box ##################### -->
-Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /><BR>
+Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="20" oninput="updateOptionValues();" /><BR>
 ↑ここにKEYを入れたら翻訳結果も出る．キーの作成方法はこちら：<a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">http://www.sayonari.com/trans_asr/index_asr.html</a><BR>
 <BR>
 
@@ -221,14 +218,31 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="direct">[直接指定]</option>
     <option value="M PLUS\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
-    <option value="Nikumaru">にくまるフォント</option>
-    <option value="Hannari">はんなり明朝</option>
-    <option value="Kokoro">こころ明朝</option>
-    <option value="Sawarabi Mincho">さわらび明朝</option>
-    <option value="Sawarabi Gothic">さわらびゴシック</option>
-    <option value="Nikukyu">ニクキュウ</option>
-    <option value="Nico Moji">ニコモジ</option>
+    <option value="Mamelon">マメロン</option>
+    <option value="YasashisaB">やさしさB</option>
+    <option value="HuiFont29">ふい字</option>
+    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
+    <option value="MkPOP">851マカポップ</option>
+    <option value="bananaslipplus">バナナスリップplus</option>
+    <option value="katyou">花鳥風月</option>
+    <option value="TanukiMagic">たぬき油性マジック</option>
+    <option value="hakidame">吐き溜</option>
+    <option value="umeboshi">梅干し</option>
+    <option value="Jiyucho">じゆうちょう</option>
+    <option value="HitmoR">Hitmo</option>
+    <option value="nishikiteki">にしき的</option>
+    <option value="Yusei Magic">Yusei Magic</option>
+    <option value="Nikumaru">にくまる</option>
+    <option value="KTEGAKI">kawaii手書き</option>
+    <option value="JKGL">JK Gothic L</option>
+    <option value="Reggae One">Reggae One</option>
+    <option value="OhisamaFont">おひさま</option>
+    <option value="nukamiso">ぬかみそ</option>
+    <option value="genkai">源界明朝</option>
+    <option value="CP">チェックポイント</option>
     <option value="Noto Sans JP">Noto Sans JP</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nico Moji">ニコモジ</option>
 </select>　
 フォント（直接指定）：<input type="text" name="speech_text_font" id="speech_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 
@@ -261,14 +275,31 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="direct">[直接指定]</option>
     <option value="M PLUS\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
-    <option value="Nikumaru">にくまるフォント</option>
-    <option value="Hannari">はんなり明朝</option>
-    <option value="Kokoro">こころ明朝</option>
-    <option value="Sawarabi Mincho">さわらび明朝</option>
-    <option value="Sawarabi Gothic">さわらびゴシック</option>
-    <option value="Nikukyu">ニクキュウ</option>
-    <option value="Nico Moji">ニコモジ</option>
+    <option value="Mamelon">マメロン</option>
+    <option value="YasashisaB">やさしさB</option>
+    <option value="HuiFont29">ふい字</option>
+    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
+    <option value="MkPOP">851マカポップ</option>
+    <option value="bananaslipplus">バナナスリップplus</option>
+    <option value="katyou">花鳥風月</option>
+    <option value="TanukiMagic">たぬき油性マジック</option>
+    <option value="hakidame">吐き溜</option>
+    <option value="umeboshi">梅干し</option>
+    <option value="Jiyucho">じゆうちょう</option>
+    <option value="HitmoR">Hitmo</option>
+    <option value="nishikiteki">にしき的</option>
+    <option value="Yusei Magic">Yusei Magic</option>
+    <option value="Nikumaru">にくまる</option>
+    <option value="KTEGAKI">kawaii手書き</option>
+    <option value="JKGL">JK Gothic L</option>
+    <option value="Reggae One">Reggae One</option>
+    <option value="OhisamaFont">おひさま</option>
+    <option value="nukamiso">ぬかみそ</option>
+    <option value="genkai">源界明朝</option>
+    <option value="CP">チェックポイント</option>
     <option value="Noto Sans JP">Noto Sans JP</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nico Moji">ニコモジ</option>
 </select>　
 フォント（直接指定）：<input type="text" name="trans_text_font" id="trans_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 
@@ -301,14 +332,31 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
     <option value="direct">[直接指定]</option>
     <option value="M PLUS\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
-    <option value="Nikumaru">にくまるフォント</option>
-    <option value="Hannari">はんなり明朝</option>
-    <option value="Kokoro">こころ明朝</option>
-    <option value="Sawarabi Mincho">さわらび明朝</option>
-    <option value="Sawarabi Gothic">さわらびゴシック</option>
-    <option value="Nikukyu">ニクキュウ</option>
-    <option value="Nico Moji">ニコモジ</option>
+    <option value="Mamelon">マメロン</option>
+    <option value="YasashisaB">やさしさB</option>
+    <option value="HuiFont29">ふい字</option>
+    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
+    <option value="MkPOP">851マカポップ</option>
+    <option value="bananaslipplus">バナナスリップplus</option>
+    <option value="katyou">花鳥風月</option>
+    <option value="TanukiMagic">たぬき油性マジック</option>
+    <option value="hakidame">吐き溜</option>
+    <option value="umeboshi">梅干し</option>
+    <option value="Jiyucho">じゆうちょう</option>
+    <option value="HitmoR">Hitmo</option>
+    <option value="nishikiteki">にしき的</option>
+    <option value="Yusei Magic">Yusei Magic</option>
+    <option value="Nikumaru">にくまる</option>
+    <option value="KTEGAKI">kawaii手書き</option>
+    <option value="JKGL">JK Gothic L</option>
+    <option value="Reggae One">Reggae One</option>
+    <option value="OhisamaFont">おひさま</option>
+    <option value="nukamiso">ぬかみそ</option>
+    <option value="genkai">源界明朝</option>
+    <option value="CP">チェックポイント</option>
     <option value="Noto Sans JP">Noto Sans JP</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nico Moji">ニコモジ</option>
 </select>　
 フォント（直接指定）：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
 <BR>

@@ -1,0 +1,76 @@
+@font-face {
+    font-family: 'Nikumaru';
+    src: url('./font/nikumaru.otf') format('opentype');
+}
+@font-face {
+    font-family: 'Mamelon';
+    src: url('./font/Mamelon4.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'YasashisaB';
+    src: url('./font/YasashisaB.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'HuiFont29';
+    src: url('./font/HuiFont29.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'MkPOP';
+    src: url('./font/851MkPOP_101.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'bananaslipplus';
+    src: url('./font/bananaslipplus.otf') format('opentype');
+}
+@font-face {
+    font-family: 'katyou';
+    src: url('./font/katyou.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'TanukiMagic';
+    src: url('./font/TanukiMagic.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'hakidame';
+    src: url('./font/hakidame.TTF') format('truetype');
+}
+@font-face {
+    font-family: 'umeboshi';
+    src: url('./font/umeboshi.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'Jiyucho';
+    src: url('./font/Jiyucho.otf') format('opentype');
+}
+@font-face {
+    font-family: 'HitmoR';
+    src: url('./font/HitmoR.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'nishikiteki';
+    src: url('./font/nishikiteki.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'KTEGAKI';
+    src: url('./font/KTEGAKI.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'JKGL';
+    src: url('./font/JKGL.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'OhisamaFont';
+    src: url('./font/OhisamaFont.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'nukamiso';
+    src: url('./font/nukamiso.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'genkai';
+    src: url('./font/genkai.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'CP';
+    src: url('./font/CP.otf') format('opentype');
+}
