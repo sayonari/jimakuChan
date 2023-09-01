@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>音声認識字幕ちゃん起動ファイル作成ページ</title>
+</head>
+<body>
+
+<h2>音声認識字幕ちゃん起動ファイル作成ページ</h2>
+
+URL: https://sayonari.github.io/jimakuChan/main.html?...... ってやつ以下に貼り付けて！<BR>
+<textarea id="url" rows="4" cols="150"></textarea><BR>
+
+<button onclick="generateBatFile('win')">Windows用 .batファイル生成</button>　
+<button onclick="generateBatFile('mac')">Mac用 .commandファイル生成</button><BR>
+
+ウィンドウ:<BR>
+<table border="1pt">
+<tr><td>外側サイズ:</td><td><span id="windowSize"></span></td></tr>
+<tr><td>内側サイズ:</td><td><span id="viewportSize"></span></td></tr>
+<tr><td>左上座標:</td><td><span id="windowPosition"></span></td></tr>
+</table>
+
+<script>
+  function updateInfo() {
+    const windowWidth = window.outerWidth;
+    const windowHeight = window.outerHeight;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const x = window.screenX || window.screenLeft;
+    const y = window.screenY || window.screenTop;
+
+    document.getElementById('windowSize').textContent = `${windowWidth} x ${windowHeight}`;
+    document.getElementById('viewportSize').textContent = `${viewportWidth} x ${viewportHeight}`;
+    document.getElementById('windowPosition').textContent = `X: ${x}, Y: ${y}`;
+  }
+
+  function generateFile(content, fileName) {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = fileName;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function generateBatFile(os) {
+    let url = document.getElementById('url').value.trim();
+    if (url === '') {
+      alert('URLを入力してください。');
+      return;
+    }
+    
+    let content, filename;
+    const x = window.screenX || window.screenLeft;
+    const y = window.screenY || window.screenTop;
+    const windowWidth = window.outerWidth;
+    const windowHeight = window.outerHeight;
+
+    if (os === 'win') {
+      content = `@echo off\r\nstart chrome.exe --window-position=${x},${y} --window-size=${windowWidth},${windowHeight} --disable-features=CalculateNativeWinOcclusion --user-data-dir="C:\\temp\\user1" --new-window "${url}"\r\nexit /b`;
+      filename = "jimakuChan_nonStop.bat";
+    } else {
+      content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --window-position=${x},${y} --window-size=${windowWidth},${windowHeight} --user-data-dir="/tmp/user_data1"  --new-window "${url}"`;
+      filename = "jimakuChan_nonStop.command";
+    }
+
+    generateFile(content, filename);
+  }
+
+  window.addEventListener('load', updateInfo);
+  window.addEventListener('resize', updateInfo);
+  setInterval(updateInfo, 500);
+</script>
+
+</body>
+</html>
