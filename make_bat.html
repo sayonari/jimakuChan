@@ -48,6 +48,9 @@ URL: https://sayonari.github.io/jimakuChan/main.html?...... ってやつ以下�
 
   function generateBatFile(os) {
     let url = document.getElementById('url').value.trim();
+    // URLデコードを行う
+    url = decodeURIComponent(url);
+
     if (url === '') {
       alert('URLを入力してください。');
       return;
