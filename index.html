@@ -392,12 +392,19 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 <BR>
 　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');">
 　<a id="open_link" target="_blank" href="">[別窓で開く]</a><BR>
-<BR><BR><BR><BR>
-テスト中<BR>
+<BR>
+
+<!-- # .bat download ボタン ############################## -->
+<button onclick="generateBatFile('win')">Windows用 起動 .batファイル生成</button>　
+<button onclick="generateBatFile('mac')">Mac用 起動 .commandファイル生成</button><BR>
+<BR><BR><BR>
+.</div><BR>
 </body>
 
 
 
+
+<!-- # 字幕ちゃん設定項目のロードと，画面への反映 ############################## -->
 <script type="text/javascript">
     const currentURL = window.location.href;
     let base_url = currentURL.replace("index.html", "");
@@ -552,6 +559,44 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     }
 
 </script>
+
+<!-- # ファイル生成用のスクリプト ############################## -->
+<script>  
+    function generateFile(content, fileName) {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = fileName;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  
+    function generateBatFile(os) {
+      let url = document.getElementById('url').value.trim();
+      // URLデコードを行う
+      url = decodeURIComponent(url);
+  
+      if (url === '') {
+        alert('URLがありません．エラーです．');
+        return;
+      }
+      
+      let content, filename;
+  
+      if (os === 'win') {
+        content = `@echo off\r\nstart chrome.exe --disable-features=CalculateNativeWinOcclusion --user-data-dir="C:\\temp\\user_jimaku" --new-window "${url}"\r\nexit /b`;
+        filename = "jimakuChan_nonStop.bat";
+      } else {
+        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="/tmp/user_jimaku"  --new-window "${url}"`;
+        filename = "jimakuChan_nonStop.command";
+      }
+  
+      generateFile(content, filename);
+    }
+
+  </script>
 
 
 
