@@ -392,14 +392,15 @@ Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" 
 
 <!-- # URL view & copy button ############### -->
 URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
-<BR>
 　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');">
-　<a id="open_link" target="_blank" href="">[別窓で開く]</a><BR>
+　<a id="open_link" target="_self" href="">[同じタブで開く]</a><BR>
+別窓で開くと２つ起動して両方止まるよ！多重起動しないように気をつけて！<BR>
 <BR>
 
 <!-- # .bat download ボタン ############################## -->
 <button onclick="generateBatFile('win')">Windows用 起動 .batファイル生成</button>　
 <button onclick="generateBatFile('mac')">Mac用 起動 .commandファイル生成</button><BR>
+↑これ使ったら，<font color="red">全画面ゲームしてても止まらない！</font>詳しくはこちら→（<a target="_blank" href="https://www.youtube.com/watch?v=UeHQ_--6zp4">解説動画</a>）<BR>
 <BR><BR><BR>
 .</div><BR>
 </body>
