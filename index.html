@@ -19,14 +19,14 @@
     <script src="js/bouyomichan_client.js"></script>
 
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
     gtag('config', 'G-5RNP0LDER8');
-    </script>
+    </script> -->
     <!-- END: Google tag (gtag.js) -->
 
     <title>jimakuChan: 音声認識字幕ちゃん [CONFIG]</title>
@@ -107,11 +107,23 @@
 
 <!-- # 動作例表示画面 ######################### -->
 <iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
+　
+　<font color="red">注意：</font>Chrome Ver.120 から，字幕の設定が保存されないかも！<BR>
+　chrome://settings/cookies<BR>
+　と入力して，クッキーの設定を表示して，「サードパーティのCookieを許可する」をONにしてください！<BR>
+<HR>
+
+<!-- # 設定セーブ＆ロードボタン ################## -->
+　<button onclick="saveSettings()">設定ファイルをPCに保存</button>　
+<button onclick="loadSettings()">設定ファイルをブラウザに読込</button>　：設定が完成したら，設定ファイルを保存しておきましょう　<BR>
+<HR>
 
 <!-- # API key text box ##################### -->
 Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /><BR>
 ↑ここにKEYを入れたら翻訳結果も出る．キーの作成方法はこちら：<a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">http://www.sayonari.com/trans_asr/index_asr.html</a><BR>
 <BR>
+
+
 
 <!-- # 背景の色 ############################## -->
 　　　　文字色 フチ色<BR>
@@ -602,6 +614,47 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
   </script>
 
+<!-- # 設定ファイルの保存と読込 ############################## -->
+  <script>
+
+    // Save LocalStorage settings to a file
+    function saveSettings() {
+        const settings = localStorage.jimakuChan_config;
+        if (!settings) {
+            alert('No settings found to save!');
+            return;
+        }
+        const blob = new Blob([settings], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'jimakuChan_settings.json';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // Load LocalStorage settings from a file
+    function loadSettings() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(readEvent) {
+                try {
+                    const settings = JSON.parse(readEvent.target.result);
+                    localStorage.jimakuChan_config = JSON.stringify(settings);
+                    // reload
+                    location.reload();
+                } catch (error) {
+                    alert('Failed to load settings: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+  </script>
 
 
 
