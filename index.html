@@ -120,9 +120,9 @@
 <!-- # API key text box ##################### -->
 翻訳用 Google API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /> キーの作成方法 → <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">[LINK]</a><BR>
 翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）←僕じゃなくてGoogle にお金払う</font><BR>
-<BR>
+<HR>
 
-<!-- # 背景の色 ############################## -->
+    <!-- # 背景の色 ############################## -->
 　　　　文字色 フチ色<BR>
 認識　：<input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
 <input id="st_color1" type="color" value="#000000" oninput="changeTextColor('bg',this.value,1); updateOptionValues(only_url=true)" />
@@ -134,7 +134,7 @@
 <input id="st_color2" type="color" value="#000000" oninput="changeTextColor('bg',this.value,2); updateOptionValues(only_url=true)" /><BR>
 翻訳２：<input id="color3" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,3); updateOptionValues(only_url=true)" />
 <input id="st_color3" type="color" value="#000000" oninput="changeTextColor('bg',this.value,3); updateOptionValues(only_url=true)" /><BR>
-<BR>
+<HR>
 
 <!-- # テキストフォント ########################
 フォント名： <input type="text" name="font" id="font" size="60" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('result_text').style.fontFamily = getParam('font'); updateOptionValues()"><BR>
@@ -175,7 +175,7 @@
 <span id="text_st_size_view3">6</span>pt
 <BR>
 
-<BR>
+<HR>
 <!-- # テキストの揃え ######################### -->
 テキストの位置：　
 左右：
@@ -197,7 +197,7 @@
     <option value="nowrap">改行しない</option>
     <option value="" selected>画面端で改行</option>
 </select><BR>
-<BR>
+<HR>
 
 <!-- # テキスト表示項目 ####################### -->
 音声認識言語　：
@@ -377,7 +377,7 @@
     <option value="Nico Moji">ニコモジ</option>
 </select>　
 フォント（直接指定）：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
-<BR>
+<HR>
 
 <!-- # テキスト表示を●秒後に消す ######################### -->
 何ミリ秒後に文を消す？　　　：　
@@ -387,31 +387,29 @@
 何ミリ秒黙ったら文を区切る？：　
 <input type="text" name="short_pause" value="750" id="short_pause" size="10" oninput="updateOptionValues();" />ミリ秒（半角数字で入れてね．1000ミリ秒 = 1秒）<BR>
 （500：すぐ切る｜750：普通｜1000：つなぐ　調整して．何も入れないと，これまでと同じ動作になる．）<BR>
-<BR>
+<HR>
 
 
 <!-- # 棒読みちゃん連携 ######################### -->
-棒読みちゃん連携を使う：<input type="checkbox" id="bouyomi" onchange="updateOptionValues()"> ← 使う場合チェック入れる．詳細 → <a target="_blank" href="https://twitter.com/sayonari/status/1386937837682003968">twitter</a><BR>
-<BR>
-
+- 棒読みちゃん連携を使う：<input type="checkbox" id="bouyomi" onchange="updateOptionValues()"> ← 使う場合チェック入れる．詳細 → <a target="_blank" href="https://twitter.com/sayonari/status/1386937837682003968">twitter</a><BR>
 <!-- # センシティブワード対応する！ ######################### -->
-センシティブワード対応（***に置き換え）を<font color="red">やめる</font>：<input type="checkbox" id="anti_sexual" onchange="updateOptionValues()"> <BR>
-↑動作が重いときは，チェックを付けて機能をOFFにしたら，解決するかもね．<BR>
-<BR>
+- センシティブワード対応（***に置き換え）を<font color="red">やめる</font>：<input type="checkbox" id="anti_sexual" onchange="updateOptionValues()"> <BR>
+<HR>
 
 <!-- # URL view & copy button ############### -->
 URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');">
 　<a id="open_link" target="_self" href="">[同じタブで開く]</a><BR>
 別窓で開くと２つ起動して両方止まるよ！多重起動しないように気をつけて！<BR>
-<BR>
+<HR>
 
 <!-- # .bat download ボタン ############################## -->
 <button onclick="generateBatFile('win')">Windows用 起動 .batファイル生成</button>　
 <button onclick="generateBatFile('mac')">Mac用 起動 .commandファイル生成</button><BR>
 ↑これ使ったら，<font color="red">全画面ゲームしてても止まらない！</font>詳しくはこちら→（<a target="_blank" href="https://www.youtube.com/watch?v=UeHQ_--6zp4">解説動画</a>）<BR>
+<HR>
 <BR><BR><BR>
-.</div><BR>
+</div><BR>
 </body>
 
 
