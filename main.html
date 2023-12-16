@@ -129,6 +129,11 @@
             document.getElementById('trans_text2-imb').innerHTML = '';
             document.getElementById('trans_text2-bg').innerHTML = '';
             document.getElementById('trans_text2-fg').innerHTML = '';
+
+            // 各フラグをリセット
+            isSpeechRecognitionComplete = false;
+            isTextTranslation1Complete = false;
+            isTextTranslation2Complete = false;
         };
 
 
@@ -205,9 +210,10 @@
         count = count + 1;
 
         // その他設定 ----------------------------
-        if (timer != null) {
-            var id = setTimeout(fn_del,timer);
-        }
+        var isSpeechRecognitionComplete = false;
+        var isTextTranslation1Complete = false;
+        var isTextTranslation2Complete = false;
+
 
         stop_recog = function() {
             console.log("stop by short pause!");
@@ -276,11 +282,6 @@
             for (var i = event.resultIndex; i < results.length; i++) {
                 if (results[i].isFinal)
                 {
-                    // タイムアウトでの文字消去設定（音声認識結果を受けてリセット）
-                    if (timer != null) {
-                        clearTimeout(id);
-                        id = setTimeout(fn_del,timer);   
-                    }
 
                     // 認識結果を取得
                     recog_text = results[i][0].transcript;
@@ -298,6 +299,7 @@
                     document.getElementById('speech_text-imb').innerHTML = recog_text;
                     document.getElementById('speech_text-bg').innerHTML = recog_text;
                     document.getElementById('speech_text-fg').innerHTML = recog_text;
+                    isSpeechRecognitionComplete = true; // フラグを更新
 
                     // 棒読みちゃんにコメントを送信する
                     if(bouyomi == "true") {
@@ -306,6 +308,7 @@
                     }
 
                     if(gas_key != null){
+
                         // 翻訳1言語目
                         // console.log('arg_trans:'+arg_trans)
                         if(arg_trans != null){
@@ -314,15 +317,37 @@
 
                             request.onreadystatechange = function(){
                                 if (request.readyState === 4 && request.status === 200){
+
+                                    var responseText1 = request.responseText;
+
+                                    // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
+                                    try {
+                                        var jsonResponse = JSON.parse(responseText1);
+                                        if (jsonResponse.translatedText) {
+                                            responseText1 = jsonResponse.translatedText;
+                                            var translatedCount = jsonResponse.translatedCount;
+                                            document.getElementById('translationCount').innerHTML = translatedCount;
+                                            console.log('translatedCount(1):'+translatedCount);
+                                        }
+                                    } catch (e) {
+                                        // JSON形式でなければ何もしない
+                                    }
+
                                     document.getElementById('speech_text-imb').innerHTML = recog_text;
                                     document.getElementById('speech_text-bg').innerHTML = recog_text;
                                     document.getElementById('speech_text-fg').innerHTML = recog_text;
                                     // document.getElementById('trans_text-imb').innerHTML = '[' + trans_destlang + '] ' + request.responseText;
                                     // document.getElementById('trans_text-bg').innerHTML = '[' + trans_destlang + '] ' + request.responseText;
                                     // document.getElementById('trans_text-fg').innerHTML = '[' + trans_destlang + '] ' + request.responseText;
-                                    document.getElementById('trans_text-imb').innerHTML =  request.responseText;
-                                    document.getElementById('trans_text-bg').innerHTML =  request.responseText;
-                                    document.getElementById('trans_text-fg').innerHTML =  request.responseText;
+                                    document.getElementById('trans_text-imb').innerHTML =  responseText1;
+                                    document.getElementById('trans_text-bg').innerHTML =  responseText1;
+                                    document.getElementById('trans_text-fg').innerHTML =  responseText1;
+                                    isTextTranslation1Complete = true; // フラグを更新
+
+                                    // すべての処理が完了した後に内容を消す
+                                    if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
+                                        setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
+                                    }
                                 }
                             }
                             request.send(null);
@@ -336,27 +361,49 @@
 
                             request2.onreadystatechange = function(){
                                 if (request2.readyState === 4 && request2.status === 200){
+
+                                    var responseText2 = request2.responseText;
+
+                                    // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
+                                    try {
+                                        var jsonResponse = JSON.parse(responseText2);
+                                        if (jsonResponse.translatedText) {
+                                            responseText2 = jsonResponse.translatedText;
+                                            document.getElementById('translationCount').innerHTML = jsonResponse.translatedCount;
+                                            var translatedCount2 = jsonResponse.translatedCount;
+                                            document.getElementById('translationCount').innerHTML = translatedCount2;
+                                            console.log('translatedCount(2):'+translatedCount2);
+                                        }
+                                    } catch (e) {
+                                        // JSON形式でなければ何もしない
+                                    }
+
                                     document.getElementById('speech_text-imb').innerHTML = recog_text;
                                     document.getElementById('speech_text-bg').innerHTML = recog_text;
                                     document.getElementById('speech_text-fg').innerHTML = recog_text;
-                                    document.getElementById('trans_text2-imb').innerHTML = request2.responseText;
-                                    document.getElementById('trans_text2-bg').innerHTML = request2.responseText;
-                                    document.getElementById('trans_text2-fg').innerHTML = request2.responseText;
+                                    document.getElementById('trans_text2-imb').innerHTML = responseText2;
+                                    document.getElementById('trans_text2-bg').innerHTML = responseText2;
+                                    document.getElementById('trans_text2-fg').innerHTML = responseText2;
+                                    isTextTranslation2Complete = true; // フラグを更新
+
+                                    // すべての処理が完了した後に内容を消す
+                                    if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
+                                        setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
+                                    }
                                 }
                             }
                             request2.send(null);
-                        }
-
-                        // タイムアウトでの文字消去設定（翻訳結果受信を受けてリセット）
-                        if (timer != null) {
-                            clearTimeout(id);
-                            id = setTimeout(fn_del,timer);   
                         }
 
                     } else {
                         document.getElementById('speech_text-imb').innerHTML = recog_text;
                         document.getElementById('speech_text-bg').innerHTML = recog_text;
                         document.getElementById('speech_text-fg').innerHTML = recog_text;
+
+                        // すべての処理が完了した後に内容を消す
+                        if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
+                            setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
+                        }
                     }
 
                 }
@@ -403,32 +450,19 @@
 
 
 <body>
-
     <div class="big" id="result_text">
         <table id="text_table" class="btm_table" style="overflow:hidden;">
             <tr><td id="tbl_td" align="center" valign='bottom'>
                 <div id="speech_text">
-                    <div class="stroke-single-bg" id="speech_text-bg">
-                        [音声認識字幕ちゃん (Ver:2023.12.14)]
-                    </div> 
-                    <div class="stroke-single-fg" id="speech_text-fg">
-                        [音声認識字幕ちゃん (Ver:2023.12.14)]
-                    </div>
-                    <div class="stroke-single-imb" id="speech_text-imb">
-                        [音声認識字幕ちゃん (Ver:2023.12.14)]
-                    </div> 
+                    <div class="stroke-single-bg" id="speech_text-bg"></div> 
+                    <div class="stroke-single-fg" id="speech_text-fg"></div>
+                    <div class="stroke-single-imb" id="speech_text-imb"></div> 
                 </div>
 
                 <div id="trans_text">
-                    <div class="stroke-single-bg" id="trans_text-bg">
-                        [開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]
-                    </div>  
-                    <div class="stroke-single-fg" id="trans_text-fg">
-                        [開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]
-                    </div>  
-                    <div class="stroke-single-imb" id="trans_text-imb">
-                        [開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]
-                    </div>  
+                    <div class="stroke-single-bg" id="trans_text-bg"></div>  
+                    <div class="stroke-single-fg" id="trans_text-fg"></div>  
+                    <div class="stroke-single-imb" id="trans_text-imb"></div>  
                 </div>
 
                 <div id="trans_text2">
@@ -446,6 +480,8 @@
         </table>
     </div>
 
+    <!-- 翻訳回数管理 -->
+    <div id="translationCount" style="display: none;"></div>
 
 </body>
 
@@ -459,6 +495,27 @@
 
 <!-- ############## 末尾のjavascript ############## -->
 <script type="text/javascript">
+
+// バージョン情報の表示 ---------------------------------
+const SoftwareTitle = "音声認識字幕ちゃん";
+const SoftwareVersion = "2023.12.16";
+const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
+
+const speech_text_first = "[" + SoftwareTitle + " (Ver:" + SoftwareVersion + ")" + "]";
+document.getElementById('speech_text-bg').innerHTML = speech_text_first;
+document.getElementById('speech_text-fg').innerHTML = speech_text_first;
+document.getElementById('speech_text-imb').innerHTML = speech_text_first;
+
+const trans1_text_first = SoftwareDeveloper;
+document.getElementById('trans_text-bg').innerHTML = trans1_text_first
+document.getElementById('trans_text-fg').innerHTML = trans1_text_first
+document.getElementById('trans_text-imb').innerHTML = trans1_text_first
+
+const trans2_text_first = "[ここに結果表示（翻訳２）]";
+document.getElementById('trans_text2-bg').innerHTML = trans2_text_first;
+document.getElementById('trans_text2-fg').innerHTML = trans2_text_first;
+document.getElementById('trans_text2-imb').innerHTML = trans2_text_first;
+
 
 // 初期表示文の変更 /////
 if (getParam('trans') == null) {

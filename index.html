@@ -105,12 +105,11 @@
 
 <body>
 
-<!-- # 動作例表示画面 ######################### -->
+<!-- # 注意事項 ######################### -->
 <iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
 　
-　<font color="red">注意：</font>Chrome Ver.120 から，字幕の設定が保存されないかも！<BR>
-　chrome://settings/cookies<BR>
-　と入力して，クッキーの設定を表示して，「サードパーティのCookieを許可する」をONにしてください！<BR>
+　<font color="red">注意：</font>Chrome Ver.120 以上で設定が保存されなかったら URL欄に<BR>
+　chrome://settings/cookies と入れて，「サードパーティのCookieを許可する」をONにしよう！<BR>
 <HR>
 
 <!-- # 設定セーブ＆ロードボタン ################## -->
@@ -119,11 +118,9 @@
 <HR>
 
 <!-- # API key text box ##################### -->
-Google Script API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /><BR>
-↑ここにKEYを入れたら翻訳結果も出る．キーの作成方法はこちら：<a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">http://www.sayonari.com/trans_asr/index_asr.html</a><BR>
+翻訳用 Google API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /> キーの作成方法 → <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">[LINK]</a><BR>
+翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）←僕じゃなくてGoogle にお金払う</font><BR>
 <BR>
-
-
 
 <!-- # 背景の色 ############################## -->
 　　　　文字色 フチ色<BR>
@@ -612,10 +609,10 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
       generateFile(content, filename);
     }
 
-  </script>
+</script>
 
 <!-- # 設定ファイルの保存と読込 ############################## -->
-  <script>
+<script>
 
     // Save LocalStorage settings to a file
     function saveSettings() {
@@ -654,9 +651,21 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         input.click();
     }
 
-  </script>
+</script>
 
+<!-- # 翻訳回数取得　############################ -->
+<script>
+    function getTranslationCount() {
+        var iframe = document.getElementById('asr_frame');
+        var transCount = iframe.contentWindow.document.getElementById('translationCount').innerHTML;
+        return transCount;
+    }
 
+    // 1秒ごとに翻訳カウントを更新
+    setInterval(function() {
+        document.getElementById('displayTransCount').innerHTML = getTranslationCount();
+    }, 1000);
+</script>
 
 
 </html>
