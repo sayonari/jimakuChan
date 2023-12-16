@@ -142,9 +142,9 @@
 
         //////////////////////////////////////////////////////////
         // URLからの値読み込み -------------------
-        arg_recog = getParam('recog');
-        arg_trans = getParam('trans');
-        arg_trans2 = getParam('trans2');
+        var arg_recog = getParam('recog');
+        var arg_trans = getParam('trans');
+        var arg_trans2 = getParam('trans2');
 
         /////////////////////////////////////////////////////////
         // 翻訳API用設定 ---------------------------
@@ -214,6 +214,14 @@
         var isTextTranslation1Complete = false;
         var isTextTranslation2Complete = false;
 
+        function shouldClearText() {
+            // Check if each process is enabled and if it's complete
+            var recogComplete = arg_recog != null ? isSpeechRecognitionComplete : true;
+            var trans1Complete = arg_trans != null ? isTextTranslation1Complete : true;
+            var trans2Complete = arg_trans2 != null ? isTextTranslation2Complete : true;
+
+            return recogComplete && trans1Complete && trans2Complete;
+        }
 
         stop_recog = function() {
             console.log("stop by short pause!");
@@ -301,6 +309,11 @@
                     document.getElementById('speech_text-fg').innerHTML = recog_text;
                     isSpeechRecognitionComplete = true; // フラグを更新
 
+                    // すべての処理が完了した後に内容を消す
+                    if (timer != null && shouldClearText()) {
+                        setTimeout(fn_del, timer);
+                    }
+
                     // 棒読みちゃんにコメントを送信する
                     if(bouyomi == "true") {
                         let bouyomiChanClient = new BouyomiChanClient();
@@ -345,8 +358,8 @@
                                     isTextTranslation1Complete = true; // フラグを更新
 
                                     // すべての処理が完了した後に内容を消す
-                                    if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
-                                        setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
+                                    if (timer != null && shouldClearText()) {
+                                        setTimeout(fn_del, timer);
                                     }
                                 }
                             }
@@ -387,8 +400,8 @@
                                     isTextTranslation2Complete = true; // フラグを更新
 
                                     // すべての処理が完了した後に内容を消す
-                                    if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
-                                        setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
+                                    if (timer != null && shouldClearText()) {
+                                        setTimeout(fn_del, timer);
                                     }
                                 }
                             }
@@ -399,11 +412,6 @@
                         document.getElementById('speech_text-imb').innerHTML = recog_text;
                         document.getElementById('speech_text-bg').innerHTML = recog_text;
                         document.getElementById('speech_text-fg').innerHTML = recog_text;
-
-                        // すべての処理が完了した後に内容を消す
-                        if (isSpeechRecognitionComplete && isTextTranslation1Complete && isTextTranslation2Complete) {
-                            setTimeout(fn_del, timer); // ここでの 3000 は消去までのミリ秒数。必要に応じて変更してください。
-                        }
                     }
 
                 }
