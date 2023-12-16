@@ -656,6 +656,9 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     function getTranslationCount() {
         var iframe = document.getElementById('asr_frame');
         var transCount = iframe.contentWindow.document.getElementById('translationCount').innerHTML;
+        if(transCount == ''){
+            transCount = '[ココに回数出るよ！]';
+        }
         return transCount;
     }
 
