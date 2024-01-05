@@ -99,15 +99,15 @@
         }
     </style>
 
-
 </head>
  
 
 <body>
 
 <!-- # 注意事項 ######################### -->
+<!-- <iframe src="" name="sample" width="100%" height="30%" id="asr_frame" onclick="toggleIframeHeight()"></iframe> -->
 <iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
-　
+
 　<font color="red">注意：</font>Chrome Ver.120 以上で設定が保存されなかったら URL欄に<BR>
 　chrome://settings/cookies と入れて，「サードパーティのCookieを許可する」をONにしよう！<BR>
 <HR>
@@ -600,7 +600,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         content = `@echo off\r\nstart chrome.exe --disable-features=CalculateNativeWinOcclusion --user-data-dir="C:\\temp\\user_jimaku" --new-window "${url}"\r\nexit /b`;
         filename = "jimakuChan_nonStop.bat";
       } else {
-        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="Library/Application Support/Google/Chrome/user_jimaku"  --new-window "${url}"`;
+        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="/tmp/user_jimaku"  --new-window "${url}"`;
         filename = "jimakuChan_nonStop.command";
       }
   
@@ -668,5 +668,30 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     }, 1000);
 </script>
 
+<!-- # iframeの高さを切り替える　############################ -->
+<script>
+    function toggleIframeHeight() {
+        console.log("toggleIframeHeight");
+        var iframe = document.getElementById('asr_frame');
+        if (iframe.style.height === '100%') {
+            iframe.style.height = '30%';
+        } else {
+            iframe.style.height = '100%';
+        }
+    }
+</script>
+
+<!-- iframeの高さを自動調整する -->
+<script>
+    window.addEventListener('load', function() {
+        var iframe = document.getElementById('asr_frame'); // iframeのIDに置き換えてください
+        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+        iframeDoc.addEventListener('click', function() {
+            // ここにクリックされた時の処理を書く
+            toggleIframeHeight(); // 高さを切り替える関数を呼び出す
+        });
+    });
+</script>
 
 </html>
