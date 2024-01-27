@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+1p" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css?family=Hachi+Maru+Pop" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Yusei+Magic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Reggae+One" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+
+    <link href="./font.css" rel="stylesheet">
+
+    <link rel="icon" href="./img/favicon2/favicon.ico" />
+    <script src="js/bouyomichan_client.js"></script>
+
+    <!-- Google tag (gtag.js) -->
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-FKQVD3TMXH"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-FKQVD3TMXH');
+    </script> -->
+    <!-- END: Google tag (gtag.js) -->
+
+
+    <title>jimakuChan：音声認識字幕ちゃん</title>
+
+    <style type="text/css">
+        button, input, select, textarea {
+            /* font-family : inherit; */
+            /* font-family: 'メイリオ', Meiryo,sans-serif; */
+            /* font-size   : 300%; */
+            /* color  : black; */
+            font-weight : 0;
+            /*text-align  : center;       /* left, center, right */
+            vertical-align : top;    /* top, middle, bottom */
+            -webkit-text-stroke-color: rgb(21, 0, 141);
+            -webkit-text-stroke-width: 0px;
+        }
+
+        html {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            overflow:hidden;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            /* font-family:'07NikumaruFont'; */
+        }
+        table {
+            width: 100%;
+            overflow:hidden;
+            /* table-layout: fixed; */
+        }
+        table.btm_table {
+            position:absolute;
+            /* bottom:0; */
+        }
+
+        table td {
+            /*word-break: break-all;*/
+            overflow-wrap : break-word;
+        }
+    </style>
+
+    <style>
+        /* prepare the selectors to add a stroke to */
+
+        .stroke-single-imb{
+            /* position: absolute; */
+            left: 0;
+            right: 0;
+            margin: 0;
+            margin-left: 5px;
+            /* -webkit-text-stroke: 0px #0000FF;  */
+        }
+
+        .stroke-single-bg{
+            position: absolute;
+            left: 0;
+            right: 0;
+            margin: auto;
+            margin-left: 5px;
+            /* -webkit-text-stroke: 3px #FF0000;  */
+        }
+        /* add a single stroke */
+        .stroke-single-fg{
+            position: absolute;
+            left: 0;
+            right: 0;
+            margin: auto;
+            margin-left: 5px;
+            /* -webkit-text-stroke: 0px #FFFFFF; */
+        }
+    </style>
+
+    <script>
+         
+        // URLパラメータ取得用関数 ---------------------------
+        function getParam(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&]*)|&|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        // 一定時間変化がなかったら消す ------------------------------------
+        var fn_del = function() {
+            document.getElementById('speech_text-imb').innerHTML = '';
+            document.getElementById('speech_text-bg').innerHTML = '';
+            document.getElementById('speech_text-fg').innerHTML = '';
+            document.getElementById('trans_text-imb').innerHTML = '';
+            document.getElementById('trans_text-bg').innerHTML = '';
+            document.getElementById('trans_text-fg').innerHTML = '';
+            document.getElementById('trans_text2-imb').innerHTML = '';
+            document.getElementById('trans_text2-bg').innerHTML = '';
+            document.getElementById('trans_text2-fg').innerHTML = '';
+            document.getElementById('trans_text3-imb').innerHTML = '';
+            document.getElementById('trans_text3-bg').innerHTML = '';
+            document.getElementById('trans_text3-fg').innerHTML = '';
+
+            // 各フラグをリセット
+            isSpeechRecognitionComplete = false;
+            isTextTranslation1Complete = false;
+            isTextTranslation2Complete = false;
+            isTextTranslation3Complete = false;
+        };
+
+
+        // URLからの値読み込み(削除タイマー) -------------------
+        var timer = getParam('timer');
+
+        //////////////////////////////////////////////////////////
+        // URLからの値読み込み -------------------
+        var arg_recog = getParam('recog');
+        var arg_trans = getParam('trans');
+        var arg_trans2 = getParam('trans2');
+        var arg_trans3 = getParam('trans3');
+
+        /////////////////////////////////////////////////////////
+        // 翻訳API用設定 ---------------------------
+        if (arg_trans != null) var request = new XMLHttpRequest();
+        if (arg_trans2 != null) var request2 = new XMLHttpRequest();
+        if (arg_trans3 != null) var request3 = new XMLHttpRequest();
+
+        // 翻訳用設定 ---------------------------
+        var trans_sourcelang = 'ja';
+        var trans_destlang = 'en';
+        var trans2_destlang = '';
+        var trans3_destlang = '';
+
+
+        var gas_key = getParam('gas_key');
+        
+        var TRANS_URL = 'https://script.google.com/macros/s/' + gas_key + '/exec';
+        var query = ''
+
+        // その他の設定 -----------------------
+        var bouyomi = getParam('bouyomi');
+        var anti_sexual = getParam('anti_sexual');
+
+
+        // 一定時間認識結果がなかったら，そこで認識終了 --------------------
+        var short_pause = getParam('short_pause');
+        // if(short_pause == null) {
+        //     short_pause = 0;
+        // }
+
+        var stop_recog;
+        var id_stop_recog;
+
+        var count = 0;
+
+        // URLからテキストファイルをリスト形式で読み込む -----------------------
+        const url = "https://raw.githubusercontent.com/sayonari/inappropriate-words-ja/master/Sexual.txt";
+        var sexual_words = [];
+
+        if(anti_sexual != 'false') {
+            fetch(url)
+                .then( r => r.text() )
+                .then( t => {
+                    sexual_words = t.split("\n");
+                    // 空の要素を削除
+                    sexual_words = sexual_words.filter(Boolean);
+                })
+        }
+            
+
+        // 音声認識本体 /////////////////////////////////////////////////
+        window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
+
+        // 音声認識用設定 ----------------------
+        var recognition = new webkitSpeechRecognition();
+        recognition.lang = 'ja';
+        recognition.interimResults = true;
+        // recognition.continuous = true;
+        var recog_text = '';
+        var recog_IM_text = '';
+        var recog_conf = 0;
+        var trans_text = '';
+        var trans2_text = '';
+        var trans3_text = '';
+
+        var my_count = count;
+        count = count + 1;
+
+        // その他設定 ----------------------------
+        var isSpeechRecognitionComplete = false;
+        var isTextTranslation1Complete = false;
+        var isTextTranslation2Complete = false;
+        var isTextTranslation3Complete = false;
+
+        function shouldClearText() {
+            // Check if each process is enabled and if it's complete
+            var recogComplete = arg_recog != null ? isSpeechRecognitionComplete : true;
+            var trans1Complete = arg_trans != null ? isTextTranslation1Complete : true;
+            var trans2Complete = arg_trans2 != null ? isTextTranslation2Complete : true;
+            var trans3Complete = arg_trans3 != null ? isTextTranslation3Complete : true;
+
+            return recogComplete && trans1Complete && trans2Complete && trans3Complete;
+        }
+
+        stop_recog = function() {
+            console.log("stop by short pause!");
+            recognition.stop();
+        };
+
+        ///////////////////////////////////////////////////////////
+        // 各種イベントへの対応 --------------------------------- 
+        // 音声・認識 開始
+        recognition.onstart = () => {
+            console.log("onstart cnt:" + String(my_count));
+        }
+        recognition.onaudiostart = () => {
+            console.log("onaudiostart cnt:" + String(my_count));
+        }
+        recognition.onsoundstart = () => {
+            console.log("onsoundstart cnt:" + String(my_count));
+        }
+        recognition.onspeechstart = () => {
+            console.log("onspeechstart cnt:" + String(my_count));
+        }
+        
+        // 音声・認識 終了
+        recognition.onspeechend = () => {
+            console.log("onspeechend cnt:" + String(my_count));
+        }
+        recognition.onsoundend = () => {
+            console.log("onsoundend cnt:" + String(my_count));
+        }
+        recognition.onaudioend = () => {
+            console.log("onaudioend cnt:" + String(my_count));
+        }
+        recognition.onend = () => {
+            console.log("onend cnt:" + String(my_count));
+            recognition.start();
+            my_count = count;
+            count = count + 1;
+        }
+
+        // エラー等
+        recognition.onerror = () => {
+            console.log("onerror cnt:" + String(my_count));
+            recognition.stop();
+        }
+        recognition.onnomatch = () => {
+            console.log("onnomatch cnt:" + String(my_count));
+            recognition.stop();
+        }
+
+
+        // 言語設定 ----------------------------
+        if (arg_recog != null) {
+            recognition.lang = arg_recog;
+            trans_sourcelang　= recognition.lang;
+        }
+        if (arg_trans != null) {
+            trans_destlang = arg_trans;
+        }
+        if (arg_trans2 != null) {
+            trans2_destlang = arg_trans2;
+        }
+        if (arg_trans3 != null) {
+            trans3_destlang = arg_trans3;
+        }
+
+        // 認識結果が返ってきたとき ------------------
+        recognition.onresult = function(event) {
+            var results = event.results;
+            for (var i = event.resultIndex; i < results.length; i++) {
+                if (results[i].isFinal)
+                {
+
+                    // 認識結果を取得
+                    recog_text = results[i][0].transcript;
+                        
+                    // 認識結果の中の危険単語を検知して，結果を***に置き換える
+                    if(anti_sexual != 'false') {
+                        for (var j = 0; j < sexual_words.length; j++) {
+                            if (recog_text.includes(sexual_words[j])) {
+                                recog_text = recog_text.replace(sexual_words[j], "***");
+                            }
+                        }
+                    }
+
+                    // 認識結果を表示する ---------------------
+                    document.getElementById('speech_text-imb').innerHTML = recog_text;
+                    document.getElementById('speech_text-bg').innerHTML = recog_text;
+                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                    isSpeechRecognitionComplete = true; // フラグを更新
+
+                    // すべての処理が完了した後に内容を消す
+                    if (timer != null && shouldClearText()) {
+                        setTimeout(fn_del, timer);
+                    }
+
+                    // 棒読みちゃんにコメントを送信する
+                    if(bouyomi == "true") {
+                        let bouyomiChanClient = new BouyomiChanClient();
+                        bouyomiChanClient.talk(recog_text);
+                    }
+
+                    if(gas_key != null){
+
+                        // 翻訳1言語目
+                        if(arg_trans != null){
+                            query = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans_destlang;
+                            request.open('GET', query, true);
+
+                            request.onreadystatechange = function(){
+                                if (request.readyState === 4 && request.status === 200){
+
+                                    var responseText1 = request.responseText;
+
+                                    // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
+                                    try {
+                                        var jsonResponse = JSON.parse(responseText1);
+                                        if (jsonResponse.translatedText) {
+                                            responseText1 = jsonResponse.translatedText;
+                                            var translatedCount = jsonResponse.translatedCount;
+                                            document.getElementById('translationCount').innerHTML = translatedCount;
+                                            console.log('translatedCount(1):'+translatedCount);
+                                        }
+                                    } catch (e) {
+                                        // JSON形式でなければ何もしない
+                                    }
+
+                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
+                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('trans_text-imb').innerHTML =  responseText1;
+                                    document.getElementById('trans_text-bg').innerHTML =  responseText1;
+                                    document.getElementById('trans_text-fg').innerHTML =  responseText1;
+                                    isTextTranslation1Complete = true; // フラグを更新
+
+                                    // すべての処理が完了した後に内容を消す
+                                    if (timer != null && shouldClearText()) {
+                                        setTimeout(fn_del, timer);
+                                    }
+                                }
+                            }
+                            request.send(null);
+                        }
+
+                        // 翻訳2言語目
+                        if(arg_trans2 != null){
+                            query2 = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans2_destlang;
+                            request2.open('GET', query2, true);
+
+                            request2.onreadystatechange = function(){
+                                if (request2.readyState === 4 && request2.status === 200){
+
+                                    var responseText2 = request2.responseText;
+
+                                    // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
+                                    try {
+                                        var jsonResponse = JSON.parse(responseText2);
+                                        if (jsonResponse.translatedText) {
+                                            responseText2 = jsonResponse.translatedText;
+                                            document.getElementById('translationCount').innerHTML = jsonResponse.translatedCount;
+                                            var translatedCount2 = jsonResponse.translatedCount;
+                                            document.getElementById('translationCount').innerHTML = translatedCount2;
+                                            console.log('translatedCount(2):'+translatedCount2);
+                                        }
+                                    } catch (e) {
+                                        // JSON形式でなければ何もしない
+                                    }
+
+                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
+                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('trans_text2-imb').innerHTML = responseText2;
+                                    document.getElementById('trans_text2-bg').innerHTML = responseText2;
+                                    document.getElementById('trans_text2-fg').innerHTML = responseText2;
+                                    isTextTranslation2Complete = true; // フラグを更新
+
+                                    // すべての処理が完了した後に内容を消す
+                                    if (timer != null && shouldClearText()) {
+                                        setTimeout(fn_del, timer);
+                                    }
+                                }
+                            }
+                            request2.send(null);
+                        }
+
+                        // 翻訳2言語目
+                        if(arg_trans3 != null){
+                            query3 = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans3_destlang;
+                            request3.open('GET', query3, true);
+
+                            request3.onreadystatechange = function(){
+                                if (request3.readyState === 4 && request3.status === 200){
+
+                                    var responseText3 = request3.responseText;
+
+                                    // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
+                                    try {
+                                        var jsonResponse = JSON.parse(responseText3);
+                                        if (jsonResponse.translatedText) {
+                                            responseText3 = jsonResponse.translatedText;
+                                            document.getElementById('translationCount').innerHTML = jsonResponse.translatedCount;
+                                            var translatedCount3 = jsonResponse.translatedCount;
+                                            document.getElementById('translationCount').innerHTML = translatedCount3;
+                                            console.log('translatedCount(3):'+translatedCount3);
+                                        }
+                                    } catch (e) {
+                                        // JSON形式でなければ何もしない
+                                    }
+
+                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
+                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('trans_text3-imb').innerHTML = responseText3;
+                                    document.getElementById('trans_text3-bg').innerHTML = responseText3;
+                                    document.getElementById('trans_text3-fg').innerHTML = responseText3;
+                                    isTextTranslation2Complete = true; // フラグを更新
+
+                                    // すべての処理が完了した後に内容を消す
+                                    if (timer != null && shouldClearText()) {
+                                        setTimeout(fn_del, timer);
+                                    }
+                                }
+                            }
+                            request3.send(null);
+                        }
+
+                    } else {
+                        document.getElementById('speech_text-imb').innerHTML = recog_text;
+                        document.getElementById('speech_text-bg').innerHTML = recog_text;
+                        document.getElementById('speech_text-fg').innerHTML = recog_text;
+                    }
+
+                }
+                else
+                {
+                    // 「ショートポースが来たら，音声認識を強制的に止める」のタイムアウト処理を削除する -------
+                    if(short_pause != null) clearTimeout(id_stop_recog);
+
+                    // ショートポーズストップ用タイムアウト
+                    if(short_pause != null) id_stop_recog = setTimeout(stop_recog,short_pause);
+
+                    // 認識結果を変数に格納
+                    recog_IM_text = results[i][0].transcript
+
+                    // 認識結果の中の危険単語を検知して，結果を***に置き換える
+                    if(anti_sexual != 'false') {
+                        for (var j = 0; j < sexual_words.length; j++) {
+                            if (recog_IM_text.includes(sexual_words[j])) {
+                                recog_IM_text = recog_IM_text.replace(sexual_words[j], "***");
+                            }
+                        }
+                    }
+
+                    // 画面表示テキスト更新 ---
+                    if(recog_IM_text != ""){
+                        document.getElementById('speech_text-imb').innerHTML = "<< " + recog_IM_text + " >>";
+                        document.getElementById('speech_text-bg').innerHTML = "<< " + recog_IM_text + " >>";
+                        document.getElementById('speech_text-fg').innerHTML = "<< " + recog_IM_text + " >>";
+                    }
+
+                }
+            }
+        }
+
+        recognition.start();
+        console.log("recog start: cnt:" + String(my_count));
+
+    </script> 
+</head>
+ 
+
+
+
+
+
+<body>
+    <div class="big" id="result_text">
+        <table id="text_table" class="btm_table" style="overflow:hidden;">
+            <tr><td id="tbl_td" align="center" valign='bottom'>
+                <div id="speech_text">
+                    <div class="stroke-single-bg" id="speech_text-bg"></div> 
+                    <div class="stroke-single-fg" id="speech_text-fg"></div>
+                    <div class="stroke-single-imb" id="speech_text-imb"></div> 
+                </div>
+
+                <div id="trans_text">
+                    <div class="stroke-single-bg" id="trans_text-bg"></div>  
+                    <div class="stroke-single-fg" id="trans_text-fg"></div>  
+                    <div class="stroke-single-imb" id="trans_text-imb"></div>  
+                </div>
+
+                <div id="trans_text2">
+                    <div class="stroke-single-bg" id="trans_text2-bg"></div>  
+                    <div class="stroke-single-fg" id="trans_text2-fg"></div>  
+                    <div class="stroke-single-imb" id="trans_text2-imb"></div>  
+                </div>
+
+                <div id="trans_text3">
+                    <div class="stroke-single-bg" id="trans_text3-bg"></div>  
+                    <div class="stroke-single-fg" id="trans_text3-fg"></div>  
+                    <div class="stroke-single-imb" id="trans_text3-imb"></div>  
+                </div>
+            </td></tr>
+        </table>
+    </div>
+
+    <!-- 翻訳回数管理 -->
+    <div id="translationCount" style="display: none;"></div>
+
+</body>
+
+
+
+
+
+
+
+
+
+<!-- ############## 末尾のjavascript ############## -->
+<script type="text/javascript">
+
+// バージョン情報の表示 ---------------------------------
+const SoftwareTitle = "音声認識字幕ちゃん";
+const SoftwareVersion = "2024.1.27 16:29";
+const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
+
+const speech_text_first = "[" + SoftwareTitle + " (Ver:" + SoftwareVersion + ")" + "]";
+document.getElementById('speech_text-bg').innerHTML = speech_text_first;
+document.getElementById('speech_text-fg').innerHTML = speech_text_first;
+document.getElementById('speech_text-imb').innerHTML = speech_text_first;
+
+const trans1_text_first = SoftwareDeveloper;
+document.getElementById('trans_text-bg').innerHTML = trans1_text_first
+document.getElementById('trans_text-fg').innerHTML = trans1_text_first
+document.getElementById('trans_text-imb').innerHTML = trans1_text_first
+
+const trans2_text_first = "[ここに結果表示（翻訳２）]";
+document.getElementById('trans_text2-bg').innerHTML = trans2_text_first;
+document.getElementById('trans_text2-fg').innerHTML = trans2_text_first;
+document.getElementById('trans_text2-imb').innerHTML = trans2_text_first;
+
+const trans3_text_first = "[ここに結果表示（翻訳３）]";
+document.getElementById('trans_text3-bg').innerHTML = trans3_text_first;
+document.getElementById('trans_text3-fg').innerHTML = trans3_text_first;
+document.getElementById('trans_text3-imb').innerHTML = trans3_text_first;
+
+
+// 対象言語を利用しない場合，初期表示文の削除 /////
+if (getParam('trans') == null) {
+    document.getElementById('trans_text-bg').innerHTML = '';
+    document.getElementById('trans_text-fg').innerHTML = '';
+    document.getElementById('trans_text-imb').innerHTML = '';
+}
+if (getParam('trans2') == null) {
+    document.getElementById('trans_text2-bg').innerHTML = '';
+    document.getElementById('trans_text2-fg').innerHTML = '';
+    document.getElementById('trans_text2-imb').innerHTML = '';
+}
+if (getParam('trans3') == null) {
+    document.getElementById('trans_text3-bg').innerHTML = '';
+    document.getElementById('trans_text3-fg').innerHTML = '';
+    document.getElementById('trans_text3-imb').innerHTML = '';
+}
+
+// 表示スタイル変更 ---------------------------------
+if (getParam('bgcolor') != null){
+    document.bgColor = getParam('bgcolor');
+}
+
+if (getParam('v_align') == "top"){
+    document.getElementById("text_table").style.bottom = -1;
+} else if(getParam('v_align') == "bottom"){
+    document.getElementById("text_table").style.bottom = 0;
+}
+
+if (getParam('textAlign') != null){
+    document.getElementById("text_table").style.textAlign = getParam('textAlign');
+    document.getElementById("tbl_td").style.textAlign = getParam('textAlign');
+    if(getParam('textAlign') == "right"){
+        document.getElementById("text_table").style.direction = "rtl";
+        document.getElementById("tbl_td").style.direction = "rtl";
+        document.body.style.direction = "rtl";
+    }
+}
+
+if (getParam('whiteSpace') != null){
+    document.getElementById("text_table").style.whiteSpace = getParam('whiteSpace');
+}
+
+// 高さ合わせ用フォント（色を背景色と同じにする） ############################################
+// 音声認識テキスト -------
+if (getParam('bgcolor') != null){
+    document.getElementById("speech_text-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+}
+if (getParam('st_width1') != null){
+    document.getElementById("speech_text-imb").style.webkitTextStrokeWidth = getParam('st_width1') + 'pt';
+}
+
+// 翻訳結果テキスト -------
+if (getParam('bgcolor') != null){
+    document.getElementById("trans_text-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+}
+if (getParam('st_width2') != null){
+    document.getElementById("trans_text-imb").style.webkitTextStrokeWidth = getParam('st_width2') + 'pt';
+}
+
+// 翻訳結果テキスト（第2言語） -------
+if (getParam('bgcolor') != null){
+    document.getElementById("trans_text2-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+}
+if (getParam('st_width3') != null){
+    document.getElementById("trans_text2-imb").style.webkitTextStrokeWidth = getParam('st_width3') + 'pt';
+}
+
+// 翻訳結果テキスト（第3言語） -------
+if (getParam('bgcolor') != null){
+    document.getElementById("trans_text3-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+}
+if (getParam('st_width4') != null){
+    document.getElementById("trans_text3-imb").style.webkitTextStrokeWidth = getParam('st_width4') + 'pt';
+}
+
+
+
+// 表示設定 ############################################
+// 全体共通 ----------------
+
+// 音声認識結果 ----------------
+if (getParam('speech_text_font') != null){
+    document.getElementById("speech_text").style.fontFamily = "'" + getParam('speech_text_font') + "'";
+}
+
+if (getParam('size1') != null){
+    document.getElementById("speech_text").style.fontSize = getParam('size1') + 'pt';
+}
+
+if (getParam('weight1') != null){
+    document.getElementById("speech_text").style.fontWeight = getParam('weight1');
+}
+
+if (getParam('color1') != null){
+    document.getElementById("speech_text-fg").style.color = getParam('color1');
+}
+
+if (getParam('st_color1') != null){
+    document.getElementById("speech_text-bg").style.webkitTextStrokeColor = getParam('st_color1');
+}
+
+if (getParam('st_width1') != null){
+    document.getElementById("speech_text-bg").style.webkitTextStrokeWidth = getParam('st_width1') + 'pt';
+}
+
+// 翻訳結果テキスト ----------------
+if (getParam('trans_text_font') != null){
+    document.getElementById("trans_text").style.fontFamily = "'" + getParam('trans_text_font') + "'";
+}
+
+if (getParam('size2') != null){
+    document.getElementById("trans_text").style.fontSize = getParam('size2') + 'pt';
+}
+
+if (getParam('weight2') != null){
+    document.getElementById("trans_text").style.fontWeight = getParam('weight2');
+}
+
+if (getParam('color2') != null){
+    document.getElementById("trans_text-fg").style.color = getParam('color2');
+}
+
+if (getParam('st_color2') != null){
+    document.getElementById("trans_text-bg").style.webkitTextStrokeColor = getParam('st_color2');
+}
+
+if (getParam('st_width2') != null){
+    document.getElementById("trans_text-bg").style.webkitTextStrokeWidth = getParam('st_width2') + 'pt';
+}
+
+// 翻訳結果テキスト（第2言語） -----------
+if (getParam('trans_text2_font') != null){
+    document.getElementById("trans_text2").style.fontFamily = "'" + getParam('trans_text2_font') + "'";
+}
+
+
+if (getParam('size3') != null){
+    document.getElementById("trans_text2").style.fontSize = getParam('size3') + 'pt';
+}
+
+if (getParam('weight3') != null){
+    document.getElementById("trans_text2").style.fontWeight = getParam('weight3');
+}
+
+if (getParam('color3') != null){
+    document.getElementById("trans_text2-fg").style.color = getParam('color3');
+}
+
+if (getParam('st_color3') != null){
+    document.getElementById("trans_text2-bg").style.webkitTextStrokeColor = getParam('st_color3');
+}
+
+if (getParam('st_width3') != null){
+    document.getElementById("trans_text2-bg").style.webkitTextStrokeWidth = getParam('st_width3') + 'pt';
+}
+
+// 翻訳結果テキスト（第2言語） -----------
+if (getParam('trans_text3_font') != null){
+    document.getElementById("trans_text3").style.fontFamily = "'" + getParam('trans_text3_font') + "'";
+}
+
+
+if (getParam('size4') != null){
+    document.getElementById("trans_text3").style.fontSize = getParam('size4') + 'pt';
+}
+
+if (getParam('weight4') != null){
+    document.getElementById("trans_text3").style.fontWeight = getParam('weight4');
+}
+
+if (getParam('color4') != null){
+    document.getElementById("trans_text3-fg").style.color = getParam('color4');
+}
+
+if (getParam('st_color4') != null){
+    document.getElementById("trans_text3-bg").style.webkitTextStrokeColor = getParam('st_color4');
+}
+
+if (getParam('st_width4') != null){
+    document.getElementById("trans_text3-bg").style.webkitTextStrokeWidth = getParam('st_width4') + 'pt';
+}
+
+</script>
+
+
+
+
+</html>
