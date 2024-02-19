@@ -117,11 +117,6 @@
 <button onclick="loadSettings()">設定ファイルをブラウザに読込</button>　：設定が完成したら，設定ファイルを保存しておきましょう　<BR>
 <HR>
 
-<!-- # API key text box ##################### -->
-翻訳用 Google API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /> キーの作成方法 → <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">[LINK]</a><BR>
-翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）←僕じゃなくてGoogle にお金払う</font><BR>
-<HR>
-
     <!-- # 背景の色 ############################## -->
 　　　　文字色 フチ色<BR>
 認識　：<input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
@@ -422,7 +417,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     base_url += "main.html?";
 
     // config 値　一覧 ////////////////
-    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "recog", "trans", "trans2", "bgcolor"
+    config_values = ["textAlign", "v_align", "whiteSpace", "recog", "trans", "trans2", "bgcolor"
         , "size1", "weight1", "color1", "st_color1", "st_width1"
         , "size2", "weight2", "color2", "st_color2", "st_width2"
         , "size3", "weight3", "color3", "st_color3", "st_width3"
@@ -521,7 +516,6 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
         if(bouyomi == true) {new_url = new_url + "&bouyomi=" + bouyomi;}
         if(anti_sexual == true) {new_url = new_url + "&anti_sexual=" + "false";}
-        if(gas_key != '') {new_url = new_url + "&gas_key=" + gas_key;}
    
         // config の更新
         for (const p of config_values) {
@@ -649,23 +643,6 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         input.click();
     }
 
-</script>
-
-<!-- # 翻訳回数取得　############################ -->
-<script>
-    function getTranslationCount() {
-        var iframe = document.getElementById('asr_frame');
-        var transCount = iframe.contentWindow.document.getElementById('translationCount').innerHTML;
-        if(transCount == ''){
-            transCount = '[ココに回数出るよ！]';
-        }
-        return transCount;
-    }
-
-    // 1秒ごとに翻訳カウントを更新
-    setInterval(function() {
-        document.getElementById('displayTransCount').innerHTML = getTranslationCount();
-    }, 1000);
 </script>
 
 <!-- # iframeの高さを切り替える　############################ -->

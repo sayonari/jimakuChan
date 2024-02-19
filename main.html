@@ -155,10 +155,7 @@
         var trans_sourcelang = 'ja';
         var trans_destlang = 'en';
         var trans2_destlang = '';
-
-        var gas_key = getParam('gas_key');
         
-        var TRANS_URL = 'https://script.google.com/macros/s/' + gas_key + '/exec';
         var query = ''
 
         // その他の設定 -----------------------
@@ -320,13 +317,14 @@
                         bouyomiChanClient.talk(recog_text);
                     }
 
-                    if(gas_key != null){
+                    if(true){
 
                         // 翻訳1言語目
                         // console.log('arg_trans:'+arg_trans)
                         if(arg_trans != null){
-                            query = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans_destlang;
-                            request.open('GET', query, true);
+                            query = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t';
+                            request.open('POST', query, true);
+							request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 
                             request.onreadystatechange = function(){
                                 if (request.readyState === 4 && request.status === 200){
@@ -336,12 +334,7 @@
                                     // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
                                     try {
                                         var jsonResponse = JSON.parse(responseText1);
-                                        if (jsonResponse.translatedText) {
-                                            responseText1 = jsonResponse.translatedText;
-                                            var translatedCount = jsonResponse.translatedCount;
-                                            document.getElementById('translationCount').innerHTML = translatedCount;
-                                            console.log('translatedCount(1):'+translatedCount);
-                                        }
+										responseText1 = jsonResponse[0][0][0];
                                     } catch (e) {
                                         // JSON形式でなければ何もしない
                                     }
@@ -363,14 +356,15 @@
                                     }
                                 }
                             }
-                            request.send(null);
+                            request.send('q=' + encodeURIComponent(recog_text) + '&sl=' + trans_sourcelang + '&tl=' + trans_destlang);
                         }
 
                         // 翻訳2言語目
                         // console.log('arg_trans2:'+arg_trans2)
                         if(arg_trans2 != null){
-                            query2 = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans2_destlang;
-                            request2.open('GET', query2, true);
+                            query2 = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t';
+							request2.open('POST', query2, true);
+							request2.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 
                             request2.onreadystatechange = function(){
                                 if (request2.readyState === 4 && request2.status === 200){
@@ -380,13 +374,7 @@
                                     // JSON形式であるかを確認し、JSONであればtranslatedTextを抽出
                                     try {
                                         var jsonResponse = JSON.parse(responseText2);
-                                        if (jsonResponse.translatedText) {
-                                            responseText2 = jsonResponse.translatedText;
-                                            document.getElementById('translationCount').innerHTML = jsonResponse.translatedCount;
-                                            var translatedCount2 = jsonResponse.translatedCount;
-                                            document.getElementById('translationCount').innerHTML = translatedCount2;
-                                            console.log('translatedCount(2):'+translatedCount2);
-                                        }
+                                        responseText2 = jsonResponse[0][0][0];
                                     } catch (e) {
                                         // JSON形式でなければ何もしない
                                     }
@@ -405,7 +393,7 @@
                                     }
                                 }
                             }
-                            request2.send(null);
+                            request2.send('q=' + encodeURIComponent(recog_text) + '&sl=' + trans_sourcelang + '&tl=' + trans2_destlang);
                         }
 
                     } else {
