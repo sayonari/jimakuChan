@@ -122,7 +122,7 @@
 翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）←僕じゃなくてGoogle にお金払う</font><BR>
 <HR>
 
-    <!-- # 背景の色 ############################## -->
+<!-- # 背景の色 ############################## -->
 　　　　文字色 フチ色<BR>
 認識　：<input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
 <input id="st_color1" type="color" value="#000000" oninput="changeTextColor('bg',this.value,1); updateOptionValues(only_url=true)" />
@@ -132,8 +132,13 @@
 <BR>
 翻訳１：<input id="color2" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,2); updateOptionValues(only_url=true)" />
 <input id="st_color2" type="color" value="#000000" oninput="changeTextColor('bg',this.value,2); updateOptionValues(only_url=true)" /><BR>
+
 翻訳２：<input id="color3" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,3); updateOptionValues(only_url=true)" />
 <input id="st_color3" type="color" value="#000000" oninput="changeTextColor('bg',this.value,3); updateOptionValues(only_url=true)" /><BR>
+
+翻訳３：<input id="color4" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,4); updateOptionValues(only_url=true)" />
+<input id="st_color4" type="color" value="#000000" oninput="changeTextColor('bg',this.value,4); updateOptionValues(only_url=true)" /><BR>
+
 <HR>
 
 <!-- # テキストフォント ########################
@@ -173,6 +178,17 @@
 
 <input id="st_width3" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,3); document.getElementById('text_st_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
 <span id="text_st_size_view3">6</span>pt
+<BR>
+
+翻訳３：
+<input id="size4" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_size_view4">25</span>px 
+
+<input id="weight4" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontWeight = this.value; document.getElementById('text_weight_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_weight_view4">900</span> 
+
+<input id="st_width4" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,4); document.getElementById('text_st_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+<span id="text_st_size_view4">6</span>pt
 <BR>
 
 <HR>
@@ -377,6 +393,66 @@
     <option value="Nico Moji">ニコモジ</option>
 </select>　
 フォント（直接指定）：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
+
+翻訳言語（３）：
+<select id="trans3" onchange="updateOptionValues(only_url=false);">
+    <option value="none" selected>なし</option>
+    <option value="ja">日本語</option>
+    <option value="en">英語</option>
+    <option value="ko">韓国語</option>
+    <option value="zh-CN">中国語</option>
+    <option value="zh-TW">台湾語</option>
+    <option value="fr">フランス語</option>
+    <option value="it">イタリア語</option>
+    <option value="de">ドイツ語</option>
+    <option value="tr">トルコ語</option>
+    <option value="sv">スウェーデン語</option>
+    <option value="pl">ポーランド語</option>
+    <option value="uk">ウクライナ語</option>
+    <option value="ru">ロシア語</option>
+    <option value="es">スペイン語</option>
+    <option value="pt">ポルトガル語</option>
+    <option value="nl">オランダ語</option>
+    <option value="id">インドネシア語</option>
+    <option value="vi">ベトナム語</option>
+    <option value="th">タイ語</option>
+    <option value="ar">アラビア語</option>
+    <option value="so">ソマリ語</option>
+</select>　　
+
+フォント　：
+<select name="trans_text3_font_selector" id="trans_text3_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontFamily = this.value; selectFont();">
+    <option value="direct">[直接指定]</option>
+    <option value="M PLUS\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="Mamelon">マメロン</option>
+    <option value="YasashisaB">やさしさB</option>
+    <option value="HuiFont29">ふい字</option>
+    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
+    <option value="MkPOP">851マカポップ</option>
+    <option value="bananaslipplus">バナナスリップplus</option>
+    <option value="katyou">花鳥風月</option>
+    <option value="TanukiMagic">たぬき油性マジック</option>
+    <option value="hakidame">吐き溜</option>
+    <option value="umeboshi">梅干し</option>
+    <option value="Jiyucho">じゆうちょう</option>
+    <option value="HitmoR">Hitmo</option>
+    <option value="nishikiteki">にしき的</option>
+    <option value="Yusei Magic">Yusei Magic</option>
+    <option value="Nikumaru">にくまる</option>
+    <option value="KTEGAKI">kawaii手書き</option>
+    <option value="JKGL">JK Gothic L</option>
+    <option value="Reggae One">Reggae One</option>
+    <option value="OhisamaFont">おひさま</option>
+    <option value="nukamiso">ぬかみそ</option>
+    <option value="genkai">源界明朝</option>
+    <option value="CP">チェックポイント</option>
+    <option value="Noto Sans JP">Noto Sans JP</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nico Moji">ニコモジ</option>
+</select>　
+フォント（直接指定）：<input type="text" name="trans_text3_font" id="trans_text3_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
+
 <HR>
 
 <!-- # テキスト表示を●秒後に消す ######################### -->
@@ -421,15 +497,17 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     let base_url = currentURL.replace("index.html", "");
     base_url += "main.html?";
 
+
     // config 値　一覧 ////////////////
-    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "recog", "trans", "trans2", "bgcolor"
-        , "size1", "weight1", "color1", "st_color1", "st_width1"
-        , "size2", "weight2", "color2", "st_color2", "st_width2"
-        , "size3", "weight3", "color3", "st_color3", "st_width3"
+    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "bgcolor"
+        , "recog", "size1", "weight1", "color1", "st_color1", "st_width1"
+        , "trans", "size2", "weight2", "color2", "st_color2", "st_width2"
+        , "trans2", "size3", "weight3", "color3", "st_color3", "st_width3"
+        , "trans3", "size4", "weight4", "color4", "st_color4", "st_width4"
         , "timer", "short_pause"
         , "bouyomi", "anti_sexual"
-        , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector"
-        , "speech_text_font", "trans_text_font", "trans_text2_font"];
+        , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector", "trans_text3_font_selector"
+        , "speech_text_font", "trans_text_font", "trans_text2_font", "trans_text3_font"];
 
     // 翻訳画面とURLを初期化 ///////////////
     document.getElementById('asr_frame').src = base_url;
@@ -454,6 +532,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         var speech_text_font_selector = document.getElementById('speech_text_font_selector').value;
         var trans_text_font_selector = document.getElementById('trans_text_font_selector').value;
         var trans_text2_font_selector = document.getElementById('trans_text2_font_selector').value;
+        var trans_text3_font_selector = document.getElementById('trans_text3_font_selector').value;
         console.log("フォントテキストエリア: " + speech_text_font_selector);
         if (speech_text_font_selector === "direct") {
             speech_text_font.disabled = false;
@@ -471,6 +550,12 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
             trans_text2_font.disabled = false;
         } else {
             trans_text2_font.disabled = true;
+        }
+
+        if (trans_text3_font_selector === "direct") {
+            trans_text3_font.disabled = false;
+        } else {
+            trans_text3_font.disabled = true;
         }
 
         updateOptionValues();
@@ -495,12 +580,15 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
                      + "&st_color2=" + st_color2 + "&st_width2=" + st_width2
 
                      + "&size3=" + size3 + "&weight3=" + weight3 + "&color3=" + color3
-                     + "&st_color3=" + st_color3 + "&st_width3=" + st_width3;
+                     + "&st_color3=" + st_color3 + "&st_width3=" + st_width3
+
+                     + "&size4=" + size4 + "&weight4=" + weight4 + "&color4=" + color4
+                     + "&st_color4=" + st_color4 + "&st_width4=" + st_width4;
 
         if(whiteSpace != '') {new_url = new_url + "&whiteSpace=" + whiteSpace;} 
         if(trans != 'none') {new_url = new_url + "&trans=" + trans;} 
         if(trans2 != 'none') {new_url = new_url + "&trans2=" + trans2;} 
-
+        if(trans3 != 'none') {new_url = new_url + "&trans3=" + trans3;} 
 
         // font の処理
         if (speech_text_font_selector !== "direct") {
@@ -512,9 +600,13 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         if (trans_text2_font_selector !== "direct") {
             trans_text2_font = trans_text2_font_selector;
         }
+        if (trans_text3_font_selector !== "direct") {
+            trans_text3_font = trans_text3_font_selector;
+        }
         if(speech_text_font != '') {new_url = new_url + "&speech_text_font=" + speech_text_font;} 
         if(trans_text_font != '') {new_url = new_url + "&trans_text_font=" + trans_text_font;} 
         if(trans_text2_font != '') {new_url = new_url + "&trans_text2_font=" + trans_text2_font;} 
+        if(trans_text3_font != '') {new_url = new_url + "&trans_text3_font=" + trans_text3_font;} 
 
         if(timer != '') {new_url = new_url + "&timer=" + timer;} 
         if(short_pause != '') {new_url = new_url + "&short_pause=" + short_pause;} 
@@ -547,14 +639,22 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     // テキストの色変え ---------------------------
     function changeTextColor(type, color, id) {
         var text_layer = ['fg','bg','imb'];
-        var lang_line = ['speech_text','trans_text','trans_text2'];
+        var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
 
         if(type == "fg") { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.color = color;}
         else { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.webkitTextStrokeColor = color; }
+
+        // type が imb の場合は，全てのlang_lineに反映
+        if(type == "imb") {
+            for (const ll of lang_line){
+                document.getElementById('asr_frame').contentWindow.document.getElementById(ll + '-' + type).style.webkitTextStrokeColor = color;
+                document.getElementById('asr_frame').contentWindow.document.getElementById(ll + '-' + type).style.color = color;
+            } 
+        }
     }
 
     function setTextBorder(width, id) {
-        var lang_line = ['speech_text','trans_text','trans_text2'];
+        var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
 
         document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-bg").style.webkitTextStrokeWidth = width + 'pt';
         document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-imb").style.webkitTextStrokeWidth = width + 'pt';
@@ -562,7 +662,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
     function changeText(text, id){
         var text_layer = ['fg','bg','imb'];
-        var lang_line = ['speech_text','trans_text','trans_text2'];
+        var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
 
         for (const tl of text_layer){ 
             document.getElementById('asr_frame').contentWindow.document.getElementById(ll[id-1] + '-' + tl).innerHTML = text;
