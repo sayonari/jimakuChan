@@ -19,14 +19,14 @@
     <script src="js/bouyomichan_client.js"></script>
 
     <!-- Google tag (gtag.js) -->
-    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-FKQVD3TMXH"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FKQVD3TMXH"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
     gtag('config', 'G-FKQVD3TMXH');
-    </script> -->
+    </script>
     <!-- END: Google tag (gtag.js) -->
 
 
@@ -106,7 +106,7 @@
     </style>
 
     <script>
-         
+
         // URLパラメータ取得用関数 ---------------------------
         function getParam(name, url) {
             if (!url) url = window.location.href;
@@ -185,20 +185,32 @@
 
         var count = 0;
 
-        // URLからテキストファイルをリスト形式で読み込む -----------------------
-        const url = "https://raw.githubusercontent.com/sayonari/inappropriate-words-ja/master/Sexual.txt";
-        var sexual_words = [];
+        // URLから Bad/Good 単語リストをリスト形式で読み込む -----------------------
+        let languageId = arg_recog;
+        const baseURL = "https://raw.githubusercontent.com/sayonari/goodBadWordlist/main/";
+        const badListPath = `/BadList.txt`; // 禁止ワードリストのパス
+        const goodListPath = `/GoodList.txt`; // 許可ワードリストのパス
+        var badWords_forRecog = [];
+        var goodWords_forRecog = [];
 
-        if(anti_sexual != 'false') {
-            fetch(url)
+        console.log("url: " + baseURL + languageId + badListPath);
+        if (anti_sexual !== 'false') {
+            // 禁止ワードリストを読み込む
+            fetch(baseURL + languageId + badListPath)
                 .then( r => r.text() )
                 .then( t => {
-                    sexual_words = t.split("\n");
-                    // 空の要素を削除
-                    sexual_words = sexual_words.filter(Boolean);
-                })
+                    badWords_forRecog = t.split("\n").filter(Boolean);
+                    console.log("loaded Bad Words num: " + badWords_forRecog.length);
+                });
+
+            // 許可ワードリストを読み込む
+            fetch(baseURL + languageId + goodListPath)
+                .then( r => r.text() )
+                .then( t => {
+                    goodWords_forRecog = t.split("\n").filter(Boolean);
+                });
         }
-            
+
 
         // 音声認識本体 /////////////////////////////////////////////////
         window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
@@ -302,21 +314,42 @@
         recognition.onresult = function(event) {
             var results = event.results;
             for (var i = event.resultIndex; i < results.length; i++) {
+
+                // 認識結果をget （途中結果 or 最終結果） ------------
+                var recog_text = results[i][0].transcript;
+
+                // #############################################################
+                // 危険単語を検知して，結果を***に置き換える #########################
+
+                // 保護する単語を一時的なプレースホルダーに置き換える --------
+                goodWords_forRecog.forEach((word, index) => {
+                    let placeholder = `{{GOOD_WORD_${index}}}`;
+                    recog_text = recog_text.replace(new RegExp(word, "gi"), placeholder);
+                });
+
+                // 認識結果の中の危険単語を検知して，結果を***に置き換える ---
+                if(anti_sexual != 'false') {
+                    badWords_forRecog.forEach(word => {
+                        let regex = new RegExp(word, "gi");
+                        recog_text = recog_text.replace(regex, "*".repeat(word.length));
+                    });
+                }
+                // console.log("bad:" + badWords_forRecog.length);
+                // console.log(badWords_forRecog, goodWords_forRecog);
+
+                // 一時的なプレースホルダーを保護する単語に戻す -------------
+                goodWords_forRecog.forEach((word, index) => {
+                    let placeholder = `{{GOOD_WORD_${index}}}`;
+                    recog_text = recog_text.replace(new RegExp(placeholder, "g"), word);
+                });
+
+                // #############################################################
+
+
+                // #################################################################
+                // 認識最終結果が来たら ###############################################
                 if (results[i].isFinal)
                 {
-
-                    // 認識結果を取得
-                    recog_text = results[i][0].transcript;
-                        
-                    // 認識結果の中の危険単語を検知して，結果を***に置き換える
-                    if(anti_sexual != 'false') {
-                        for (var j = 0; j < sexual_words.length; j++) {
-                            if (recog_text.includes(sexual_words[j])) {
-                                recog_text = recog_text.replace(sexual_words[j], "***");
-                            }
-                        }
-                    }
-
                     // 認識結果を表示する ---------------------
                     document.getElementById('speech_text-imb').innerHTML = recog_text;
                     document.getElementById('speech_text-bg').innerHTML = recog_text;
@@ -465,6 +498,8 @@
                     }
 
                 }
+                // #################################################################
+                // 認識途中結果が来たら ###############################################
                 else
                 {
                     // 「ショートポースが来たら，音声認識を強制的に止める」のタイムアウト処理を削除する -------
@@ -474,16 +509,7 @@
                     if(short_pause != null) id_stop_recog = setTimeout(stop_recog,short_pause);
 
                     // 認識結果を変数に格納
-                    recog_IM_text = results[i][0].transcript
-
-                    // 認識結果の中の危険単語を検知して，結果を***に置き換える
-                    if(anti_sexual != 'false') {
-                        for (var j = 0; j < sexual_words.length; j++) {
-                            if (recog_IM_text.includes(sexual_words[j])) {
-                                recog_IM_text = recog_IM_text.replace(sexual_words[j], "***");
-                            }
-                        }
-                    }
+                    recog_IM_text = recog_text;
 
                     // 画面表示テキスト更新 ---
                     if(recog_IM_text != ""){
@@ -555,9 +581,9 @@
 <script type="text/javascript">
 
 // バージョン情報の表示 ---------------------------------
-const SoftwareTitle = "正式版に移動してください．もうすぐココは消えます．";
-const SoftwareVersion = "";
-const SoftwareDeveloper = "「設定ファイルをPCに保存」で設定保存すれば便利です"
+const SoftwareTitle = "音声認識字幕ちゃん";
+const SoftwareVersion = "2024.6.14 22:00 BETA";
+const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
 
 const speech_text_first = "[" + SoftwareTitle + " (Ver:" + SoftwareVersion + ")" + "]";
 document.getElementById('speech_text-bg').innerHTML = speech_text_first;
@@ -626,6 +652,7 @@ if (getParam('whiteSpace') != null){
 // 音声認識テキスト -------
 if (getParam('bgcolor') != null){
     document.getElementById("speech_text-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+    document.getElementById("speech_text-imb").style.color = getParam('bgcolor');
 }
 if (getParam('st_width1') != null){
     document.getElementById("speech_text-imb").style.webkitTextStrokeWidth = getParam('st_width1') + 'pt';
@@ -634,6 +661,7 @@ if (getParam('st_width1') != null){
 // 翻訳結果テキスト -------
 if (getParam('bgcolor') != null){
     document.getElementById("trans_text-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+    document.getElementById("trans_text-imb").style.color = getParam('bgcolor');
 }
 if (getParam('st_width2') != null){
     document.getElementById("trans_text-imb").style.webkitTextStrokeWidth = getParam('st_width2') + 'pt';
@@ -642,6 +670,7 @@ if (getParam('st_width2') != null){
 // 翻訳結果テキスト（第2言語） -------
 if (getParam('bgcolor') != null){
     document.getElementById("trans_text2-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+    document.getElementById("trans_text2-imb").style.color = getParam('bgcolor');
 }
 if (getParam('st_width3') != null){
     document.getElementById("trans_text2-imb").style.webkitTextStrokeWidth = getParam('st_width3') + 'pt';
@@ -650,6 +679,7 @@ if (getParam('st_width3') != null){
 // 翻訳結果テキスト（第3言語） -------
 if (getParam('bgcolor') != null){
     document.getElementById("trans_text3-imb").style.webkitTextStrokeColor = getParam('bgcolor');
+    document.getElementById("trans_text3-imb").style.color = getParam('bgcolor');
 }
 if (getParam('st_width4') != null){
     document.getElementById("trans_text3-imb").style.webkitTextStrokeWidth = getParam('st_width4') + 'pt';
