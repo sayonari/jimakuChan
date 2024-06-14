@@ -745,7 +745,7 @@
         content = `@echo off\r\nstart chrome.exe --disable-features=CalculateNativeWinOcclusion --user-data-dir="C:\\temp\\user_jimaku" --new-window "${url}"\r\nexit /b`;
         filename = "jimakuChan_nonStop.bat";
       } else {
-        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="/tmp/user_jimaku"  --new-window "${url}"`;
+        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="Library/Application Support/Google/Chrome/user_jimaku_001"  --new-window "${url}"`;
         filename = "jimakuChan_nonStop.command";
       }
   
