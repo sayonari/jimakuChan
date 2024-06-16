@@ -19,14 +19,14 @@
     <script src="js/bouyomichan_client.js"></script>
 
     <!-- Google tag (gtag.js) -->
-    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
     gtag('config', 'G-5RNP0LDER8');
-    </script> -->
+    </script>
     <!-- END: Google tag (gtag.js) -->
 
     <title>jimakuChan: 音声認識字幕ちゃん [CONFIG]</title>
@@ -472,17 +472,46 @@
 <HR>
 
 <!-- # URL view & copy button ############### -->
-URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
-　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');">
-　<a id="open_link" target="_self" href="">[同じタブで開く]</a><BR>
-別窓で開くと２つ起動して両方止まるよ！多重起動しないように気をつけて！<BR>
-<HR>
+<!-- URL :  -->
+<!-- <textarea name="url" id="url" rows="7" cols="90"></textarea><BR> -->
+<!-- 　　　<input type="button" value="copy to clipboard" id="textarea_copy" onclick="document.getElementsByTagName('textarea')[0].select();document.execCommand('copy');"> -->
+<!-- 　<a id="open_link" target="_self" href="">[同じタブで開く]</a><BR>
+別窓で開くと２つ起動して両方止まるよ！多重起動しないように気をつけて！<BR> -->
+<!-- <HR> -->
 
 <!-- # .bat download ボタン ############################## -->
-<button onclick="generateBatFile('win')">Windows用 起動 .batファイル生成</button>　
-<button onclick="generateBatFile('mac')">Mac用 起動 .commandファイル生成</button><BR>
-↑これ使ったら，<font color="red">全画面ゲームしてても止まらない！</font>詳しくはこちら→（<a target="_blank" href="https://www.youtube.com/watch?v=UeHQ_--6zp4">解説動画</a>）<BR>
+.bat ファイル生成：<BR>
+これ使ったら，<font color="red">全画面ゲームしてても止まらない！</font>詳しくはこちら→（<a target="_blank" href="https://www.youtube.com/watch?v=8-UXx_tVeYk">解説動画</a>）<BR>
+.batファイルと，設定ファイルをダウンロードしてください．<BR>
+
+<table border="1" style="width: auto;"><tr><td>
+<table style="width: auto;">
+    <tr>
+        <td width="180">Windowsの人：</td>
+        <td><button onclick="generateBatFile('win')">Windows用 起動 .batファイル生成</button></td>
+        <td><button onclick="saveSettings()">設定ファイルをPCに保存</button></td>
+    </tr>
+</tr>
+</table>
+</td></tr></table>
+<BR>
+    
+<table border="1" style="width: auto;"><tr><td>
+<table style="width: auto;">
+    <tr>
+        <td width="180">Macの人：</td>
+        <td><button onclick="generateBatFile('mac')">Mac用 起動 .commandファイル生成</button></td>
+        <td><button onclick="saveSettings()">設定ファイルをPCに保存</button></td>
+    </tr>
+</table>
+</td></tr></table>
+
 <HR>
+
+<!-- # dummy 見えない数字 ############################## -->
+<input style="display: none;" type="text" name="frame_height" id="frame_height" value="30%" size="10" oninput="updateOptionValues();" />
+
+
 <BR><BR><BR>
 </div><BR>
 </body>
@@ -490,15 +519,24 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
 
 
+
+
+
+
+
+
+<!-- # スクリプト ########################################### -->
+
 <!-- # 字幕ちゃん設定項目のロードと，画面への反映 ############################## -->
 <script type="text/javascript">
-    const currentURL = window.location.href;
+    const currentURL = window.location.origin + window.location.pathname;
     let base_url = currentURL.replace("index.html", "");
     base_url += "main.html?";
+    base_url = base_url.replace("??", "?");
 
 
     // config 値　一覧 ////////////////
-    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "bgcolor"
+    config_values = ["gas_key", "textAlign", "v_align", "whiteSpace", "bgcolor", "frame_height"
         , "recog", "size1", "weight1", "color1", "st_color1", "st_width1"
         , "trans", "size2", "weight2", "color2", "st_color2", "st_width2"
         , "trans2", "size3", "weight3", "color3", "st_color3", "st_width3"
@@ -510,7 +548,7 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
     // 翻訳画面とURLを初期化 ///////////////
     document.getElementById('asr_frame').src = base_url;
-    document.getElementById('url').innerHTML = base_url;
+    // document.getElementById('url').innerHTML = base_url;
 
 
     // 設定の復元 ////////////////////
@@ -523,8 +561,16 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         if(config['weight' + String(i+1)] != null) document.getElementById('text_weight_view' + String(i+1)).innerHTML = config['weight' + String(i+1)];
         if(config['st_width' + String(i+1)] != null) document.getElementById('text_st_size_view' + String(i+1)).innerHTML = config['st_width' + String(i+1)];
     }
-    document.getElementById('bouyomi').checked = config['bouyomi'];
-    document.getElementById('anti_sexual').checked = config['anti_sexual'];
+    if (config['bouyomi'] !== null && config['bouyomi'] !== undefined) {
+        document.getElementById('bouyomi').checked = config['bouyomi'];
+    }
+    if (config['anti_sexual'] !== null && config['anti_sexual'] !== undefined) {
+        document.getElementById('anti_sexual').checked = config['anti_sexual'];
+    }
+    if (config['frame_height'] !== null && config['frame_height'] !== undefined) {
+        document.getElementById('asr_frame').style.height = config['frame_height'];
+    }
+
 
     // フォントの直接入力の場合，テキストフィールドを有効化 ////////////////////
     function selectFont() {
@@ -565,8 +611,8 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         for (const p of config_values) {
             eval("var " + p + " = document.getElementById('" + p + "').value;");
         }
-        eval("var bouyomi = document.getElementById('bouyomi').checked;");
-        eval("var anti_sexual = document.getElementById('anti_sexual').checked;");
+        var bouyomi = document.getElementById('bouyomi').checked;
+        var anti_sexual = document.getElementById('anti_sexual').checked;
 
         var new_url = base_url + "textAlign=" + textAlign + "&v_align=" + v_align 
                      + "&recog=" + recog 
@@ -583,7 +629,6 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
 
                      + "&size4=" + size4 + "&weight4=" + weight4 + "&color4=" + color4
                      + "&st_color4=" + st_color4 + "&st_width4=" + st_width4;
-
         if(whiteSpace != '') {new_url = new_url + "&whiteSpace=" + whiteSpace;} 
         if(trans != 'none') {new_url = new_url + "&trans=" + trans;} 
         if(trans2 != 'none') {new_url = new_url + "&trans2=" + trans2;} 
@@ -627,8 +672,8 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
             document.getElementById('asr_frame').src = new_url;
         }
 
-        document.getElementById('url').innerHTML = new_url;
-        document.getElementById('open_link').href = new_url;
+        // document.getElementById('url').innerHTML = new_url;
+        // document.getElementById('open_link').href = new_url;
 
         return 0;
     }
@@ -684,7 +729,8 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
     }
   
     function generateBatFile(os) {
-      let url = document.getElementById('url').value.trim();
+    //   let url = document.getElementById('url').value.trim();
+        let url = currentURL;
       // URLデコードを行う
       url = decodeURIComponent(url);
   
@@ -696,10 +742,11 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
       let content, filename;
   
       if (os === 'win') {
-        content = `@echo off\r\nstart chrome.exe --disable-features=CalculateNativeWinOcclusion --user-data-dir="C:\\temp\\user_jimaku" --new-window "${url}"\r\nexit /b`;
+        content = `@echo off\r\nset "USERPROFILE=%LOCALAPPDATA%\\Google\\Chrome\\User Data\\user_jimaku_001"\r\nstart chrome.exe --disable-features=CalculateNativeWinOcclusion --user-data-dir="%USERPROFILE%" --new-window "${url}"\r\nexit /b`;
         filename = "jimakuChan_nonStop.bat";
+
       } else {
-        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="/tmp/user_jimaku"  --new-window "${url}"`;
+        content = `#!/bin/sh\n"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --disable-features=CalculateNativeWinOcclusion --user-data-dir="Library/Application Support/Google/Chrome/user_jimaku_001"  --new-window "${url}"`;
         filename = "jimakuChan_nonStop.command";
       }
   
@@ -777,6 +824,9 @@ URL : <textarea name="url" id="url" rows="7" cols="90"></textarea><BR>
         } else {
             iframe.style.height = '100%';
         }
+
+        document.getElementById('frame_height').value = iframe.style.height;
+        updateOptionValues();
     }
 </script>
 
