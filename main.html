@@ -318,6 +318,10 @@
                 // 認識結果をget （途中結果 or 最終結果） ------------
                 var recog_text = results[i][0].transcript;
 
+                // ブラウザーが冒涜的表現を伏字に置き換えた際、漏れた一文字目を*に置き換える
+                const censoredPattern = /(?:[^\*])(?<censorship>\*{1,})/gum;
+                recog_text = recog_text.replace(censoredPattern,`*$<censorship>`);
+
                 // #############################################################
                 // 危険単語を検知して，結果を***に置き換える #########################
 
