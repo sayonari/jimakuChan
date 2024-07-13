@@ -568,7 +568,15 @@
         document.getElementById('anti_sexual').checked = config['anti_sexual'];
     }
     if (config['frame_height'] !== null && config['frame_height'] !== undefined) {
-        document.getElementById('asr_frame').style.height = config['frame_height'];
+        var iframe = document.getElementById('asr_frame');
+            var body = document.body;
+            iframe.style.height = config['frame_height'];
+
+            if (config['frame_height'] === '100%') {
+                body.style.overflow = 'hidden';  // ページスクロールを禁止する
+            } else {
+                body.style.overflow = 'auto';  // ページスクロールを有効にする
+            }
     }
 
 
@@ -819,10 +827,17 @@
     function toggleIframeHeight() {
         console.log("toggleIframeHeight");
         var iframe = document.getElementById('asr_frame');
+        var body = document.body;
+
+        // ページのスクロール位置を一番上に戻す
+        window.scrollTo(0, 0);
+
         if (iframe.style.height === '100%') {
             iframe.style.height = '30%';
+            body.style.overflow = 'auto';  // ページスクロールを有効にする
         } else {
             iframe.style.height = '100%';
+            body.style.overflow = 'hidden';  // ページスクロールを禁止する
         }
 
         document.getElementById('frame_height').value = iframe.style.height;
