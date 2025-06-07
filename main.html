@@ -168,6 +168,7 @@
         var arg_useCustomDictionary = getParam('useCustomDictionary');
         var arg_customDictionary = getParam('customDictionary');
         var arg_recog = getParam('recog');
+        console.log('音声認識言語パラメータ:', arg_recog);
         var arg_trans = getParam('trans');
         var arg_trans2 = getParam('trans2');
         var arg_trans3 = getParam('trans3');
@@ -226,6 +227,43 @@
             return processedText;
         }
 
+        // 不適切語フィルタリング関数
+        function applyContentFilter(text) {
+            if (anti_sexual === 'false' || badWords_forRecog.length === 0) {
+                return text;
+            }
+            
+            let filteredText = text;
+            
+            // 保護する単語を一時的なプレースホルダーに置き換える
+            goodWords_forRecog.forEach((word, index) => {
+                if (word && word.trim() !== '') {
+                    let placeholder = `{{GOOD_WORD_${index}}}`;
+                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+                    filteredText = filteredText.replace(regex, placeholder);
+                }
+            });
+
+            // 不適切語を***に置き換える
+            badWords_forRecog.forEach(word => {
+                if (word && word.trim() !== '') {
+                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+                    filteredText = filteredText.replace(regex, "*".repeat(word.length));
+                }
+            });
+
+            // 一時的なプレースホルダーを保護する単語に戻す
+            goodWords_forRecog.forEach((word, index) => {
+                if (word && word.trim() !== '') {
+                    let placeholder = `{{GOOD_WORD_${index}}}`;
+                    const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g");
+                    filteredText = filteredText.replace(regex, word);
+                }
+            });
+
+            return filteredText;
+        }
+
 
         // 一定時間認識結果がなかったら，そこで認識終了 --------------------
         // short_pauseは上部で既に定義済み
@@ -236,13 +274,36 @@
         var count = 0;
 
         // URLから Bad/Good 単語リストをリスト形式で読み込む -----------------------
-        let languageId = arg_recog;
+        // ハイフン付き言語コードをファイルパス用にマッピング
+        function getFilterLanguageId(langCode) {
+            const languageMapping = {
+                'zh-CN': 'zh',     // 中国語（簡体字）
+                'zh-TW': 'zh',     // 台湾語（繁体字） → 中国語フィルターを使用
+                'zh-HK': 'zh',     // 香港語（繁体字） → 中国語フィルターを使用
+                'en-US': 'en',     // アメリカ英語 → 英語フィルターを使用
+                'fr-FR': 'fr',     // フランス語
+                'it-IT': 'it',     // イタリア語
+                'de-DE': 'de',     // ドイツ語
+                'tr-TR': 'tr',     // トルコ語
+                'sv-SE': 'sv',     // スウェーデン語
+                'pl-PL': 'pl',     // ポーランド語
+                'uk-UA': 'uk',     // ウクライナ語
+                'ru-RU': 'ru',     // ロシア語
+                'es-ES': 'es',     // スペイン語
+                'pt-PT': 'pt'      // ポルトガル語
+            };
+            
+            return languageMapping[langCode] || langCode;
+        }
+        
+        let languageId = getFilterLanguageId(arg_recog);
         const baseURL = "https://raw.githubusercontent.com/sayonari/goodBadWordlist/main/";
         const badListPath = `/BadList.txt`; // 禁止ワードリストのパス
         const goodListPath = `/GoodList.txt`; // 許可ワードリストのパス
         var badWords_forRecog = [];
         var goodWords_forRecog = [];
 
+        console.log("original lang code: " + arg_recog + " -> filter lang: " + languageId);
         console.log("url: " + baseURL + languageId + badListPath);
         if (anti_sexual !== 'false') {
             // 禁止ワードリストを読み込む
@@ -638,6 +699,7 @@
         if (arg_recog != null) {
             recognition.lang = arg_recog;
             trans_sourcelang = recognition.lang;
+            console.log('音声認識言語設定完了:', recognition.lang, 'trans_sourcelang:', trans_sourcelang);
         }
         if (arg_trans != null) {
             trans_destlang = arg_trans;
@@ -672,36 +734,13 @@
                 }
             }
             
-            // 表示用テキストを構築（確定部分 + 途中部分）
-            var displayText = finalText + interimText;
+            // フィルタリングを適用
+            var filteredFinalText = applyContentFilter(finalText);
+            var filteredInterimText = applyContentFilter(interimText);
+            
+            // 表示用テキストを構築（フィルタリング済み確定部分 + フィルタリング済み途中部分）
+            var displayText = filteredFinalText + filteredInterimText;
             var recog_text = displayText;  // 後続処理との互換性のため
-
-                // #############################################################
-                // 危険単語を検知して，結果を***に置き換える #########################
-
-                // 保護する単語を一時的なプレースホルダーに置き換える --------
-                goodWords_forRecog.forEach((word, index) => {
-                    let placeholder = `{{GOOD_WORD_${index}}}`;
-                    recog_text = recog_text.replace(new RegExp(word, "gi"), placeholder);
-                });
-
-                // 認識結果の中の危険単語を検知して，結果を***に置き換える ---
-                if(anti_sexual != 'false') {
-                    badWords_forRecog.forEach(word => {
-                        let regex = new RegExp(word, "gi");
-                        recog_text = recog_text.replace(regex, "*".repeat(word.length));
-                    });
-                }
-                // console.log("bad:" + badWords_forRecog.length);
-                // console.log(badWords_forRecog, goodWords_forRecog);
-
-                // 一時的なプレースホルダーを保護する単語に戻す -------------
-                goodWords_forRecog.forEach((word, index) => {
-                    let placeholder = `{{GOOD_WORD_${index}}}`;
-                    recog_text = recog_text.replace(new RegExp(placeholder, "g"), word);
-                });
-
-                // #############################################################
 
 
                 // 最新の結果に最終結果が含まれているかチェック
@@ -726,8 +765,8 @@
                     } else {
                         console.log('⚠️ 最終結果が空のためタイマー開始をスキップ');
                     }
-                    // 認識結果を表示する ---------------------
-                    var displayTextWithConfidence = finalText;
+                    // 認識結果を表示する（フィルタリング済み） ---------------------
+                    var displayTextWithConfidence = filteredFinalText;
                     if (arg_showConfidence === 'true' && latestConfidence > 0) {
                         displayTextWithConfidence += ` (信頼度: ${Math.round(latestConfidence * 100)}%)`;
                     }
@@ -736,9 +775,9 @@
                     document.getElementById('speech_text-fg').innerHTML = displayTextWithConfidence;
                     isSpeechRecognitionComplete = true; // フラグを更新
                     
-                    // 翻訳処理用に最終確定テキストのみを使用
+                    // 翻訳処理用に最終確定テキストのみを使用（フィルタリング前の元テキスト）
                     recog_text = finalText;
-                    lastFinalText = finalText;
+                    lastFinalText = filteredFinalText;  // 表示用はフィルタリング済み
 
 
                     // 棒読みちゃんにコメントを送信する
@@ -938,9 +977,9 @@
                         }
 
                     } else {
-                        document.getElementById('speech_text-imb').innerHTML = finalText;
-                        document.getElementById('speech_text-bg').innerHTML = finalText;
-                        document.getElementById('speech_text-fg').innerHTML = finalText;
+                        document.getElementById('speech_text-imb').innerHTML = filteredFinalText;
+                        document.getElementById('speech_text-bg').innerHTML = filteredFinalText;
+                        document.getElementById('speech_text-fg').innerHTML = filteredFinalText;
                         // API KEYがない場合のステータス
                         updateTranslationStatus('API KEYなし', '#999');
                     }
@@ -961,14 +1000,14 @@
                         console.log('ショートポーズタイマー設定:', short_pause + 'ms');
                     }
 
-                    // 途中結果の表示（確定部分 + 途中部分を明確に区別）
+                    // 途中結果の表示（フィルタリング済み確定部分 + フィルタリング済み途中部分を明確に区別）
                     if(displayText !== ""){
                         var displayHtml = '';
-                        if (finalText !== '') {
-                            displayHtml += finalText;
+                        if (filteredFinalText !== '') {
+                            displayHtml += filteredFinalText;
                         }
-                        if (interimText !== '') {
-                            displayHtml += ' << ' + interimText + ' >>';
+                        if (filteredInterimText !== '') {
+                            displayHtml += ' << ' + filteredInterimText + ' >>';
                         }
                         
                         document.getElementById('speech_text-imb').innerHTML = displayHtml;
