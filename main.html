@@ -227,7 +227,7 @@
             return processedText;
         }
 
-        // 不適切語フィルタリング関数
+        // 不適切語フィルタリング関数（音声認識用）
         function applyContentFilter(text) {
             if (anti_sexual === 'false' || badWords_forRecog.length === 0) {
                 return text;
@@ -261,6 +261,69 @@
                 }
             });
 
+            return filteredText;
+        }
+
+        // 翻訳結果用フィルタリング関数
+        function applyTranslationFilter(text, transType) {
+            if (anti_sexual === 'false' || !text || text.trim() === '') {
+                return text;
+            }
+            
+            let badWordsList, goodWordsList;
+            
+            // 翻訳タイプに応じて適切な不適切語リストを選択
+            switch(transType) {
+                case 1:
+                    badWordsList = badWords_forTrans1;
+                    goodWordsList = goodWords_forTrans1;
+                    break;
+                case 2:
+                    badWordsList = badWords_forTrans2;
+                    goodWordsList = goodWords_forTrans2;
+                    break;
+                case 3:
+                    badWordsList = badWords_forTrans3;
+                    goodWordsList = goodWords_forTrans3;
+                    break;
+                default:
+                    return text;
+            }
+            
+            if (badWordsList.length === 0) {
+                console.log('翻訳' + transType + '用の不適切語リストが空のため、フィルタリングをスキップ');
+                return text;
+            }
+            
+            let filteredText = text;
+            
+            // 保護する単語を一時的なプレースホルダーに置き換える
+            goodWordsList.forEach((word, index) => {
+                if (word && word.trim() !== '') {
+                    let placeholder = `{{TRANS${transType}_GOOD_WORD_${index}}}`;
+                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+                    filteredText = filteredText.replace(regex, placeholder);
+                }
+            });
+
+            // 不適切語を***に置き換える
+            badWordsList.forEach(word => {
+                if (word && word.trim() !== '') {
+                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+                    filteredText = filteredText.replace(regex, "*".repeat(word.length));
+                }
+            });
+
+            // 一時的なプレースホルダーを保護する単語に戻す
+            goodWordsList.forEach((word, index) => {
+                if (word && word.trim() !== '') {
+                    let placeholder = `{{TRANS${transType}_GOOD_WORD_${index}}}`;
+                    const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g");
+                    filteredText = filteredText.replace(regex, word);
+                }
+            });
+
+            console.log('翻訳' + transType + 'フィルタリング: "' + text + '" -> "' + filteredText + '"');
             return filteredText;
         }
 
@@ -302,6 +365,14 @@
         const goodListPath = `/GoodList.txt`; // 許可ワードリストのパス
         var badWords_forRecog = [];
         var goodWords_forRecog = [];
+        
+        // 翻訳結果用の不適切語リスト
+        var badWords_forTrans1 = [];
+        var goodWords_forTrans1 = [];
+        var badWords_forTrans2 = [];
+        var goodWords_forTrans2 = [];
+        var badWords_forTrans3 = [];
+        var goodWords_forTrans3 = [];
 
         console.log("original lang code: " + arg_recog + " -> filter lang: " + languageId);
         console.log("url: " + baseURL + languageId + badListPath);
@@ -320,6 +391,66 @@
                 .then( t => {
                     goodWords_forRecog = t.split("\n").filter(Boolean);
                 });
+                
+            // 翻訳言語1の不適切語リストを読み込む
+            if(arg_trans != null) {
+                const trans1LangId = getFilterLanguageId(arg_trans);
+                console.log("trans1 lang: " + arg_trans + " -> filter lang: " + trans1LangId);
+                fetch(baseURL + trans1LangId + badListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        badWords_forTrans1 = t.split("\n").filter(Boolean);
+                        console.log("loaded Trans1 Bad Words num: " + badWords_forTrans1.length);
+                    })
+                    .catch(e => console.log("Trans1 Bad Words list not found for: " + trans1LangId));
+                    
+                fetch(baseURL + trans1LangId + goodListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        goodWords_forTrans1 = t.split("\n").filter(Boolean);
+                    })
+                    .catch(e => console.log("Trans1 Good Words list not found for: " + trans1LangId));
+            }
+            
+            // 翻訳言語2の不適切語リストを読み込む
+            if(arg_trans2 != null) {
+                const trans2LangId = getFilterLanguageId(arg_trans2);
+                console.log("trans2 lang: " + arg_trans2 + " -> filter lang: " + trans2LangId);
+                fetch(baseURL + trans2LangId + badListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        badWords_forTrans2 = t.split("\n").filter(Boolean);
+                        console.log("loaded Trans2 Bad Words num: " + badWords_forTrans2.length);
+                    })
+                    .catch(e => console.log("Trans2 Bad Words list not found for: " + trans2LangId));
+                    
+                fetch(baseURL + trans2LangId + goodListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        goodWords_forTrans2 = t.split("\n").filter(Boolean);
+                    })
+                    .catch(e => console.log("Trans2 Good Words list not found for: " + trans2LangId));
+            }
+            
+            // 翻訳言語3の不適切語リストを読み込む
+            if(arg_trans3 != null) {
+                const trans3LangId = getFilterLanguageId(arg_trans3);
+                console.log("trans3 lang: " + arg_trans3 + " -> filter lang: " + trans3LangId);
+                fetch(baseURL + trans3LangId + badListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        badWords_forTrans3 = t.split("\n").filter(Boolean);
+                        console.log("loaded Trans3 Bad Words num: " + badWords_forTrans3.length);
+                    })
+                    .catch(e => console.log("Trans3 Bad Words list not found for: " + trans3LangId));
+                    
+                fetch(baseURL + trans3LangId + goodListPath)
+                    .then( r => r.text() )
+                    .then( t => {
+                        goodWords_forTrans3 = t.split("\n").filter(Boolean);
+                    })
+                    .catch(e => console.log("Trans3 Good Words list not found for: " + trans3LangId));
+            }
         }
 
 
@@ -775,12 +906,12 @@
                     document.getElementById('speech_text-fg').innerHTML = displayTextWithConfidence;
                     isSpeechRecognitionComplete = true; // フラグを更新
                     
-                    // 翻訳処理用に最終確定テキストのみを使用（フィルタリング前の元テキスト）
-                    recog_text = finalText;
+                    // 翻訳処理用に最終確定テキストのみを使用（フィルタリング済み）
+                    recog_text = filteredFinalText;
                     lastFinalText = filteredFinalText;  // 表示用はフィルタリング済み
 
 
-                    // 棒読みちゃんにコメントを送信する
+                    // 棒読みちゃんにコメントを送信する（フィルタリング済み）
                     if(bouyomi == "true") {
                         let bouyomiChanClient = new BouyomiChanClient();
                         bouyomiChanClient.talk(recog_text);
@@ -824,9 +955,12 @@
                                     document.getElementById('speech_text-imb').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-bg').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-fg').innerHTML = lastFinalText;
-                                    document.getElementById('trans_text-imb').innerHTML =  responseText1;
-                                    document.getElementById('trans_text-bg').innerHTML =  responseText1;
-                                    document.getElementById('trans_text-fg').innerHTML =  responseText1;
+                                    
+                                    // 翻訳結果1にフィルタリングを適用
+                                    var filteredResponseText1 = applyTranslationFilter(responseText1, 1);
+                                    document.getElementById('trans_text-imb').innerHTML =  filteredResponseText1;
+                                    document.getElementById('trans_text-bg').innerHTML =  filteredResponseText1;
+                                    document.getElementById('trans_text-fg').innerHTML =  filteredResponseText1;
                                     isTextTranslation1Complete = true; // フラグを更新
                                     
                                     // 翻訳1完了時に翻訳タイマー開始
@@ -884,9 +1018,12 @@
                                     document.getElementById('speech_text-imb').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-bg').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-fg').innerHTML = lastFinalText;
-                                    document.getElementById('trans_text2-imb').innerHTML = responseText2;
-                                    document.getElementById('trans_text2-bg').innerHTML = responseText2;
-                                    document.getElementById('trans_text2-fg').innerHTML = responseText2;
+                                    
+                                    // 翻訳結果2にフィルタリングを適用
+                                    var filteredResponseText2 = applyTranslationFilter(responseText2, 2);
+                                    document.getElementById('trans_text2-imb').innerHTML = filteredResponseText2;
+                                    document.getElementById('trans_text2-bg').innerHTML = filteredResponseText2;
+                                    document.getElementById('trans_text2-fg').innerHTML = filteredResponseText2;
                                     isTextTranslation2Complete = true; // フラグを更新
                                     
                                     // 翻訳2完了時に翻訳タイマー再開始
@@ -944,9 +1081,12 @@
                                     document.getElementById('speech_text-imb').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-bg').innerHTML = lastFinalText;
                                     document.getElementById('speech_text-fg').innerHTML = lastFinalText;
-                                    document.getElementById('trans_text3-imb').innerHTML = responseText3;
-                                    document.getElementById('trans_text3-bg').innerHTML = responseText3;
-                                    document.getElementById('trans_text3-fg').innerHTML = responseText3;
+                                    
+                                    // 翻訳結果3にフィルタリングを適用
+                                    var filteredResponseText3 = applyTranslationFilter(responseText3, 3);
+                                    document.getElementById('trans_text3-imb').innerHTML = filteredResponseText3;
+                                    document.getElementById('trans_text3-bg').innerHTML = filteredResponseText3;
+                                    document.getElementById('trans_text3-fg').innerHTML = filteredResponseText3;
                                     isTextTranslation3Complete = true; // フラグを更新
                                     
                                     // 翻訳3完了時に翻訳タイマー再開始
