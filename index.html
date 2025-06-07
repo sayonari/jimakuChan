@@ -633,9 +633,8 @@
         , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector", "trans_text3_font_selector"
         , "speech_text_system_font", "trans_text_system_font", "trans_text2_system_font", "trans_text3_system_font"];
 
-    // 設定の復元は無効化（プリセットから復元するため）
-    // const config = JSON.parse(localStorage.jimakuChan_config || '{}');
-    // プリセット初期化用の最小限設定のみ
+    // 新版：全設定はjimakuChan_presetsで管理（jimakuChan_configは廃止）
+    // configオブジェクトはプリセット保存時の一時的なデータ収集用のみ
     const config = {};
 
     // 翻訳画面とURLを初期化 ///////////////
@@ -853,12 +852,11 @@
             config[p] = eval(p);
         }
         
-        // checkbox設定もconfigに追加
+        // checkbox設定もconfigに追加（プリセット保存用のみ）
         config.bouyomi = bouyomi;
         config.anti_sexual = anti_sexual;
 
-        // 設定の保存
-        localStorage.jimakuChan_config = JSON.stringify(config);
+        // 注意：jimakuChan_configへの保存は廃止。全てプリセットで管理
 
         // プリセットへの自動保存（プリセット読み込み中でなければ実行）
         console.log('updateOptionValues - 自動保存チェック:', 'isLoadingPreset:', isLoadingPreset, 'currentPreset:', currentPreset);
@@ -1234,36 +1232,78 @@
 <!-- # 設定ファイルの保存と読込 ############################## -->
 <script>
 
-    // Save LocalStorage settings to a file
+    // Save all presets to a file (全プリセットをファイルに保存)
     function saveSettings() {
-        const settings = localStorage.jimakuChan_config;
-        if (!settings) {
-            alert('No settings found to save!');
+        const presets = localStorage.getItem('jimakuChan_presets');
+        if (!presets) {
+            alert('保存するプリセットが見つかりません！');
             return;
         }
-        const blob = new Blob([settings], { type: 'text/plain' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'jimakuChan_settings.json';
-        link.click();
-        URL.revokeObjectURL(link.href);
+        
+        try {
+            const presetsData = JSON.parse(presets);
+            const exportData = {
+                version: "2025.6.8",
+                exportDate: new Date().toISOString(),
+                presets: presetsData
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'jimakuChan_presets.json';
+            link.click();
+            URL.revokeObjectURL(link.href);
+            console.log('プリセットをファイルに保存しました');
+        } catch (error) {
+            alert('プリセット保存エラー: ' + error.message);
+            console.error('プリセット保存エラー:', error);
+        }
     }
 
-    // Load LocalStorage settings from a file
+    // Load presets from a file (プリセットをファイルから読み込み)
     function loadSettings() {
         const input = document.createElement('input');
         input.type = 'file';
+        input.accept = '.json';
         input.onchange = e => {
             const file = e.target.files[0];
+            if (!file) return;
+            
             const reader = new FileReader();
             reader.onload = function(readEvent) {
                 try {
-                    const settings = JSON.parse(readEvent.target.result);
-                    localStorage.jimakuChan_config = JSON.stringify(settings);
-                    // reload
-                    location.reload();
+                    const data = JSON.parse(readEvent.target.result);
+                    console.log('読み込んだファイル:', data);
+                    
+                    // 新形式のプリセットファイルの場合
+                    if (data.presets && data.version) {
+                        console.log('新形式プリセットファイルを読み込み');
+                        localStorage.setItem('jimakuChan_presets', JSON.stringify(data.presets));
+                        alert(`プリセットを読み込みました (ver.${data.version})`);
+                        location.reload();
+                    }
+                    // 旧形式の設定ファイルの場合（互換性のため）
+                    else if (data && typeof data === 'object' && !data.presets) {
+                        console.log('旧形式設定ファイルを読み込み - プリセットに変換');
+                        const convertedPreset = {
+                            default: {
+                                name: '読み込んだ設定',
+                                settings: data,
+                                lastModified: new Date().toISOString(),
+                                importedFrom: 'legacy_file'
+                            }
+                        };
+                        localStorage.setItem('jimakuChan_presets', JSON.stringify(convertedPreset));
+                        alert('旧形式の設定ファイルをプリセットに変換して読み込みました');
+                        location.reload();
+                    }
+                    else {
+                        alert('不正なファイル形式です');
+                    }
                 } catch (error) {
-                    alert('Failed to load settings: ' + error.message);
+                    alert('ファイル読み込みエラー: ' + error.message);
+                    console.error('ファイル読み込みエラー:', error);
                 }
             };
             reader.readAsText(file);
@@ -2113,20 +2153,30 @@
     function migrateExistingUserSettings() {
         console.log('=== 既存ユーザー設定移行チェック開始 ===');
         
-        // 移行済みフラグをチェック（重複実行防止）
+        // 旧設定の存在チェック（最初に確認）
+        const oldConfig = localStorage.getItem('jimakuChan_config');
         const migrationFlag = localStorage.getItem('jimakuChan_migrated');
-        if (migrationFlag === 'true') {
-            console.log('設定移行済み - スキップ');
+        
+        console.log('移行状況確認:', {
+            oldConfig: !!oldConfig,
+            migrationFlag: migrationFlag,
+            oldConfigLength: oldConfig ? oldConfig.length : 0
+        });
+        
+        // 旧設定がない場合の処理
+        if (!oldConfig) {
+            console.log('旧設定なし - 移行不要');
+            if (migrationFlag !== 'true') {
+                localStorage.setItem('jimakuChan_migrated', 'true');
+                console.log('新規ユーザーとして移行フラグ設定');
+            }
             return;
         }
         
-        // 旧設定の存在チェック
-        const oldConfig = localStorage.getItem('jimakuChan_config');
-        if (!oldConfig) {
-            console.log('旧設定なし - 移行不要');
-            // 移行済みフラグを設定（新規ユーザー）
-            localStorage.setItem('jimakuChan_migrated', 'true');
-            return;
+        // 移行済みフラグがあるが旧設定も残っている場合（移行失敗の可能性）
+        if (migrationFlag === 'true' && oldConfig) {
+            console.warn('⚠️ 移行済みフラグがあるが旧設定が残存 - 再移行を実行');
+            console.log('この状況は移行失敗の可能性があります');
         }
         
         try {
@@ -2155,9 +2205,9 @@
             // デフォルトプリセットの設定項目に合わせて移行
             const migratedSettings = {};
             
-            // 設定項目のマッピング（必要に応じて調整）
+            // 設定項目のマッピング（config_valuesと完全一致）
             const settingKeys = [
-                'textAlign', 'v_align', 'bgcolor', 'whiteSpace',
+                'gas_key', 'textAlign', 'v_align', 'whiteSpace', 'bgcolor', 'frame_height',
                 'recog', 'size1', 'weight1', 'color1', 'st_color1', 'st_width1',
                 'trans', 'size2', 'weight2', 'color2', 'st_color2', 'st_width2',
                 'trans2', 'size3', 'weight3', 'color3', 'st_color3', 'st_width3',
@@ -2169,12 +2219,23 @@
                 'trans_text2_system_font', 'trans_text3_system_font'
             ];
             
-            // 旧設定から新設定にコピー
+            // 旧設定から新設定にコピー（詳細ログ付き）
+            console.log('=== 設定項目別移行状況 ===');
+            let migratedCount = 0;
+            let skippedCount = 0;
+            
             settingKeys.forEach(key => {
                 if (oldSettings.hasOwnProperty(key)) {
                     migratedSettings[key] = oldSettings[key];
+                    console.log(`✅ ${key}: "${oldSettings[key]}" -> 移行`);
+                    migratedCount++;
+                } else {
+                    console.log(`⚠️ ${key}: 旧設定に存在しない`);
+                    skippedCount++;
                 }
             });
+            
+            console.log(`移行完了: ${migratedCount}項目, スキップ: ${skippedCount}項目`);
             
             // フォント設定の移行（旧システム対応）
             if (oldSettings.speech_text_font && !migratedSettings.speech_text_font_selector) {
@@ -2191,12 +2252,60 @@
             }
             
             // デフォルト値で不足項目を補完
+            console.log('=== デフォルト値補完処理 ===');
             const defaultSettings = defaultPresets['default']?.settings || {};
+            
+            // 基本的なデフォルト値を設定
+            const basicDefaults = {
+                textAlign: 'center',
+                v_align: 'top',
+                bgcolor: '#00ff00',
+                whiteSpace: '',
+                recog: 'ja',
+                size1: '25', weight1: '900', color1: '#ffffff', st_color1: '#000000', st_width1: '6',
+                trans: 'none',
+                size2: '25', weight2: '900', color2: '#ffffff', st_color2: '#000000', st_width2: '6',
+                trans2: 'none',
+                size3: '25', weight3: '900', color3: '#ffffff', st_color3: '#000000', st_width3: '6',
+                trans3: 'none',
+                size4: '25', weight4: '900', color4: '#ffffff', st_color4: '#000000', st_width4: '6',
+                timer: '7000',
+                short_pause: '750',
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: 'M PLUS Rounded\\ 1c',
+                trans_text_font_selector: 'M PLUS Rounded\\ 1c',
+                trans_text2_font_selector: 'M PLUS Rounded\\ 1c',
+                trans_text3_font_selector: 'M PLUS Rounded\\ 1c',
+                speech_text_system_font: '',
+                trans_text_system_font: '',
+                trans_text2_system_font: '',
+                trans_text3_system_font: '',
+                frame_height: '30%',
+                gas_key: ''
+            };
+            
+            let defaultCount = 0;
             settingKeys.forEach(key => {
-                if (!migratedSettings.hasOwnProperty(key) && defaultSettings.hasOwnProperty(key)) {
-                    migratedSettings[key] = defaultSettings[key];
+                if (!migratedSettings.hasOwnProperty(key)) {
+                    // まずdefaultPresetsから試す
+                    if (defaultSettings.hasOwnProperty(key)) {
+                        migratedSettings[key] = defaultSettings[key];
+                        console.log(`📝 ${key}: デフォルトプリセットから補完 -> "${defaultSettings[key]}"`);
+                    }
+                    // 次にbasicDefaultsから試す
+                    else if (basicDefaults.hasOwnProperty(key)) {
+                        migratedSettings[key] = basicDefaults[key];
+                        console.log(`📝 ${key}: 基本デフォルト値で補完 -> "${basicDefaults[key]}"`);
+                    }
+                    else {
+                        console.log(`❌ ${key}: デフォルト値なし`);
+                    }
+                    defaultCount++;
                 }
             });
+            
+            console.log(`デフォルト値補完: ${defaultCount}項目`);
             
             // 「選択してください」プリセットとして保存
             savedPresets['default'] = {
@@ -2208,29 +2317,98 @@
             
             localStorage.setItem('jimakuChan_presets', JSON.stringify(savedPresets));
             
+            // 移行後検証：実際に保存されたか確認
+            console.log('=== 移行後検証 ===');
+            const verifyPresets = JSON.parse(localStorage.getItem('jimakuChan_presets') || '{}');
+            if (verifyPresets.default && verifyPresets.default.settings) {
+                console.log('✅ 「選択してください」プリセット保存確認OK');
+                console.log('保存された設定項目数:', Object.keys(verifyPresets.default.settings).length);
+                
+                // 重要な設定項目を個別確認
+                const verifySettings = verifyPresets.default.settings;
+                const criticalKeys = ['bgcolor', 'size1', 'recog', 'gas_key', 'timer'];
+                console.log('=== 重要設定項目確認 ===');
+                criticalKeys.forEach(key => {
+                    console.log(`${key}: "${verifySettings[key] || 'undefined'}"`);
+                });
+                
+            } else {
+                console.error('❌ 「選択してください」プリセット保存失敗');
+            }
+            
             console.log('✅ 設定移行完了');
             console.log('移行された設定項目数:', Object.keys(migratedSettings).length);
-            console.log('移行設定サンプル:', {
-                bgcolor: migratedSettings.bgcolor,
-                size1: migratedSettings.size1,
-                recog: migratedSettings.recog,
-                trans: migratedSettings.trans,
-                speech_text_font_selector: migratedSettings.speech_text_font_selector
-            });
             
-            // 移行済みフラグを設定
+            // 移行成功時のみフラグを設定
             localStorage.setItem('jimakuChan_migrated', 'true');
             
             // 旧設定をバックアップ用にリネーム（削除はしない）
             localStorage.setItem('jimakuChan_config_backup', oldConfig);
             console.log('旧設定をバックアップとして保存: jimakuChan_config_backup');
             
+            // 移行完了後、旧設定を削除（バックアップは保持）
+            localStorage.removeItem('jimakuChan_config');
+            console.log('✅ 旧設定(jimakuChan_config)を削除（移行完了）');
+            console.log('✅ 全設定はjimakuChan_presetsで管理されるようになりました');
+            
         } catch (error) {
-            console.error('設定移行エラー:', error);
-            // エラーが発生しても移行済みフラグを設定（無限ループ防止）
-            localStorage.setItem('jimakuChan_migrated', 'true');
+            console.error('❌ 設定移行エラー:', error);
+            console.error('移行に失敗しました。旧設定とフラグは保持されます');
+            // エラー時は移行済みフラグを設定しない（再試行可能にする）
+            // localStorage.setItem('jimakuChan_migrated', 'true'); // この行を削除
         }
     }
+    
+    // デバッグ用：移行状況確認関数
+    function debugMigrationStatus() {
+        console.log('=== 移行状況デバッグ ===');
+        const oldConfig = localStorage.getItem('jimakuChan_config');
+        const migrationFlag = localStorage.getItem('jimakuChan_migrated');
+        const backup = localStorage.getItem('jimakuChan_config_backup');
+        const presets = localStorage.getItem('jimakuChan_presets');
+        
+        console.log('旧設定(jimakuChan_config):', !!oldConfig, oldConfig ? oldConfig.length + '文字' : 'なし');
+        console.log('移行フラグ(jimakuChan_migrated):', migrationFlag);
+        console.log('バックアップ(jimakuChan_config_backup):', !!backup);
+        console.log('プリセット(jimakuChan_presets):', !!presets);
+        
+        if (presets) {
+            const presetsData = JSON.parse(presets);
+            console.log('「選択してください」プリセット:', !!presetsData.default);
+            if (presetsData.default) {
+                console.log('移行元情報:', presetsData.default.migratedFrom || 'なし');
+                console.log('設定項目数:', Object.keys(presetsData.default.settings || {}).length);
+            }
+        }
+        
+        return {
+            hasOldConfig: !!oldConfig,
+            migrationFlag: migrationFlag,
+            hasBackup: !!backup,
+            hasPresets: !!presets
+        };
+    }
+    
+    // グローバルからアクセス可能にする
+    window.debugMigrationStatus = debugMigrationStatus;
+    
+    // 強制再移行関数（トラブルシューティング用）
+    function forceMigration() {
+        console.log('=== 強制再移行実行 ===');
+        localStorage.removeItem('jimakuChan_migrated');
+        console.log('移行フラグを削除しました');
+        console.log('注意：この操作により、旧設定(jimakuChan_config)が存在する場合、');
+        console.log('「選択してください」プリセットに移行され、旧設定は削除されます');
+        migrateExistingUserSettings();
+        
+        // 移行後、ページを再読み込みして新しい設定を反映
+        setTimeout(() => {
+            console.log('移行完了後、ページを再読み込みします...');
+            location.reload();
+        }, 1000);
+    }
+    
+    window.forceMigration = forceMigration;
     
     // プリセット初期化（ページ読み込み時に実行）
     function initializePresets() {
