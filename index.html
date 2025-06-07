@@ -777,6 +777,8 @@
                 // 少し待ってからDOMの直接操作も実行
                 setTimeout(function() {
                     applyAllSettings();
+                    // スライドバー数値表示を更新
+                    updateVisualSettings();
                     // ページタイトルを更新
                     updatePageTitle();
                     console.log('初期設定適用完了');
@@ -1848,6 +1850,7 @@
             setTimeout(() => {
                 applyAllSettings();
                 selectFont(); // フォント状態も更新
+                updateVisualSettings(); // スライドバー数値表示を更新
             }, 100);
             
             // フラグをリセット
@@ -2306,18 +2309,34 @@
         }, 50);
     }
     
-    // 表示設定を更新（チェックボックス連動）
+    // 表示設定を更新（スライダー数値表示）
     function updateVisualSettings() {
+        console.log('スライドバー数値表示を更新中...');
+        
         // 各スライダーの値表示を更新
         for (let i = 1; i <= 4; i++) {
             const sizeElement = document.getElementById('size' + i);
             const weightElement = document.getElementById('weight' + i);
             const stWidthElement = document.getElementById('st_width' + i);
             
-            if (sizeElement) document.getElementById('text_size_view' + i).innerHTML = sizeElement.value;
-            if (weightElement) document.getElementById('text_weight_view' + i).innerHTML = weightElement.value;
-            if (stWidthElement) document.getElementById('text_st_size_view' + i).innerHTML = stWidthElement.value;
+            const sizeViewElement = document.getElementById('text_size_view' + i);
+            const weightViewElement = document.getElementById('text_weight_view' + i);
+            const stSizeViewElement = document.getElementById('text_st_size_view' + i);
+            
+            if (sizeElement && sizeViewElement) {
+                sizeViewElement.innerHTML = sizeElement.value;
+                console.log('size' + i + '表示を更新:', sizeElement.value);
+            }
+            if (weightElement && weightViewElement) {
+                weightViewElement.innerHTML = weightElement.value;
+                console.log('weight' + i + '表示を更新:', weightElement.value);
+            }
+            if (stWidthElement && stSizeViewElement) {
+                stSizeViewElement.innerHTML = stWidthElement.value;
+                console.log('st_width' + i + '表示を更新:', stWidthElement.value);
+            }
         }
+        console.log('スライドバー数値表示更新完了');
     }
 </script>
 
