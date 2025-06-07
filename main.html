@@ -103,6 +103,7 @@
             margin-left: 5px;
             /* -webkit-text-stroke: 0px #FFFFFF; */
         }
+
     </style>
 
     <script>
@@ -138,14 +139,34 @@
             isTextTranslation1Complete = false;
             isTextTranslation2Complete = false;
             isTextTranslation3Complete = false;
+            
+            // 保持テキストもクリア
+            currentInterimText = '';
+            lastFinalText = '';
         };
 
 
         // URLからの値読み込み(削除タイマー) -------------------
         var timer = getParam('timer');
+        
+        // 一定時間認識結果がなかったら，そこで認識終了 --------------------
+        var short_pause = getParam('short_pause');
+        
+        // デバッグ用：タイマー設定を確認
+        console.log('タイマー設定:', {
+            timer: timer + 'ms (テキスト削除)',
+            short_pause: short_pause + 'ms (音声ポーズ検出)'
+        });
 
         //////////////////////////////////////////////////////////
         // URLからの値読み込み -------------------
+        var arg_showAudioLevel = getParam('showAudioLevel');
+        var arg_enhanceAccuracy = getParam('enhanceAccuracy');
+        var arg_noiseReduction = getParam('noiseReduction');
+        var arg_volumeNormalization = getParam('volumeNormalization');
+        var arg_showConfidence = getParam('showConfidence');
+        var arg_useCustomDictionary = getParam('useCustomDictionary');
+        var arg_customDictionary = getParam('customDictionary');
         var arg_recog = getParam('recog');
         var arg_trans = getParam('trans');
         var arg_trans2 = getParam('trans2');
@@ -172,13 +193,42 @@
         // その他の設定 -----------------------
         var bouyomi = getParam('bouyomi');
         var anti_sexual = getParam('anti_sexual');
+        
+        // カスタム辞書の準備
+        var customDictionary = {};
+        if (arg_useCustomDictionary === 'true' && arg_customDictionary) {
+            try {
+                const dictionaryText = decodeURIComponent(arg_customDictionary);
+                const entries = dictionaryText.split('、').concat(dictionaryText.split(','));
+                entries.forEach(entry => {
+                    const parts = entry.split('=');
+                    if (parts.length === 2) {
+                        customDictionary[parts[0].trim()] = parts[1].trim();
+                    }
+                });
+                console.log('カスタム辞書を読み込みました:', Object.keys(customDictionary).length + '件');
+            } catch (error) {
+                console.error('カスタム辞書の解析に失敗:', error);
+            }
+        }
+        
+        // 翻訳前処理関数（カスタム辞書適用）
+        function applyCustomDictionary(text) {
+            if (arg_useCustomDictionary !== 'true' || Object.keys(customDictionary).length === 0) {
+                return text;
+            }
+            
+            let processedText = text;
+            for (const [key, value] of Object.entries(customDictionary)) {
+                const regex = new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+                processedText = processedText.replace(regex, value);
+            }
+            return processedText;
+        }
 
 
         // 一定時間認識結果がなかったら，そこで認識終了 --------------------
-        var short_pause = getParam('short_pause');
-        // if(short_pause == null) {
-        //     short_pause = 0;
-        // }
+        // short_pauseは上部で既に定義済み
 
         var stop_recog;
         var id_stop_recog;
@@ -215,6 +265,12 @@
         // 音声認識本体 /////////////////////////////////////////////////
         window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
 
+        // Web Speech APIはデバイス選択をサポートしないため、この処理は無効
+        function initializeAudioDevice() {
+            console.log('Web Speech APIは既定の音声デバイスのみ使用します');
+            return Promise.resolve();
+        }
+
         // 音声認識用設定 ----------------------
         var recognition = new webkitSpeechRecognition();
         recognition.lang = 'ja';
@@ -235,10 +291,261 @@
         var isTextTranslation1Complete = false;
         var isTextTranslation2Complete = false;
         var isTextTranslation3Complete = false;
+        var currentInterimText = '';  // 現在の途中結果を保持
+        var lastFinalText = '';       // 最後の確定結果を保持
+
+        // 分離されたタイマー管理システム ----------------------------
+        var speechDeleteTimerId = null;  // 音声認識テキスト削除タイマーのID
+        var translationDeleteTimerId = null;  // 翻訳テキスト削除タイマーのID
+        
+        // 独立したプログレスバー管理
+        var speechProgressUpdateIntervalId = null;  // 音声認識プログレスバー更新用インターバルID
+        var speechTimerStartTime = null;  // 音声認識タイマー開始時刻
+        var speechTimerDuration = null;   // 音声認識タイマー継続時間
+        
+        var translationProgressUpdateIntervalId = null;  // 翻訳プログレスバー更新用インターバルID
+        var translationTimerStartTime = null;  // 翻訳タイマー開始時刻
+        var translationTimerDuration = null;   // 翻訳タイマー継続時間
+
+        // 音声認識テキストを全角スペースで置き換える関数
+        function clearSpeechText() {
+            document.getElementById('speech_text-imb').innerHTML = '　'; // 全角スペース
+            document.getElementById('speech_text-bg').innerHTML = '　';
+            document.getElementById('speech_text-fg').innerHTML = '　';
+            console.log('音声認識テキストをクリア（全角スペース置換）');
+        }
+
+        // 翻訳テキストを全角スペースで置き換える関数
+        function clearTranslationText() {
+            if(arg_trans != null) {
+                document.getElementById('trans_text-imb').innerHTML = '　';
+                document.getElementById('trans_text-bg').innerHTML = '　';
+                document.getElementById('trans_text-fg').innerHTML = '　';
+            }
+            if(arg_trans2 != null) {
+                document.getElementById('trans_text2-imb').innerHTML = '　';
+                document.getElementById('trans_text2-bg').innerHTML = '　';
+                document.getElementById('trans_text2-fg').innerHTML = '　';
+            }
+            if(arg_trans3 != null) {
+                document.getElementById('trans_text3-imb').innerHTML = '　';
+                document.getElementById('trans_text3-bg').innerHTML = '　';
+                document.getElementById('trans_text3-fg').innerHTML = '　';
+            }
+            console.log('翻訳テキストをクリア（全角スペース置換）');
+        }
+
+        // 音声認識テキスト削除タイマーをリセットする関数
+        function resetSpeechTimer() {
+            if (speechDeleteTimerId !== null) {
+                console.log('🔄 音声認識テキスト削除タイマーをリセット (ID:' + speechDeleteTimerId + ')');
+                clearTimeout(speechDeleteTimerId);
+                speechDeleteTimerId = null;
+            } else {
+                console.log('⚪ 音声認識タイマーリセット要求（タイマーなし）');
+            }
+            // 音声認識プログレスバーのみリセット
+            if (speechProgressUpdateIntervalId !== null) {
+                clearInterval(speechProgressUpdateIntervalId);
+                speechProgressUpdateIntervalId = null;
+            }
+            updateTimerProgressBar(0, '🎤待機', 'linear-gradient(90deg, #FF6B6B 0%, #FFA07A 50%, #FFE4E1 100%)', 'speech');
+        }
+
+        // 翻訳テキスト削除タイマーをリセットする関数
+        function resetTranslationTimer() {
+            if (translationDeleteTimerId !== null) {
+                console.log('🔄 翻訳テキスト削除タイマーをリセット (ID:' + translationDeleteTimerId + ')');
+                clearTimeout(translationDeleteTimerId);
+                translationDeleteTimerId = null;
+            }
+            // 翻訳プログレスバーのみリセット
+            if (translationProgressUpdateIntervalId !== null) {
+                clearInterval(translationProgressUpdateIntervalId);
+                translationProgressUpdateIntervalId = null;
+            }
+            updateTimerProgressBar(0, '🌐待機', 'linear-gradient(90deg, #2196F3 0%, #64B5F6 50%, #BBDEFB 100%)', 'translation');
+        }
+
+        // 音声認識テキスト削除タイマーを開始する関数
+        function startSpeechDeleteTimer() {
+            resetSpeechTimer(); // 既存のタイマーをクリア
+            
+            if (timer != null && timer !== '') {
+                var duration = parseInt(timer);
+                
+                if (isNaN(duration) || duration <= 0) {
+                    console.log('❌ 音声認識タイマー開始失敗: 無効な時間設定:', timer);
+                    return;
+                }
+                
+                speechDeleteTimerId = setTimeout(function() {
+                    console.log('⏰ 音声認識タイマー満了 - テキストをクリア (ID:' + speechDeleteTimerId + ')');
+                    clearSpeechText();
+                    speechDeleteTimerId = null;
+                    updateTimerProgressBar(0, '🎤完了', '#4CAF50', 'speech');
+                    setTimeout(function() {
+                        updateTimerProgressBar(0, '🎤待機', 'linear-gradient(90deg, #FF6B6B 0%, #FFA07A 50%, #FFE4E1 100%)', 'speech');
+                    }, 1000);
+                }, duration);
+                
+                console.log('🎤⏱️ 音声認識テキスト削除タイマー開始:', duration + 'ms', '(ID:' + speechDeleteTimerId + ')');
+                
+                // プログレスバーのカウントダウン開始
+                startProgressBarCountdown(duration, 'speech');
+            } else {
+                console.log('❌ 音声認識タイマー開始失敗: timer設定なし (timer=' + timer + ')');
+            }
+        }
+
+        // 翻訳テキスト削除タイマーを開始する関数
+        function startTranslationDeleteTimer() {
+            resetTranslationTimer(); // 既存のタイマーをクリア
+            
+            if (timer != null && timer !== '') {
+                var duration = parseInt(timer);
+                
+                translationDeleteTimerId = setTimeout(function() {
+                    console.log('翻訳タイマー満了 - テキストをクリア');
+                    clearTranslationText();
+                    translationDeleteTimerId = null;
+                }, duration);
+                
+                console.log('🌐⏱️ 翻訳テキスト削除タイマー開始:', timer + 'ms');
+                
+                // 翻訳タイマーの場合はプログレスバーを青色で表示
+                startProgressBarCountdown(duration, 'translation');
+            }
+        }
+
+        // 翻訳ステータス更新関数
+        function updateTranslationStatus(status, color) {
+            try {
+                if (window.parent && window.parent.document) {
+                    var statusElement = window.parent.document.getElementById('translationStatus');
+                    if (statusElement) {
+                        statusElement.innerHTML = status;
+                        statusElement.style.color = color || '#666';
+                    }
+                }
+            } catch (error) {
+                console.log('翻訳ステータス更新エラー:', error);
+            }
+        }
+
+        // タイマープログレスバー更新関数（個別バー対応）
+        function updateTimerProgressBar(percent, text, color, type) {
+            try {
+                if (window.parent && window.parent.document) {
+                    var barId = type === 'translation' ? 'transTimerProgressBar' : 'speechTimerProgressBar';
+                    var textId = type === 'translation' ? 'transTimerProgressText' : 'speechTimerProgressText';
+                    
+                    var progressBar = window.parent.document.getElementById(barId);
+                    var progressText = window.parent.document.getElementById(textId);
+                    
+                    if (progressBar && progressText) {
+                        progressBar.style.width = percent + '%';
+                        progressText.innerHTML = text;
+                        
+                        if (color) {
+                            progressBar.style.background = color;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('プログレスバー更新エラー:', error);
+            }
+        }
+
+        // プログレスバーのカウントダウンアニメーションを開始（独立版）
+        function startProgressBarCountdown(duration, type) {
+            var intervalId;
+            var startTime;
+            var timerDuration;
+            
+            if (type === 'translation') {
+                // 翻訳用プログレスバーの既存更新を停止
+                if (translationProgressUpdateIntervalId !== null) {
+                    clearInterval(translationProgressUpdateIntervalId);
+                    translationProgressUpdateIntervalId = null;
+                }
+                translationTimerStartTime = Date.now();
+                translationTimerDuration = duration;
+                startTime = translationTimerStartTime;
+                timerDuration = translationTimerDuration;
+            } else {
+                // 音声認識用プログレスバーの既存更新を停止
+                if (speechProgressUpdateIntervalId !== null) {
+                    clearInterval(speechProgressUpdateIntervalId);
+                    speechProgressUpdateIntervalId = null;
+                }
+                speechTimerStartTime = Date.now();
+                speechTimerDuration = duration;
+                startTime = speechTimerStartTime;
+                timerDuration = speechTimerDuration;
+            }
+
+            // タイマー種類に応じて色を決定
+            var colorGradient;
+            var typeText = '';
+            if (type === 'translation') {
+                colorGradient = 'linear-gradient(90deg, #2196F3 0%, #64B5F6 50%, #BBDEFB 100%)';
+                typeText = '🌐';
+            } else {
+                colorGradient = 'linear-gradient(90deg, #FF6B6B 0%, #FFA07A 50%, #FFE4E1 100%)';
+                typeText = '🎤';
+            }
+
+            // プログレスバー初期化
+            var initialSeconds = Math.round(duration / 1000);
+            updateTimerProgressBar(100, typeText + ' ' + initialSeconds + 's', colorGradient, type);
+
+            // 50ms毎にプログレスバーを更新（より滑らか）
+            intervalId = setInterval(function() {
+                var elapsed = Date.now() - startTime;
+                var remaining = Math.max(0, timerDuration - elapsed);
+                var percent = (remaining / timerDuration) * 100;
+                var remainingSeconds = Math.ceil(remaining / 1000);
+
+                if (remaining > 0) {
+                    // 残り時間に応じて色を変化
+                    var urgencyLevel = remaining / timerDuration;
+                    var displayColor;
+                    if (urgencyLevel > 0.5) {
+                        displayColor = colorGradient;
+                    } else if (urgencyLevel > 0.2) {
+                        displayColor = 'linear-gradient(90deg, #FFA726 0%, #FFB74D 50%, #FFE0B2 100%)';
+                    } else {
+                        displayColor = 'linear-gradient(90deg, #F44336 0%, #EF5350 50%, #FFCDD2 100%)';
+                    }
+                    
+                    updateTimerProgressBar(percent, typeText + ' ' + remainingSeconds + 's', displayColor, type);
+                } else {
+                    updateTimerProgressBar(0, typeText + ' 削除!', '#D32F2F', type);
+                    clearInterval(intervalId);
+                    
+                    // インターバルIDをクリア
+                    if (type === 'translation') {
+                        translationProgressUpdateIntervalId = null;
+                    } else {
+                        speechProgressUpdateIntervalId = null;
+                    }
+                }
+            }, 50);
+            
+            // インターバルIDを保存
+            if (type === 'translation') {
+                translationProgressUpdateIntervalId = intervalId;
+            } else {
+                speechProgressUpdateIntervalId = intervalId;
+            }
+        }
+
+
 
         function shouldClearText() {
             // Check if each process is enabled and if it's complete
-            var recogComplete = arg_recog != null ? isSpeechRecognitionComplete : true;
+            var recogComplete = isSpeechRecognitionComplete;
             var trans1Complete = arg_trans != null ? isTextTranslation1Complete : true;
             var trans2Complete = arg_trans2 != null ? isTextTranslation2Complete : true;
             var trans3Complete = arg_trans3 != null ? isTextTranslation3Complete : true;
@@ -246,9 +553,11 @@
             return recogComplete && trans1Complete && trans2Complete && trans3Complete;
         }
 
+
         stop_recog = function() {
             console.log("stop by short pause!");
             recognition.stop();
+            // ショートポーズで停止した場合はタイマー開始しない（onspeechend/onsoundendで開始済み）
         };
 
         ///////////////////////////////////////////////////////////
@@ -256,49 +565,79 @@
         // 音声・認識 開始
         recognition.onstart = () => {
             console.log("onstart cnt:" + String(my_count));
+            // 音声認識開始時はタイマーリセットしない（実際の音声検出時にリセット）
         }
         recognition.onaudiostart = () => {
             console.log("onaudiostart cnt:" + String(my_count));
         }
         recognition.onsoundstart = () => {
-            console.log("onsoundstart cnt:" + String(my_count));
+            console.log("🔊 onsoundstart cnt:" + String(my_count));
+            // 音声検出開始時に音声タイマーリセット
+            resetSpeechTimer();
         }
         recognition.onspeechstart = () => {
-            console.log("onspeechstart cnt:" + String(my_count));
+            console.log("🗣️ onspeechstart cnt:" + String(my_count));
+            // 発話開始時に音声タイマーリセット
+            resetSpeechTimer();
         }
         
         // 音声・認識 終了
         recognition.onspeechend = () => {
-            console.log("onspeechend cnt:" + String(my_count));
+            console.log("🔇 onspeechend cnt:" + String(my_count));
+            // 発話終了時はタイマー開始しない（最終結果取得時に開始）
         }
         recognition.onsoundend = () => {
-            console.log("onsoundend cnt:" + String(my_count));
+            console.log("🔕 onsoundend cnt:" + String(my_count));
+            // 音声検出終了時はタイマー開始しない（最終結果取得時に開始）
         }
         recognition.onaudioend = () => {
             console.log("onaudioend cnt:" + String(my_count));
         }
         recognition.onend = () => {
             console.log("onend cnt:" + String(my_count));
-            recognition.start();
-            my_count = count;
-            count = count + 1;
+            
+            // 音声認識終了時はタイマー開始しない（onspeechend/onsoundendで既に開始済み）
+            
+            // フラグをリセット
+            isSpeechRecognitionComplete = false;
+            isTextTranslation1Complete = false;
+            isTextTranslation2Complete = false;
+            isTextTranslation3Complete = false;
+            
+            // 再起動
+            setTimeout(() => {
+                if (recognition) {
+                    recognition.start();
+                    my_count = count;
+                    count = count + 1;
+                }
+            }, 100);
         }
 
         // エラー等
-        recognition.onerror = () => {
-            console.log("onerror cnt:" + String(my_count));
-            recognition.stop();
+        recognition.onerror = (event) => {
+            console.log("onerror cnt:" + String(my_count) + " error:" + event.error);
+            
+            // エラーの種類によって処理を分ける
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                console.log('マイクのアクセス許可が必要です');
+                return; // 再起動しない
+            }
+            // その他のエラーは再起動
+            setTimeout(() => {
+                if (recognition) recognition.start();
+            }, 1000);
         }
         recognition.onnomatch = () => {
             console.log("onnomatch cnt:" + String(my_count));
-            recognition.stop();
+            // nomatchの場合は停止せず継続
         }
 
 
         // 言語設定 ----------------------------
         if (arg_recog != null) {
             recognition.lang = arg_recog;
-            trans_sourcelang　= recognition.lang;
+            trans_sourcelang = recognition.lang;
         }
         if (arg_trans != null) {
             trans_destlang = arg_trans;
@@ -313,10 +652,29 @@
         // 認識結果が返ってきたとき ------------------
         recognition.onresult = function(event) {
             var results = event.results;
-            for (var i = event.resultIndex; i < results.length; i++) {
-
-                // 認識結果をget （途中結果 or 最終結果） ------------
-                var recog_text = results[i][0].transcript;
+            
+            // 最新の結果を構築（確定結果 + 途中結果）
+            var finalText = '';
+            var interimText = '';
+            var latestConfidence = 0;
+            
+            for (var i = 0; i < results.length; i++) {
+                var transcript = results[i][0].transcript;
+                var confidence = results[i][0].confidence || 0;
+                
+                if (results[i].isFinal) {
+                    finalText += transcript;
+                    if (confidence > 0) {
+                        latestConfidence = confidence;
+                    }
+                } else {
+                    interimText += transcript;
+                }
+            }
+            
+            // 表示用テキストを構築（確定部分 + 途中部分）
+            var displayText = finalText + interimText;
+            var recog_text = displayText;  // 後続処理との互換性のため
 
                 // #############################################################
                 // 危険単語を検知して，結果を***に置き換える #########################
@@ -346,20 +704,42 @@
                 // #############################################################
 
 
+                // 最新の結果に最終結果が含まれているかチェック
+                var hasNewFinal = false;
+                for (var j = event.resultIndex; j < results.length; j++) {
+                    if (results[j].isFinal) {
+                        hasNewFinal = true;
+                        break;
+                    }
+                }
+                
                 // #################################################################
                 // 認識最終結果が来たら ###############################################
-                if (results[i].isFinal)
+                if (hasNewFinal)
                 {
-                    // 認識結果を表示する ---------------------
-                    document.getElementById('speech_text-imb').innerHTML = recog_text;
-                    document.getElementById('speech_text-bg').innerHTML = recog_text;
-                    document.getElementById('speech_text-fg').innerHTML = recog_text;
-                    isSpeechRecognitionComplete = true; // フラグを更新
-
-                    // すべての処理が完了した後に内容を消す
-                    if (timer != null && shouldClearText()) {
-                        setTimeout(fn_del, timer);
+                    // 最終結果取得時に音声認識タイマー開始（発話終了とみなす）
+                    console.log('🎤⚙️ 最終結果取得 - 音声認識タイマー開始 (テキスト:"' + finalText + '")');
+                    
+                    // 最終結果が空でない場合のみタイマー開始
+                    if (finalText && finalText.trim() !== '') {
+                        startSpeechDeleteTimer();
+                    } else {
+                        console.log('⚠️ 最終結果が空のためタイマー開始をスキップ');
                     }
+                    // 認識結果を表示する ---------------------
+                    var displayTextWithConfidence = finalText;
+                    if (arg_showConfidence === 'true' && latestConfidence > 0) {
+                        displayTextWithConfidence += ` (信頼度: ${Math.round(latestConfidence * 100)}%)`;
+                    }
+                    document.getElementById('speech_text-imb').innerHTML = displayTextWithConfidence;
+                    document.getElementById('speech_text-bg').innerHTML = displayTextWithConfidence;
+                    document.getElementById('speech_text-fg').innerHTML = displayTextWithConfidence;
+                    isSpeechRecognitionComplete = true; // フラグを更新
+                    
+                    // 翻訳処理用に最終確定テキストのみを使用
+                    recog_text = finalText;
+                    lastFinalText = finalText;
+
 
                     // 棒読みちゃんにコメントを送信する
                     if(bouyomi == "true") {
@@ -368,10 +748,20 @@
                     }
 
                     if(gas_key != null){
+                        
+                        // 翻訳開始ステータス
+                        var activeTranslations = [];
+                        if(arg_trans != null) activeTranslations.push('1');
+                        if(arg_trans2 != null) activeTranslations.push('2');
+                        if(arg_trans3 != null) activeTranslations.push('3');
+                        if(activeTranslations.length > 0) {
+                            updateTranslationStatus('翻訳中(' + activeTranslations.join(',') + ')', '#0066cc');
+                        }
 
                         // 翻訳1言語目
                         if(arg_trans != null){
-                            query = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans_destlang;
+                            const processedText = applyCustomDictionary(recog_text);
+                            query = TRANS_URL + '?text=' + encodeURIComponent(processedText) + '&source=' + trans_sourcelang + '&target=' + trans_destlang;
                             request.open('GET', query, true);
 
                             request.onreadystatechange = function(){
@@ -392,17 +782,35 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
-                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
-                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
                                     document.getElementById('trans_text-imb').innerHTML =  responseText1;
                                     document.getElementById('trans_text-bg').innerHTML =  responseText1;
                                     document.getElementById('trans_text-fg').innerHTML =  responseText1;
                                     isTextTranslation1Complete = true; // フラグを更新
-
-                                    // すべての処理が完了した後に内容を消す
-                                    if (timer != null && shouldClearText()) {
-                                        setTimeout(fn_del, timer);
+                                    
+                                    // 翻訳1完了時に翻訳タイマー開始
+                                    startTranslationDeleteTimer();
+                                    
+                                    // 翻訳完了チェック
+                                    var completedTranslations = 0;
+                                    var totalTranslations = 0;
+                                    if(arg_trans != null) { totalTranslations++; if(isTextTranslation1Complete) completedTranslations++; }
+                                    if(arg_trans2 != null) { totalTranslations++; if(isTextTranslation2Complete) completedTranslations++; }
+                                    if(arg_trans3 != null) { totalTranslations++; if(isTextTranslation3Complete) completedTranslations++; }
+                                    
+                                    if(completedTranslations === totalTranslations) {
+                                        updateTranslationStatus('翻訳完了', '#00aa00');
+                                    }
+                                } else if (request.readyState === 4) {
+                                    // エラー時の処理
+                                    if (request.status === 429) {
+                                        updateTranslationStatus('API上限エラー', '#cc0000');
+                                    } else if (request.status === 403) {
+                                        updateTranslationStatus('API認証エラー', '#cc0000');
+                                    } else {
+                                        updateTranslationStatus('翻訳エラー(HTTP:' + request.status + ')', '#cc0000');
                                     }
                                 }
                             }
@@ -411,7 +819,8 @@
 
                         // 翻訳2言語目
                         if(arg_trans2 != null){
-                            query2 = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans2_destlang;
+                            const processedText2 = applyCustomDictionary(recog_text);
+                            query2 = TRANS_URL + '?text=' + encodeURIComponent(processedText2) + '&source=' + trans_sourcelang + '&target=' + trans2_destlang;
                             request2.open('GET', query2, true);
 
                             request2.onreadystatechange = function(){
@@ -433,17 +842,35 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
-                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
-                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
                                     document.getElementById('trans_text2-imb').innerHTML = responseText2;
                                     document.getElementById('trans_text2-bg').innerHTML = responseText2;
                                     document.getElementById('trans_text2-fg').innerHTML = responseText2;
                                     isTextTranslation2Complete = true; // フラグを更新
-
-                                    // すべての処理が完了した後に内容を消す
-                                    if (timer != null && shouldClearText()) {
-                                        setTimeout(fn_del, timer);
+                                    
+                                    // 翻訳2完了時に翻訳タイマー再開始
+                                    startTranslationDeleteTimer();
+                                    
+                                    // 翻訳完了チェック
+                                    var completedTranslations = 0;
+                                    var totalTranslations = 0;
+                                    if(arg_trans != null) { totalTranslations++; if(isTextTranslation1Complete) completedTranslations++; }
+                                    if(arg_trans2 != null) { totalTranslations++; if(isTextTranslation2Complete) completedTranslations++; }
+                                    if(arg_trans3 != null) { totalTranslations++; if(isTextTranslation3Complete) completedTranslations++; }
+                                    
+                                    if(completedTranslations === totalTranslations) {
+                                        updateTranslationStatus('翻訳完了', '#00aa00');
+                                    }
+                                } else if (request2.readyState === 4) {
+                                    // エラー時の処理
+                                    if (request2.status === 429) {
+                                        updateTranslationStatus('API上限エラー', '#cc0000');
+                                    } else if (request2.status === 403) {
+                                        updateTranslationStatus('API認証エラー', '#cc0000');
+                                    } else {
+                                        updateTranslationStatus('翻訳エラー(HTTP:' + request2.status + ')', '#cc0000');
                                     }
                                 }
                             }
@@ -452,7 +879,8 @@
 
                         // 翻訳2言語目
                         if(arg_trans3 != null){
-                            query3 = TRANS_URL + '?text=' + recog_text + '&source=' + trans_sourcelang + '&target=' + trans3_destlang;
+                            const processedText3 = applyCustomDictionary(recog_text);
+                            query3 = TRANS_URL + '?text=' + encodeURIComponent(processedText3) + '&source=' + trans_sourcelang + '&target=' + trans3_destlang;
                             request3.open('GET', query3, true);
 
                             request3.onreadystatechange = function(){
@@ -474,17 +902,35 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = recog_text;
-                                    document.getElementById('speech_text-bg').innerHTML = recog_text;
-                                    document.getElementById('speech_text-fg').innerHTML = recog_text;
+                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
                                     document.getElementById('trans_text3-imb').innerHTML = responseText3;
                                     document.getElementById('trans_text3-bg').innerHTML = responseText3;
                                     document.getElementById('trans_text3-fg').innerHTML = responseText3;
                                     isTextTranslation3Complete = true; // フラグを更新
-
-                                    // すべての処理が完了した後に内容を消す
-                                    if (timer != null && shouldClearText()) {
-                                        setTimeout(fn_del, timer);
+                                    
+                                    // 翻訳3完了時に翻訳タイマー再開始
+                                    startTranslationDeleteTimer();
+                                    
+                                    // 翻訳完了チェック
+                                    var completedTranslations = 0;
+                                    var totalTranslations = 0;
+                                    if(arg_trans != null) { totalTranslations++; if(isTextTranslation1Complete) completedTranslations++; }
+                                    if(arg_trans2 != null) { totalTranslations++; if(isTextTranslation2Complete) completedTranslations++; }
+                                    if(arg_trans3 != null) { totalTranslations++; if(isTextTranslation3Complete) completedTranslations++; }
+                                    
+                                    if(completedTranslations === totalTranslations) {
+                                        updateTranslationStatus('翻訳完了', '#00aa00');
+                                    }
+                                } else if (request3.readyState === 4) {
+                                    // エラー時の処理
+                                    if (request3.status === 429) {
+                                        updateTranslationStatus('API上限エラー', '#cc0000');
+                                    } else if (request3.status === 403) {
+                                        updateTranslationStatus('API認証エラー', '#cc0000');
+                                    } else {
+                                        updateTranslationStatus('翻訳エラー(HTTP:' + request3.status + ')', '#cc0000');
                                     }
                                 }
                             }
@@ -492,9 +938,11 @@
                         }
 
                     } else {
-                        document.getElementById('speech_text-imb').innerHTML = recog_text;
-                        document.getElementById('speech_text-bg').innerHTML = recog_text;
-                        document.getElementById('speech_text-fg').innerHTML = recog_text;
+                        document.getElementById('speech_text-imb').innerHTML = finalText;
+                        document.getElementById('speech_text-bg').innerHTML = finalText;
+                        document.getElementById('speech_text-fg').innerHTML = finalText;
+                        // API KEYがない場合のステータス
+                        updateTranslationStatus('API KEYなし', '#999');
                     }
 
                 }
@@ -502,28 +950,56 @@
                 // 認識途中結果が来たら ###############################################
                 else
                 {
+                    // 途中結果取得時に音声認識タイマーリセット（音声入力中のため）
+                    console.log('🔄 途中結果取得 - タイマーリセット (テキスト:"' + displayText + '")');
+                    resetSpeechTimer();
                     // 「ショートポースが来たら，音声認識を強制的に止める」のタイムアウト処理を削除する -------
-                    if(short_pause != null) clearTimeout(id_stop_recog);
-
-                    // ショートポーズストップ用タイムアウト
-                    if(short_pause != null) id_stop_recog = setTimeout(stop_recog,short_pause);
-
-                    // 認識結果を変数に格納
-                    recog_IM_text = recog_text;
-
-                    // 画面表示テキスト更新 ---
-                    if(recog_IM_text != ""){
-                        document.getElementById('speech_text-imb').innerHTML = "<< " + recog_IM_text + " >>";
-                        document.getElementById('speech_text-bg').innerHTML = "<< " + recog_IM_text + " >>";
-                        document.getElementById('speech_text-fg').innerHTML = "<< " + recog_IM_text + " >>";
+                    if(short_pause != null && short_pause !== '') {
+                        clearTimeout(id_stop_recog);
+                        // ショートポーズストップ用タイムアウトを設定
+                        id_stop_recog = setTimeout(stop_recog, parseInt(short_pause));
+                        console.log('ショートポーズタイマー設定:', short_pause + 'ms');
                     }
 
+                    // 途中結果の表示（確定部分 + 途中部分を明確に区別）
+                    if(displayText !== ""){
+                        var displayHtml = '';
+                        if (finalText !== '') {
+                            displayHtml += finalText;
+                        }
+                        if (interimText !== '') {
+                            displayHtml += ' << ' + interimText + ' >>';
+                        }
+                        
+                        document.getElementById('speech_text-imb').innerHTML = displayHtml;
+                        document.getElementById('speech_text-bg').innerHTML = displayHtml;
+                        document.getElementById('speech_text-fg').innerHTML = displayHtml;
+                    }
                 }
-            }
+            // 単一ループに統合
         }
 
-        recognition.start();
-        console.log("recog start: cnt:" + String(my_count));
+        // 音声デバイス初期化後に音声認識を開始
+        initializeAudioDevice().then(() => {
+            recognition.start();
+            console.log("recog start: cnt:" + String(my_count));
+            // 初期ステータス設定
+            if (gas_key != null && gas_key !== '') {
+                updateTranslationStatus('待機中', '#666');
+            } else {
+                updateTranslationStatus('API KEYなし', '#999');
+            }
+        }).catch(() => {
+            // エラーが発生してもデフォルトデバイスで開始
+            recognition.start();
+            console.log("recog start (default device): cnt:" + String(my_count));
+            // 初期ステータス設定
+            if (gas_key != null && gas_key !== '') {
+                updateTranslationStatus('待機中', '#666');
+            } else {
+                updateTranslationStatus('API KEYなし', '#999');
+            }
+        });
 
     </script> 
 </head>
@@ -582,8 +1058,12 @@
 
 // バージョン情報の表示 ---------------------------------
 const SoftwareTitle = "音声認識字幕ちゃん";
-const SoftwareVersion = "2024.6.14 22:00";
+const SoftwareVersion = "2025.6.6 19:00";
 const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
+
+// Web Speech API使用時のデバイス制限について
+console.log('音声認識: Web Speech APIは既定の音声デバイスのみ使用');
+console.log('デバイスを変更する場合は、ブラウザまたはOSの設定で既定デバイスを変更してください。');
 
 const speech_text_first = "[" + SoftwareTitle + " (Ver:" + SoftwareVersion + ")" + "]";
 document.getElementById('speech_text-bg').innerHTML = speech_text_first;

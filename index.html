@@ -32,6 +32,13 @@
     <title>jimakuChan: 音声認識字幕ちゃん [CONFIG]</title>
 
     <style type="text/css">
+        /* グローバルなbox-sizingリセット */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
         button, input, select, textarea {
             /* font-family : inherit; */
             /* font-family: 'メイリオ', Meiryo,sans-serif; */
@@ -53,6 +60,8 @@
             height: 100%;
             width: 100%;
             margin: 0;
+            padding: 0;
+            overflow-x: auto;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             /* font-family:'07NikumaruFont'; */
         }
@@ -106,118 +115,197 @@
 
 <!-- # 注意事項 ######################### -->
 <!-- <iframe src="" name="sample" width="100%" height="30%" id="asr_frame" onclick="toggleIframeHeight()"></iframe> -->
-<iframe src="" name="sample" width="100%" height="30%" id="asr_frame"></iframe>
+<iframe src="" name="sample" width="100%" height="30%" id="asr_frame" onclick="toggleIframeHeight()" style="border: none;"></iframe>
 
 　上の画面をクリックすると設定画面が閉じ，もう一度押すと再度開きます．<BR>
 <HR>
 
-<!-- # 設定セーブ＆ロードボタン ################## -->
-　<button onclick="saveSettings()">設定ファイルをPCに保存</button>　
-<button onclick="loadSettings()">設定ファイルをブラウザに読込</button>　：設定が完成したら，設定ファイルを保存しておきましょう　<BR>
+<!-- # プリセット機能 ################## -->
+設定プリセット：
+<select id="presetSelect" onchange="loadPreset()">
+    <option value="default">📋 選択してください</option>
+    <option value="gaming">🎮 ゲーム配信用</option>
+    <option value="meeting">💼 会議・打ち合わせ用</option>
+    <option value="language_learning">📚 語学学習用</option>
+    <option value="accessibility">♿ アクセシビリティ重視</option>
+    <option value="cute_streaming">🌸 かわいい配信用</option>
+    <option value="dark_theme">🌙 ダークテーマ</option>
+    <option value="rainbow">🌈 レインボー</option>
+    <option value="custom1">🔧 カスタム１</option>
+    <option value="custom2">🔧 カスタム２</option>
+    <option value="custom3">🔧 カスタム３</option>
+</select><BR>
+<small style="color: #666;">プリセットを選択すると設定が切り替わり、変更した設定は自動保存されます ✨</small><BR>
 <HR>
 
 <!-- # API key text box ##################### -->
 翻訳用 Google API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /> キーの作成方法 → <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">[LINK]</a><BR>
-翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）←僕じゃなくてGoogle にお金払う</font><BR>
+翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）</font><BR>
+翻訳ステータス：<span id="translationStatus" style="font-weight: bold; color: #666;">待機中</span><BR>
 <HR>
 
-<!-- # 背景の色 ############################## -->
-　　　　文字色 フチ色<BR>
-認識　：<input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
-<input id="st_color1" type="color" value="#000000" oninput="changeTextColor('bg',this.value,1); updateOptionValues(only_url=true)" />
+<!-- # テキスト設定 (テーブルレイアウト) ######################### -->
+<table style="border-collapse: separate; border-spacing: 0px;">
+<tr>
+    <td></td>
+    <td style="text-align: center; width: 50px;">文字色</td>
+    <td style="text-align: center; width: 50px;">フチ色</td>
+    <td style="text-align: center; width: 120px;">サイズ</td>
+    <td style="text-align: center; width: 120px;">ウェイト</td>
+    <td style="text-align: center; width: 120px;">縁取り</td>
+</tr>
+<tr>
+    <td style="width: 60px;">認識　：</td>
+    <td style="text-align: center;">
+        <input id="color1" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,1); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="st_color1" type="color" value="#000000" oninput="changeTextColor('bg',this.value,1); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="size1" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_size_view1">25</span>px
+    </td>
+    <td style="text-align: center;">
+        <input id="weight1" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontWeight = this.value; document.getElementById('text_weight_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_weight_view1">900</span>
+    </td>
+    <td style="text-align: center;">
+        <input id="st_width1" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,1); document.getElementById('text_st_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_st_size_view1">6</span>pt
+    </td>
+</tr>
+<tr>
+    <td>翻訳１：</td>
+    <td style="text-align: center;">
+        <input id="color2" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,2); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="st_color2" type="color" value="#000000" oninput="changeTextColor('bg',this.value,2); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="size2" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_size_view2">25</span>px
+    </td>
+    <td style="text-align: center;">
+        <input id="weight2" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontWeight = this.value; document.getElementById('text_weight_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_weight_view2">900</span>
+    </td>
+    <td style="text-align: center;">
+        <input id="st_width2" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,2); document.getElementById('text_st_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_st_size_view2">6</span>pt
+    </td>
+</tr>
+<tr>
+    <td>翻訳２：</td>
+    <td style="text-align: center;">
+        <input id="color3" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,3); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="st_color3" type="color" value="#000000" oninput="changeTextColor('bg',this.value,3); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="size3" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_size_view3">25</span>px
+    </td>
+    <td style="text-align: center;">
+        <input id="weight3" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontWeight = this.value; document.getElementById('text_weight_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_weight_view3">900</span>
+    </td>
+    <td style="text-align: center;">
+        <input id="st_width3" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,3); document.getElementById('text_st_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_st_size_view3">6</span>pt
+    </td>
+</tr>
+<tr>
+    <td>翻訳３：</td>
+    <td style="text-align: center;">
+        <input id="color4" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,4); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="st_color4" type="color" value="#000000" oninput="changeTextColor('bg',this.value,4); updateOptionValues(only_url=true)" />
+    </td>
+    <td style="text-align: center;">
+        <input id="size4" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_size_view4">25</span>px
+    </td>
+    <td style="text-align: center;">
+        <input id="weight4" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontWeight = this.value; document.getElementById('text_weight_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_weight_view4">900</span>
+    </td>
+    <td style="text-align: center;">
+        <input id="st_width4" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,4); document.getElementById('text_st_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
+        <span id="text_st_size_view4">6</span>pt
+    </td>
+</tr>
+</table>
 
-　　背景色：<input id="bgcolor" type="color" value="#00ff00" oninput="document.getElementById('asr_frame').contentWindow.document.bgColor=this.value; changeTextColor('imb',this.value,1); updateOptionValues(only_url=true)" />
-
-<BR>
-翻訳１：<input id="color2" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,2); updateOptionValues(only_url=true)" />
-<input id="st_color2" type="color" value="#000000" oninput="changeTextColor('bg',this.value,2); updateOptionValues(only_url=true)" /><BR>
-
-翻訳２：<input id="color3" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,3); updateOptionValues(only_url=true)" />
-<input id="st_color3" type="color" value="#000000" oninput="changeTextColor('bg',this.value,3); updateOptionValues(only_url=true)" /><BR>
-
-翻訳３：<input id="color4" type="color" value="#ffffff" oninput="changeTextColor('fg',this.value,4); updateOptionValues(only_url=true)" />
-<input id="st_color4" type="color" value="#000000" oninput="changeTextColor('bg',this.value,4); updateOptionValues(only_url=true)" /><BR>
+背景色：<input id="bgcolor" type="color" value="#00ff00" oninput="document.getElementById('asr_frame').contentWindow.document.bgColor=this.value; changeTextColor('imb',this.value,1); updateOptionValues(only_url=true)" />
 
 <HR>
 
-<!-- # テキストフォント ########################
-フォント名： <input type="text" name="font" id="font" size="60" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('result_text').style.fontFamily = getParam('font'); updateOptionValues()"><BR>
-         -->
-
-<!-- # テキストサイズ ######################### -->
-　　　　　　　サイズ　　　　　　　ウェイト　　　　　　　 縁取り　<BR>
-認識　：
-<input id="size1" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_size_view1">25</span>px 
-
-<input id="weight1" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontWeight = this.value; document.getElementById('text_weight_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_weight_view1">900</span> 
-
-<input id="st_width1" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,1); document.getElementById('text_st_size_view1').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_st_size_view1">6</span>pt
-<BR>
-
-翻訳１：
-<input id="size2" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_size_view2">25</span>px 
-
-<input id="weight2" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontWeight = this.value; document.getElementById('text_weight_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_weight_view2">900</span> 
-
-<input id="st_width2" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,2); document.getElementById('text_st_size_view2').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_st_size_view2">6</span>pt
-<BR>
-
-翻訳２：
-<input id="size3" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_size_view3">25</span>px 
-
-<input id="weight3" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontWeight = this.value; document.getElementById('text_weight_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_weight_view3">900</span> 
-
-<input id="st_width3" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,3); document.getElementById('text_st_size_view3').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_st_size_view3">6</span>pt
-<BR>
-
-翻訳３：
-<input id="size4" type="range" value="25" min="0" max="40" step="0.1" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontSize = this.value + 'pt'; document.getElementById('text_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_size_view4">25</span>px 
-
-<input id="weight4" type="range" value="900" min="100" max="900" step="100" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontWeight = this.value; document.getElementById('text_weight_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_weight_view4">900</span> 
-
-<input id="st_width4" type="range" value="6" min="0" max="20" step="0.1" oninput="setTextBorder(this.value,4); document.getElementById('text_st_size_view4').innerHTML=this.value; updateOptionValues(only_url=true)" />
-<span id="text_st_size_view4">6</span>pt
-<BR>
-
-<HR>
-<!-- # テキストの揃え ######################### -->
-テキストの位置：　
-左右：
-<select id="textAlign" onchange="updateOptionValues()">
-    <option value="left">左寄せ</option>
-    <option value="center" selected>中央寄せ</option>
-    <option value="right">右寄せ</option>
-</select>
-
-　上下：
-<select id="v_align" onchange="updateOptionValues()">
-    <option value="top" selected>上</option>
-    <option value="bottom">下</option>
-</select><BR>
-
-<!-- # テキストの改行 ######################### -->
-テキストの改行：
-<select id="whiteSpace" onchange="updateOptionValues()">
-    <option value="nowrap">改行しない</option>
-    <option value="" selected>画面端で改行</option>
-</select><BR>
-<HR>
-
-<!-- # テキスト表示項目 ####################### -->
+<!-- # 言語選択設定 ######################### -->
 音声認識言語　：
 <select id="recog" onchange="updateOptionValues(only_url=false);">
     <option value="ja" selected>日本語</option>
+    <option value="en-US">英語</option>
+    <option value="ko">韓国語</option>
+    <option value="zh-CN">中国語</option>
+    <option value="zh-TW">台湾語</option>
+    <option value="fr-FR">フランス語</option>
+    <option value="it-IT">イタリア語</option>
+    <option value="de-DE">ドイツ語</option>
+    <option value="tr-TR">トルコ語</option>
+    <option value="sv-SE">スウェーデン語</option>
+    <option value="pl-PL">ポーランド語</option>
+    <option value="uk-UA">ウクライナ語</option>
+    <option value="ru-RU">ロシア語</option>
+    <option value="es-ES">スペイン語</option>
+    <option value="pt-PT">ポルトガル語</option>
+    <option value="nl-NL">オランダ語</option>
+    <option value="id-ID">インドネシア語</option>
+    <option value="vi-VN">ベトナム語</option>
+    <option value="th-TH">タイ語</option>
+    <option value="ar-SA">アラビア語</option>
+</select>　　
+
+フォント　：
+<select name="speech_text_font_selector" id="speech_text_font_selector" onchange="applySelectedFont(this, 'speech_text'); selectFont(); updateOptionValues();">
+    <option value="direct">[直接指定]</option>
+    <option value="M PLUS\\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="Mamelon">マメロン</option>
+    <option value="YasashisaB">やさしさB</option>
+    <option value="HuiFont29">ふい字</option>
+    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
+    <option value="MkPOP">851マカポップ</option>
+    <option value="bananaslipplus">バナナスリップplus</option>
+    <option value="katyou">花鳥風月</option>
+    <option value="TanukiMagic">たぬき油性マジック</option>
+    <option value="hakidame">吐き溜</option>
+    <option value="umeboshi">梅干し</option>
+    <option value="Jiyucho">じゆうちょう</option>
+    <option value="HitmoR">Hitmo</option>
+    <option value="nishikiteki">にしき的</option>
+    <option value="Yusei Magic">Yusei Magic</option>
+    <option value="Nikumaru">にくまる</option>
+    <option value="KTEGAKI">kawaii手書き</option>
+    <option value="JKGL">JK Gothic L</option>
+    <option value="Reggae One">Reggae One</option>
+    <option value="OhisamaFont">おひさま</option>
+    <option value="nukamiso">ぬかみそ</option>
+    <option value="genkai">源界明朝</option>
+    <option value="CP">チェックポイント</option>
+    <option value="Noto Sans JP">Noto Sans JP</option>
+    <option value="Sawarabi Gothic">さわらびゴシック</option>
+    <option value="Nico Moji">ニコモジ</option>
+</select>　
+システムフォント：<select id="speech_text_system_font" onchange="applySystemFont(this.value, 'speech_text'); updateOptionValues();"></select><br>
+
+翻訳言語（１）：
+<select id="trans" onchange="updateOptionValues(only_url=false);">
+    <option value="none" selected>なし</option>
+    <option value="ja">日本語</option>
     <option value="en">英語</option>
     <option value="ko">韓国語</option>
     <option value="zh-CN">中国語</option>
@@ -241,10 +329,10 @@
 </select>　　
 
 フォント　：
-<select name="speech_text_font_selector" id="speech_text_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontFamily = this.value; selectFont();">
+<select name="trans_text_font_selector" id="trans_text_font_selector" onchange="applySelectedFont(this, 'trans_text'); selectFont(); updateOptionValues();">
     <option value="direct">[直接指定]</option>
-    <option value="M PLUS\ 1p">M PLUS 1p</option>
-    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="M PLUS\\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
     <option value="YasashisaB">やさしさB</option>
     <option value="HuiFont29">ふい字</option>
@@ -271,68 +359,7 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-フォント（直接指定）：<input type="text" name="speech_text_font" id="speech_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('speech_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
-
-
-翻訳言語（１）：
-<select id="trans" onchange="updateOptionValues(only_url=false);">
-    <option value="none">なし</option>
-    <option value="ja">日本語</option>
-    <option value="en" selected>英語</option>
-    <option value="ko">韓国語</option>
-    <option value="zh-CN">中国語</option>
-    <option value="zh-TW">台湾語</option>
-    <option value="fr">フランス語</option>
-    <option value="it">イタリア語</option>
-    <option value="de">ドイツ語</option>
-    <option value="tr">トルコ語</option>
-    <option value="sv">スウェーデン語</option>
-    <option value="pl">ポーランド語</option>
-    <option value="uk">ウクライナ語</option>
-    <option value="ru">ロシア語</option>
-    <option value="es">スペイン語</option>
-    <option value="pt">ポルトガル語</option>
-    <option value="nl">オランダ語</option>
-    <option value="id">インドネシア語</option>
-    <option value="vi">ベトナム語</option>
-    <option value="th">タイ語</option>
-    <option value="ar">アラビア語</option>
-    <option value="so">ソマリ語</option>
-</select>　　
-
-フォント　：
-<select name="trans_text_font_selector" id="trans_text_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontFamily = this.value; selectFont();">
-    <option value="direct">[直接指定]</option>
-    <option value="M PLUS\ 1p">M PLUS 1p</option>
-    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
-    <option value="Mamelon">マメロン</option>
-    <option value="YasashisaB">やさしさB</option>
-    <option value="HuiFont29">ふい字</option>
-    <option value="Hachi Maru Pop">Hachi Maru Pop</option>
-    <option value="MkPOP">851マカポップ</option>
-    <option value="bananaslipplus">バナナスリップplus</option>
-    <option value="katyou">花鳥風月</option>
-    <option value="TanukiMagic">たぬき油性マジック</option>
-    <option value="hakidame">吐き溜</option>
-    <option value="umeboshi">梅干し</option>
-    <option value="Jiyucho">じゆうちょう</option>
-    <option value="HitmoR">Hitmo</option>
-    <option value="nishikiteki">にしき的</option>
-    <option value="Yusei Magic">Yusei Magic</option>
-    <option value="Nikumaru">にくまる</option>
-    <option value="KTEGAKI">kawaii手書き</option>
-    <option value="JKGL">JK Gothic L</option>
-    <option value="Reggae One">Reggae One</option>
-    <option value="OhisamaFont">おひさま</option>
-    <option value="nukamiso">ぬかみそ</option>
-    <option value="genkai">源界明朝</option>
-    <option value="CP">チェックポイント</option>
-    <option value="Noto Sans JP">Noto Sans JP</option>
-    <option value="Sawarabi Gothic">さわらびゴシック</option>
-    <option value="Nico Moji">ニコモジ</option>
-</select>　
-フォント（直接指定）：<input type="text" name="trans_text_font" id="trans_text_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
-
+システムフォント：<select id="trans_text_system_font" onchange="applySystemFont(this.value, 'trans_text'); updateOptionValues();"></select><br>
 
 翻訳言語（２）：
 <select id="trans2" onchange="updateOptionValues(only_url=false);">
@@ -361,10 +388,10 @@
 </select>　　
 
 フォント　：
-<select name="trans_text2_font_selector" id="trans_text2_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; selectFont();">
+<select name="trans_text2_font_selector" id="trans_text2_font_selector" onchange="applySelectedFont(this, 'trans_text2'); selectFont(); updateOptionValues();">
     <option value="direct">[直接指定]</option>
-    <option value="M PLUS\ 1p">M PLUS 1p</option>
-    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="M PLUS\\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
     <option value="YasashisaB">やさしさB</option>
     <option value="HuiFont29">ふい字</option>
@@ -391,7 +418,7 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-フォント（直接指定）：<input type="text" name="trans_text2_font" id="trans_text2_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text2').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
+システムフォント：<select id="trans_text2_system_font" onchange="applySystemFont(this.value, 'trans_text2'); updateOptionValues();"></select><br>
 
 翻訳言語（３）：
 <select id="trans3" onchange="updateOptionValues(only_url=false);">
@@ -420,10 +447,10 @@
 </select>　　
 
 フォント　：
-<select name="trans_text3_font_selector" id="trans_text3_font_selector" onchange="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontFamily = this.value; selectFont();">
+<select name="trans_text3_font_selector" id="trans_text3_font_selector" onchange="applySelectedFont(this, 'trans_text3'); selectFont(); updateOptionValues();">
     <option value="direct">[直接指定]</option>
-    <option value="M PLUS\ 1p">M PLUS 1p</option>
-    <option value="M PLUS Rounded\ 1c" selected>M PLUS Rounded 1c</option>
+    <option value="M PLUS\\ 1p">M PLUS 1p</option>
+    <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
     <option value="YasashisaB">やさしさB</option>
     <option value="HuiFont29">ふい字</option>
@@ -450,13 +477,63 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-フォント（直接指定）：<input type="text" name="trans_text3_font" id="trans_text3_font" size="30" oninput="document.getElementById('asr_frame').contentWindow.document.getElementById('trans_text3').style.fontFamily = this.value; updateOptionValues();" disabled /><br>
+システムフォント：<select id="trans_text3_system_font" onchange="applySystemFont(this.value, 'trans_text3'); updateOptionValues();"></select><br>
+
+<HR>
+<!-- # テキストの揃え ######################### -->
+テキストの位置：　
+左右：
+<select id="textAlign" onchange="updateOptionValues()">
+    <option value="left">左寄せ</option>
+    <option value="center" selected>中央寄せ</option>
+    <option value="right">右寄せ</option>
+</select>
+
+　上下：
+<select id="v_align" onchange="updateOptionValues()">
+    <option value="top" selected>上</option>
+    <option value="bottom">下</option>
+</select><BR>
+
+<!-- # テキストの改行 ######################### -->
+テキストの改行：
+<select id="whiteSpace" onchange="updateOptionValues()">
+    <option value="nowrap">改行しない</option>
+    <option value="" selected>画面端で改行</option>
+</select><BR>
+<HR>
+
+
+<div id="audioLevelMeter" style="margin: 5px 0;">
+    音声レベル: <div style="display: inline-block; width: 200px; height: 10px; border: 1px solid #ccc; background: #f0f0f0; position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 100%; height: 100%; background: linear-gradient(to right, #4CAF50 0%, #4CAF50 50%, #FFC107 75%, #FF5722 100%);"></div>
+        <div id="audioLevelCover" style="position: absolute; right: 0; width: 100%; height: 100%; background: #f0f0f0; transition: width 0.1s;"></div>
+    </div> <span id="audioLevelText">0%</span>
+</div>
+
+
+
+
+
+
 
 <HR>
 
 <!-- # テキスト表示を●秒後に消す ######################### -->
 何ミリ秒後に文を消す？　　　：　
-<input type="text" name="timer" id="timer" size="10" oninput="updateOptionValues();" />ミリ秒（半角数字で入れてね．1000ミリ秒 = 1秒）<BR>
+<input type="text" name="timer" id="timer" size="10" oninput="updateOptionValues();" />ミリ秒　
+<span style="display: inline-block; vertical-align: middle;">
+    <!-- 音声認識用タイマーバー（左） -->
+    <div id="speechTimerProgressContainer" style="display: inline-block; width: 140px; height: 26px; background: linear-gradient(135deg, #fff5f5 0%, #ffd0cc 100%); border: 2px solid #cc8888; border-radius: 13px; margin-left: 10px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+        <div id="speechTimerProgressBar" style="height: 100%; background: linear-gradient(90deg, #FF6B6B 0%, #FFA07A 50%, #FFE4E1 100%); width: 0%; transition: width 0.1s linear; border-radius: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+        <div id="speechTimerProgressText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 13px; font-weight: bold; color: #333; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); letter-spacing: 0.5px;">🎤待機</div>
+    </div>
+    <!-- 翻訳用タイマーバー（右） -->
+    <div id="transTimerProgressContainer" style="display: inline-block; width: 140px; height: 26px; background: linear-gradient(135deg, #f0f8ff 0%, #cce7ff 100%); border: 2px solid #8888cc; border-radius: 13px; margin-left: 8px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+        <div id="transTimerProgressBar" style="height: 100%; background: linear-gradient(90deg, #2196F3 0%, #64B5F6 50%, #BBDEFB 100%); width: 0%; transition: width 0.1s linear; border-radius: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+        <div id="transTimerProgressText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 13px; font-weight: bold; color: #333; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); letter-spacing: 0.5px;">🌐待機</div>
+    </div>
+</span><BR>
 
 <!-- # 文の終わり ######################### -->
 何ミリ秒黙ったら文を区切る？：　
@@ -478,6 +555,12 @@
 <!-- 　<a id="open_link" target="_self" href="">[同じタブで開く]</a><BR>
 別窓で開くと２つ起動して両方止まるよ！多重起動しないように気をつけて！<BR> -->
 <!-- <HR> -->
+
+<!-- # 設定セーブ＆ロードボタン ################## -->
+　<button onclick="saveSettings()">設定ファイルをPCに保存</button>　
+<button onclick="loadSettings()">設定ファイルをブラウザに読込</button>　：設定が完成したら，設定ファイルを保存しておきましょう　<BR>
+
+<HR>
 
 <!-- # .bat download ボタン ############################## -->
 .bat ファイル生成：<BR>
@@ -544,66 +627,166 @@
         , "timer", "short_pause"
         , "bouyomi", "anti_sexual"
         , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector", "trans_text3_font_selector"
-        , "speech_text_font", "trans_text_font", "trans_text2_font", "trans_text3_font"];
+        , "speech_text_system_font", "trans_text_system_font", "trans_text2_system_font", "trans_text3_system_font"];
+
+    // 設定の復元は無効化（プリセットから復元するため）
+    // const config = JSON.parse(localStorage.jimakuChan_config || '{}');
+    // プリセット初期化用の最小限設定のみ
+    const config = {};
 
     // 翻訳画面とURLを初期化 ///////////////
-    document.getElementById('asr_frame').src = base_url;
+    // 初期読み込み時は設定を反映したURLを生成してから読み込む
+    updateOptionValues(true); // URL生成のみ
+    
+    // 設定を含むURLでiframeを読み込む
+    var initial_url = base_url + "textAlign=" + (config.textAlign || "center") + "&v_align=" + (config.v_align || "bottom")
+                    + "&bgcolor=" + (config.bgcolor || "#00ff00")
+                    + "&size1=" + (config.size1 || "25") + "&weight1=" + (config.weight1 || "900") + "&color1=" + (config.color1 || "#ffffff")
+                    + "&st_color1=" + (config.st_color1 || "#000000") + "&st_width1=" + (config.st_width1 || "6")
+                    + "&size2=" + (config.size2 || "25") + "&weight2=" + (config.weight2 || "900") + "&color2=" + (config.color2 || "#ffffff")
+                    + "&st_color2=" + (config.st_color2 || "#000000") + "&st_width2=" + (config.st_width2 || "6")
+                    + "&size3=" + (config.size3 || "25") + "&weight3=" + (config.weight3 || "900") + "&color3=" + (config.color3 || "#ffffff")
+                    + "&st_color3=" + (config.st_color3 || "#000000") + "&st_width3=" + (config.st_width3 || "6")
+                    + "&size4=" + (config.size4 || "25") + "&weight4=" + (config.weight4 || "900") + "&color4=" + (config.color4 || "#ffffff")
+                    + "&st_color4=" + (config.st_color4 || "#000000") + "&st_width4=" + (config.st_width4 || "6");
+    
+    console.log('初期読み込み URL:', initial_url);
+    document.getElementById('asr_frame').src = initial_url;
     // document.getElementById('url').innerHTML = base_url;
-
-
-    // 設定の復元 ////////////////////
-    const config = JSON.parse(localStorage.jimakuChan_config || '{}');
-    for (const p of config_values) {
-        if(config[p] != null) document.getElementById(p).value = config[p];
-    }
-    for (var i=0; i<3; i++) {
-        if(config['size' + String(i+1)] != null) document.getElementById('text_size_view' + String(i+1)).innerHTML = config['size' + String(i+1)];
-        if(config['weight' + String(i+1)] != null) document.getElementById('text_weight_view' + String(i+1)).innerHTML = config['weight' + String(i+1)];
-        if(config['st_width' + String(i+1)] != null) document.getElementById('text_st_size_view' + String(i+1)).innerHTML = config['st_width' + String(i+1)];
-    }
-    if (config['bouyomi'] !== null && config['bouyomi'] !== undefined) {
-        document.getElementById('bouyomi').checked = config['bouyomi'];
-    }
-    if (config['anti_sexual'] !== null && config['anti_sexual'] !== undefined) {
-        document.getElementById('anti_sexual').checked = config['anti_sexual'];
-    }
+    
+    // iframeがロードされた後に設定を反映
+    document.getElementById('asr_frame').onload = function() {
+        console.log('iframe読み込み完了');
+        setTimeout(applyInitialSettings, 300);
+    };
+    // チェックボックス初期化はプリセットから行うため削除
     if (config['frame_height'] !== null && config['frame_height'] !== undefined) {
-        document.getElementById('asr_frame').style.height = config['frame_height'];
+        var iframe = document.getElementById('asr_frame');
+            var body = document.body;
+            iframe.style.height = config['frame_height'];
+
+            if (config['frame_height'] === '100%') {
+                body.style.overflow = 'hidden';  // ページスクロールを禁止する
+            } else {
+                body.style.overflow = 'auto';  // ページスクロールを有効にする
+            }
     }
 
 
-    // フォントの直接入力の場合，テキストフィールドを有効化 ////////////////////
+    // フォントの直接入力の場合，テキストフィールドを有効化、システムフォントプルダウンを制御 ////////////////////
     function selectFont() {
         var speech_text_font_selector = document.getElementById('speech_text_font_selector').value;
         var trans_text_font_selector = document.getElementById('trans_text_font_selector').value;
         var trans_text2_font_selector = document.getElementById('trans_text2_font_selector').value;
         var trans_text3_font_selector = document.getElementById('trans_text3_font_selector').value;
-        console.log("フォントテキストエリア: " + speech_text_font_selector);
+        
+        console.log("フォント選択状態: " + speech_text_font_selector);
+        
+        // 音声認識フォント
+        var speechSystemFont = document.getElementById('speech_text_system_font');
         if (speech_text_font_selector === "direct") {
-            speech_text_font.disabled = false;
+            if (speechSystemFont) {
+                speechSystemFont.disabled = false;
+                speechSystemFont.style.backgroundColor = '';
+                speechSystemFont.style.color = '';
+            }
         } else {
-            speech_text_font.disabled = true;
+            if (speechSystemFont) {
+                speechSystemFont.disabled = true;
+                speechSystemFont.style.backgroundColor = '#f0f0f0';
+                speechSystemFont.style.color = '#999';
+                speechSystemFont.value = ''; // 選択をクリア
+            }
         }
 
+        // 翻訳1フォント
+        var transSystemFont = document.getElementById('trans_text_system_font');
         if (trans_text_font_selector === "direct") {
-            trans_text_font.disabled = false;
+            if (transSystemFont) {
+                transSystemFont.disabled = false;
+                transSystemFont.style.backgroundColor = '';
+                transSystemFont.style.color = '';
+            }
         } else {
-            trans_text_font.disabled = true;
+            if (transSystemFont) {
+                transSystemFont.disabled = true;
+                transSystemFont.style.backgroundColor = '#f0f0f0';
+                transSystemFont.style.color = '#999';
+                transSystemFont.value = '';
+            }
         }
 
+        // 翻訳2フォント
+        var trans2SystemFont = document.getElementById('trans_text2_system_font');
         if (trans_text2_font_selector === "direct") {
-            trans_text2_font.disabled = false;
+            if (trans2SystemFont) {
+                trans2SystemFont.disabled = false;
+                trans2SystemFont.style.backgroundColor = '';
+                trans2SystemFont.style.color = '';
+            }
         } else {
-            trans_text2_font.disabled = true;
+            if (trans2SystemFont) {
+                trans2SystemFont.disabled = true;
+                trans2SystemFont.style.backgroundColor = '#f0f0f0';
+                trans2SystemFont.style.color = '#999';
+                trans2SystemFont.value = '';
+            }
         }
 
+        // 翻訳3フォント
+        var trans3SystemFont = document.getElementById('trans_text3_system_font');
         if (trans_text3_font_selector === "direct") {
-            trans_text3_font.disabled = false;
+            if (trans3SystemFont) {
+                trans3SystemFont.disabled = false;
+                trans3SystemFont.style.backgroundColor = '';
+                trans3SystemFont.style.color = '';
+            }
         } else {
-            trans_text3_font.disabled = true;
+            if (trans3SystemFont) {
+                trans3SystemFont.disabled = true;
+                trans3SystemFont.style.backgroundColor = '#f0f0f0';
+                trans3SystemFont.style.color = '#999';
+                trans3SystemFont.value = '';
+            }
         }
 
         updateOptionValues();
+    }
+    
+    // 初期設定の反映
+    selectFont();
+    
+    // プリセット初期化は最下部で実行
+
+    // 初期設定を適用する関数
+    function applyInitialSettings() {
+        try {
+            // iframe内のドキュメントが準備できるまで待つ
+            if (document.getElementById('asr_frame').contentWindow && 
+                document.getElementById('asr_frame').contentWindow.document) {
+                
+                console.log('初期設定を適用中...');
+                
+                // まず設定をURLパラメータで更新（iframe再読み込み）
+                updateOptionValues(false);
+                
+                // 少し待ってからDOMの直接操作も実行
+                setTimeout(function() {
+                    applyAllSettings();
+                    // ページタイトルを更新
+                    updatePageTitle();
+                    console.log('初期設定適用完了');
+                }, 200);
+                
+            } else {
+                // まだ準備できていない場合は少し待ってから再試行
+                setTimeout(applyInitialSettings, 100);
+            }
+        } catch (error) {
+            console.error('初期設定適用エラー:', error);
+            // エラーが発生した場合も再試行
+            setTimeout(applyInitialSettings, 200);
+        }
     }
 
     // URLに付けるオプションの値をアップデート //////////
@@ -663,12 +846,29 @@
         for (const p of config_values) {
             config[p] = eval(p);
         }
+        
+        // checkbox設定もconfigに追加
+        config.bouyomi = bouyomi;
+        config.anti_sexual = anti_sexual;
 
         // 設定の保存
         localStorage.jimakuChan_config = JSON.stringify(config);
 
+        // プリセットへの自動保存（プリセット読み込み中でなければ実行）
+        console.log('updateOptionValues - 自動保存チェック:', 'isLoadingPreset:', isLoadingPreset, 'currentPreset:', currentPreset);
+        if (!isLoadingPreset) {
+            console.log('自動保存スケジュール - 100ms後に実行');
+            setTimeout(saveCurrentPreset, 100);
+        } else {
+            console.log('自動保存スキップ - プリセット読み込み中');
+        }
+
+        // ページタイトルの更新
+        updatePageTitle();
+
         // 認識ちゃん画面の更新 ///////
         if(only_url == false) {
+            console.log('iframe更新 URL:', new_url);
             document.getElementById('asr_frame').src = new_url;
         }
 
@@ -677,31 +877,205 @@
 
         return 0;
     }
-    updateOptionValues()
 
+    // ページタイトルを更新する関数
+    function updatePageTitle() {
+        try {
+            const presetSelect = document.getElementById('presetSelect');
+            if (presetSelect && presetSelect.selectedIndex > 0) {
+                const selectedText = presetSelect.options[presetSelect.selectedIndex].text;
+                document.title = `jimakuChan: 音声認識字幕ちゃん [${selectedText}]`;
+            } else {
+                document.title = 'jimakuChan: 音声認識字幕ちゃん [CONFIG]';
+            }
+        } catch (error) {
+            console.log('タイトル更新エラー:', error);
+            document.title = 'jimakuChan: 音声認識字幕ちゃん [CONFIG]';
+        }
+    }
+
+    // 初期化時は遅延実行
+    setTimeout(function() {
+        updateOptionValues();
+    }, 100);
+
+    // PCにインストールされているフォントを検出する関数
+    function detectSystemFonts() {
+        // よく使われるシステムフォントのリスト
+        const commonFonts = [
+            // 日本語フォント
+            'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Yu Gothic Medium', 
+            'Meiryo', 'MS Gothic', 'MS Mincho', 'NotoSansCJK-Regular', 'Noto Sans JP',
+            'Osaka', 'Kozuka Gothic Pr6N', 'Kozuka Mincho Pr6N',
+            // 英語フォント  
+            'Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Verdana', 'Georgia',
+            'Comic Sans MS', 'Trebuchet MS', 'Arial Black', 'Impact', 'Palatino',
+            'Garamond', 'Bookman', 'Avant Garde', 'Helvetica Neue', 'Lucida Grande',
+            // システムフォント
+            'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto',
+            'SF Pro Display', 'SF Pro Text'
+        ];
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const testString = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789あいうえおカキクケコ漢字';
+        
+        // ベースライン（デフォルトフォント）のサイズを測定
+        context.font = '12px monospace';
+        const baselineWidth = context.measureText(testString).width;
+        
+        const availableFonts = [];
+        
+        for (const font of commonFonts) {
+            context.font = `12px "${font}", monospace`;
+            const width = context.measureText(testString).width;
+            
+            // ベースラインと幅が異なれば、そのフォントが利用可能
+            if (width !== baselineWidth) {
+                availableFonts.push(font);
+            }
+        }
+        
+        return availableFonts;
+    }
+
+    // フォント選択プルダウンを初期化する関数
+    function initializeFontSelectors() {
+        const availableFonts = detectSystemFonts();
+        const fontSelectors = ['speech_text_system_font', 'trans_text_system_font', 'trans_text2_system_font', 'trans_text3_system_font'];
+        
+        fontSelectors.forEach(selectorId => {
+            const selector = document.getElementById(selectorId);
+            if (selector) {
+                // 既存のオプションをクリア
+                selector.innerHTML = '';
+                
+                // デフォルトオプションを追加
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '選択してください';
+                selector.appendChild(defaultOption);
+                
+                // 検出されたフォントを追加
+                availableFonts.forEach(font => {
+                    const option = document.createElement('option');
+                    option.value = font;
+                    option.textContent = font;
+                    option.style.fontFamily = font;
+                    selector.appendChild(option);
+                });
+            }
+        });
+        
+        // 初期化後に状態を正しく設定
+        setTimeout(selectFont, 100);
+    }
+
+    // システムフォントを適用する関数
+    function applySystemFont(fontName, targetElement) {
+        try {
+            const iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                console.log('iframe not ready, font will be applied later');
+                return;
+            }
+            
+            if (fontName && fontName !== '') {
+                const element = iframe.contentWindow.document.getElementById(targetElement);
+                if (element) {
+                    element.style.fontFamily = `"${fontName}", sans-serif`;
+                    console.log(`システムフォント適用: ${fontName} → ${targetElement}`);
+                }
+            }
+        } catch (error) {
+            console.log('システムフォント適用エラー:', error);
+        }
+    }
+
+    // 選択されたフォントを適用する関数
+    function applySelectedFont(selector, targetElement) {
+        try {
+            const iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                console.log('iframe not ready, font will be applied later');
+                return;
+            }
+            
+            let fontValue = selector.value;
+            
+            // "direct"の場合は何もしない（システムフォント選択で処理）
+            if (fontValue === 'direct') {
+                return;
+            }
+            
+            // バックスラッシュを除去してフォント名を正規化
+            fontValue = fontValue.replace(/\\\\/g, '');
+            
+            const element = iframe.contentWindow.document.getElementById(targetElement);
+            if (element) {
+                element.style.fontFamily = `"${fontValue}", sans-serif`;
+                console.log(`フォント適用: ${fontValue} → ${targetElement}`);
+            }
+        } catch (error) {
+            console.log('フォント適用エラー:', error);
+        }
+    }
 
     // テキストの色変え ---------------------------
     function changeTextColor(type, color, id) {
-        var text_layer = ['fg','bg','imb'];
-        var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
+        try {
+            var iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                return;
+            }
+            
+            var text_layer = ['fg','bg','imb'];
+            var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
+            var element = iframe.contentWindow.document.getElementById(lang_line[id-1] + '-' + type);
 
-        if(type == "fg") { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.color = color;}
-        else { document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + '-' + type).style.webkitTextStrokeColor = color; }
+            if (element) {
+                if(type == "fg") { 
+                    element.style.color = color;
+                } else { 
+                    element.style.webkitTextStrokeColor = color; 
+                }
+            }
 
-        // type が imb の場合は，全てのlang_lineに反映
-        if(type == "imb") {
-            for (const ll of lang_line){
-                document.getElementById('asr_frame').contentWindow.document.getElementById(ll + '-' + type).style.webkitTextStrokeColor = color;
-                document.getElementById('asr_frame').contentWindow.document.getElementById(ll + '-' + type).style.color = color;
-            } 
+            // type が imb の場合は，全てのlang_lineに反映
+            if(type == "imb") {
+                for (const ll of lang_line){
+                    var imbElement = iframe.contentWindow.document.getElementById(ll + '-' + type);
+                    if (imbElement) {
+                        imbElement.style.webkitTextStrokeColor = color;
+                        imbElement.style.color = color;
+                    }
+                } 
+            }
+        } catch (error) {
+            console.error('色変更エラー:', error);
         }
     }
 
     function setTextBorder(width, id) {
-        var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
+        try {
+            var iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                return;
+            }
+            
+            var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
+            var bgElement = iframe.contentWindow.document.getElementById(lang_line[id-1] + "-bg");
+            var imbElement = iframe.contentWindow.document.getElementById(lang_line[id-1] + "-imb");
 
-        document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-bg").style.webkitTextStrokeWidth = width + 'pt';
-        document.getElementById('asr_frame').contentWindow.document.getElementById(lang_line[id-1] + "-imb").style.webkitTextStrokeWidth = width + 'pt';
+            if (bgElement) {
+                bgElement.style.webkitTextStrokeWidth = width + 'pt';
+            }
+            if (imbElement) {
+                imbElement.style.webkitTextStrokeWidth = width + 'pt';
+            }
+        } catch (error) {
+            console.error('ボーダー設定エラー:', error);
+        }
    }
 
     function changeText(text, id){
@@ -711,6 +1085,102 @@
         for (const tl of text_layer){ 
             document.getElementById('asr_frame').contentWindow.document.getElementById(ll[id-1] + '-' + tl).innerHTML = text;
         }         
+    }
+    
+    // 全ての設定を適用する関数
+    function applyAllSettings() {
+        try {
+            var iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                console.log('iframe未準備のため設定適用をスキップ');
+                return false;
+            }
+            
+            var iframeDoc = iframe.contentWindow.document;
+            
+            // 背景色
+            var bgcolor = document.getElementById('bgcolor').value;
+            if (bgcolor) {
+                iframeDoc.bgColor = bgcolor;
+            }
+            
+            // テキストアライメント
+            var v_align = document.getElementById('v_align').value;
+            var textTable = iframeDoc.getElementById("text_table");
+            if (textTable) {
+                if (v_align == "top"){
+                    textTable.style.bottom = -1;
+                } else if(v_align == "bottom"){
+                    textTable.style.bottom = 0;
+                }
+            }
+            
+            var textAlign = document.getElementById('textAlign').value;
+            if (textTable && textAlign) {
+                textTable.style.textAlign = textAlign;
+                var tblTd = iframeDoc.getElementById("tbl_td");
+                if (tblTd) {
+                    tblTd.style.textAlign = textAlign;
+                    if(textAlign == "right"){
+                        textTable.style.direction = "rtl";
+                        tblTd.style.direction = "rtl";
+                        iframeDoc.body.style.direction = "rtl";
+                    }
+                }
+            }
+            
+            // 各テキストレイヤーの色とサイズを更新
+            for (var i = 1; i <= 4; i++) {
+                changeTextColor('fg', document.getElementById('color' + i).value, i);
+                changeTextColor('bg', document.getElementById('st_color' + i).value, i);
+                setTextBorder(document.getElementById('st_width' + i).value, i);
+                
+                var lang_line = ['speech_text','trans_text','trans_text2','trans_text3'];
+                var textElement = iframeDoc.getElementById(lang_line[i-1]);
+                if (textElement) {
+                    textElement.style.fontSize = document.getElementById('size' + i).value + 'pt';
+                    textElement.style.fontWeight = document.getElementById('weight' + i).value;
+                    
+                    // フォント設定
+                    var fontSelectorIds = ['speech_text_font_selector', 'trans_text_font_selector', 'trans_text2_font_selector', 'trans_text3_font_selector'];
+                    var systemFontIds = ['speech_text_system_font', 'trans_text_system_font', 'trans_text2_system_font', 'trans_text3_system_font'];
+                    
+                    var fontSelector = document.getElementById(fontSelectorIds[i-1]);
+                    var systemFontSelector = document.getElementById(systemFontIds[i-1]);
+                    
+                    if (fontSelector) {
+                        if (fontSelector.value === 'direct' && systemFontSelector && systemFontSelector.value) {
+                            // 直接指定 + システムフォント選択の場合
+                            textElement.style.fontFamily = `"${systemFontSelector.value}", sans-serif`;
+                            console.log('システムフォント設定:', lang_line[i-1], systemFontSelector.value);
+                        } else if (fontSelector.value !== 'direct' && fontSelector.value !== '') {
+                            // プリセットフォント選択の場合
+                            var fontValue = fontSelector.value.replace(/\\\\/g, '');  // バックスラッシュを除去
+                            textElement.style.fontFamily = `"${fontValue}", sans-serif`;
+                            console.log('プリセットフォント設定:', lang_line[i-1], fontValue);
+                        }
+                    }
+                }
+            }
+            
+            // 背景色を全てのimb要素に適用
+            changeTextColor('imb', bgcolor, 1);
+            
+            // 改行設定
+            var whiteSpace = document.getElementById('whiteSpace').value;
+            if (textTable && whiteSpace) {
+                textTable.style.whiteSpace = whiteSpace;
+            }
+            
+            
+            // システムフォントプルダウンの状態を更新
+            selectFont();
+            
+            return true;
+        } catch (error) {
+            console.error('設定適用中にエラー:', error);
+            return false;
+        }
     }
 
 </script>
@@ -797,6 +1267,1025 @@
 
 </script>
 
+<!-- # 設定プリセット機能　############################ -->
+<script>
+    // プリセットの定義（可愛い配色で改善）
+    const defaultPresets = {
+        default: {
+            name: "📋 選択してください",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "25",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#000000",
+                st_width1: "6",
+                trans: "en",
+                size2: "25",
+                weight2: "900",
+                color2: "#ffffff",
+                st_color2: "#000000",
+                st_width2: "6",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        gaming: {
+            name: "🎮 ゲーム配信用",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "28",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#ff6b9d",
+                st_width1: "6",
+                trans: "en",
+                size2: "24",
+                weight2: "900",
+                color2: "#ffeb3b",
+                st_color2: "#7b1fa2",
+                st_width2: "4",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "5000",
+                short_pause: "1000",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        meeting: {
+            name: "💼 会議・打ち合わせ用",
+            settings: {
+                gas_key: "",
+                textAlign: "left",
+                v_align: "top",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "22",
+                weight1: "500",
+                color1: "#2e3440",
+                st_color1: "#eceff4",
+                st_width1: "3",
+                trans: "en",
+                size2: "20",
+                weight2: "500",
+                color2: "#5e81ac",
+                st_color2: "#eceff4",
+                st_width2: "2",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "10000",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        language_learning: {
+            name: "📚 語学学習用",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "center",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "26",
+                weight1: "600",
+                color1: "#2d3748",
+                st_color1: "#bee3f8",
+                st_width1: "4",
+                trans: "en",
+                size2: "22",
+                weight2: "600",
+                color2: "#d53f8c",
+                st_color2: "#fed7e2",
+                st_width2: "3",
+                trans2: "none",
+                size3: "22",
+                weight3: "600",
+                color3: "#3182ce",
+                st_color3: "#bee3f8",
+                st_width3: "3",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "15000",
+                short_pause: "500",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        accessibility: {
+            name: "♿ アクセシビリティ重視",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "32",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#000000",
+                st_width1: "8",
+                trans: "en",
+                size2: "25",
+                weight2: "900",
+                color2: "#ffffff",
+                st_color2: "#000000",
+                st_width2: "6",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "1500",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        cute_streaming: {
+            name: "🌸 かわいい配信用",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "30",
+                weight1: "700",
+                color1: "#ffffff",
+                st_color1: "#ff69b4",
+                st_width1: "5",
+                trans: "en",
+                size2: "26",
+                weight2: "700",
+                color2: "#ff1493",
+                st_color2: "#ffb6c1",
+                st_width2: "4",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "6000",
+                short_pause: "800",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        dark_theme: {
+            name: "🌙 ダークテーマ",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "27",
+                weight1: "600",
+                color1: "#e2e8f0",
+                st_color1: "#4a5568",
+                st_width1: "4",
+                trans: "en",
+                size2: "23",
+                weight2: "600",
+                color2: "#81e6d9",
+                st_color2: "#2d3748",
+                st_width2: "3",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "900",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        rainbow: {
+            name: "🌈 レインボー",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "29",
+                weight1: "800",
+                color1: "#ffffff",
+                st_color1: "#ff0080",
+                st_width1: "6",
+                trans: "en",
+                size2: "25",
+                weight2: "800",
+                color2: "#00ff80",
+                st_color2: "#ff8000",
+                st_width2: "5",
+                trans2: "none",
+                size3: "25",
+                weight3: "800",
+                color3: "#8080ff",
+                st_color3: "#ff0080",
+                st_width3: "5",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "5500",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        custom1: {
+            name: "🔧 カスタム１",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "25",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#000000",
+                st_width1: "6",
+                trans: "en",
+                size2: "25",
+                weight2: "900",
+                color2: "#ffffff",
+                st_color2: "#000000",
+                st_width2: "6",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        custom2: {
+            name: "🔧 カスタム２",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "25",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#000000",
+                st_width1: "6",
+                trans: "en",
+                size2: "25",
+                weight2: "900",
+                color2: "#ffffff",
+                st_color2: "#000000",
+                st_width2: "6",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        },
+        custom3: {
+            name: "🔧 カスタム３",
+            settings: {
+                gas_key: "",
+                textAlign: "center",
+                v_align: "bottom",
+                whiteSpace: "",
+                bgcolor: "#00ff00",
+                recog: "ja",
+                size1: "25",
+                weight1: "900",
+                color1: "#ffffff",
+                st_color1: "#000000",
+                st_width1: "6",
+                trans: "en",
+                size2: "25",
+                weight2: "900",
+                color2: "#ffffff",
+                st_color2: "#000000",
+                st_width2: "6",
+                trans2: "none",
+                size3: "25",
+                weight3: "900",
+                color3: "#ffffff",
+                st_color3: "#000000",
+                st_width3: "6",
+                trans3: "none",
+                size4: "25",
+                weight4: "900",
+                color4: "#ffffff",
+                st_color4: "#000000",
+                st_width4: "6",
+                timer: "7000",
+                short_pause: "750",
+                bouyomi: false,
+                anti_sexual: false,
+                speech_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text2_font_selector: "M PLUS Rounded\\ 1c",
+                trans_text3_font_selector: "M PLUS Rounded\\ 1c",
+                speech_text_system_font: "",
+                trans_text_system_font: "",
+                trans_text2_system_font: "",
+                trans_text3_system_font: ""
+            }
+        }
+    };
+
+    // 現在選択中のプリセットを保存（初期化関数内で設定）
+    let currentPreset = 'default';
+    
+    // プリセット読み込み中フラグ（自動保存を一時停止するため）
+    let isLoadingPreset = false;
+    
+    // プリセットを読み込む
+    function loadPreset() {
+        const presetSelect = document.getElementById('presetSelect');
+        const selectedPreset = presetSelect.value;
+        
+        if (!selectedPreset) return;
+        
+        console.log('プリセット切り替え開始:', selectedPreset);
+        
+        // プリセット読み込み中フラグを設定（自動保存を停止）
+        isLoadingPreset = true;
+        
+        // 「選択してください」が選ばれた場合は設定を適用してすぐに完了
+        if (selectedPreset === 'default') {
+            console.log('「選択してください」プリセット処理開始');
+            
+            // 設定状態を保存
+            currentPreset = selectedPreset;
+            try {
+                localStorage.setItem('selectedPreset', selectedPreset);
+                console.log('プリセット選択状態を保存:', selectedPreset);
+            } catch (error) {
+                console.error('localStorage保存エラー:', error);
+            }
+            
+            // まず保存済みの設定があるかチェック
+            const savedPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+            let settingsToApply;
+            
+            if (savedPresets[selectedPreset] && savedPresets[selectedPreset].settings) {
+                settingsToApply = savedPresets[selectedPreset].settings;
+                console.log('保存済み「選択してください」プリセットを使用');
+                console.log('保存済み設定の一部:', {
+                    bgcolor: settingsToApply.bgcolor,
+                    trans: settingsToApply.trans,
+                    speech_text_font_selector: settingsToApply.speech_text_font_selector
+                });
+            } else {
+                settingsToApply = defaultPresets.default.settings;
+                console.log('デフォルト「選択してください」プリセットを使用（保存済み設定なし）');
+            }
+            
+            // 設定を適用
+            for (const [key, value] of Object.entries(settingsToApply)) {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else {
+                        element.value = value;
+                    }
+                }
+            }
+            
+            // 設定を反映
+            updateOptionValues(false);
+            setTimeout(() => {
+                applyAllSettings();
+                selectFont(); // フォント状態も更新
+            }, 100);
+            
+            // フラグをリセット
+            isLoadingPreset = false;
+            updatePageTitle();
+            
+            // 強制的に自動保存を実行
+            console.log('「選択してください」プリセット - 強制自動保存実行');
+            setTimeout(saveCurrentPreset, 200);
+            
+            console.log('「選択してください」プリセット処理完了');
+            return;
+        }
+        
+        // 選択状態を保存
+        currentPreset = selectedPreset;
+        try {
+            localStorage.setItem('selectedPreset', selectedPreset);
+            console.log('プリセット選択状態を保存:', selectedPreset);
+            console.log('保存確認:', localStorage.getItem('selectedPreset'));
+        } catch (error) {
+            console.error('localStorage保存エラー:', error);
+        }
+        
+        let presetData = null;
+        
+        // まず保存されたプリセットをチェック（優先）
+        const savedPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+        if (savedPresets[selectedPreset]) {
+            presetData = savedPresets[selectedPreset].settings;
+            console.log('保存済みプリセットデータを使用:', selectedPreset);
+        } else if (defaultPresets[selectedPreset]) {
+            // 保存されたデータがない場合のみデフォルトプリセットを使用
+            presetData = defaultPresets[selectedPreset].settings;
+            console.log('デフォルトプリセットデータを使用:', selectedPreset);
+        }
+        
+        if (presetData) {
+            console.log('プリセットデータ適用中:', Object.keys(presetData).length + '個の設定');
+            
+            // 設定を適用
+            for (const key in presetData) {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = presetData[key];
+                    } else {
+                        element.value = presetData[key];
+                    }
+                }
+            }
+            
+            // フォント設定の特別処理
+            selectFont();
+            
+            // 表示を更新（スライダー値表示など）
+            updateVisualSettings();
+            
+            // 強制リロードによる確実な更新
+            console.log('プリセット強制更新を実行中...');
+            
+            var iframe = document.getElementById('asr_frame');
+            
+            // 設定を適用
+            updateOptionValues(false);
+            
+            // 複数回のリロード試行で確実性を向上
+            var reloadAttempts = 0;
+            var maxAttempts = 3;
+            
+            function attemptReload() {
+                reloadAttempts++;
+                console.log(`リロード試行 ${reloadAttempts}/${maxAttempts}`);
+                
+                // iframeを強制リロード
+                var currentSrc = iframe.src;
+                iframe.src = 'about:blank';
+                
+                setTimeout(function() {
+                    iframe.src = currentSrc;
+                    
+                    // 読み込み完了を待機
+                    iframe.onload = function() {
+                        console.log(`リロード完了 (${reloadAttempts}/${maxAttempts})`);
+                        
+                        setTimeout(function() {
+                            try {
+                                if (iframe.contentWindow && iframe.contentWindow.document) {
+                                    console.log('DOM直接更新実行中...');
+                                    var settingsApplied = applyAllSettings();
+                                    
+                                    if (settingsApplied || reloadAttempts >= maxAttempts) {
+                                        console.log('プリセット更新完了');
+                                        isLoadingPreset = false;
+                                        
+                                        // ページタイトルを更新
+                                        updatePageTitle();
+                                        
+                                        // 通常のonloadハンドラーに戻す
+                                        iframe.onload = function() {
+                                            console.log('iframe読み込み完了');
+                                            setTimeout(applyInitialSettings, 300);
+                                        };
+                                    } else {
+                                        console.log('設定適用失敗 - 再試行中...');
+                                        setTimeout(attemptReload, 500);
+                                    }
+                                } else {
+                                    if (reloadAttempts < maxAttempts) {
+                                        console.log('DOM未準備 - 再試行中...');
+                                        setTimeout(attemptReload, 500);
+                                    } else {
+                                        console.log('最大試行回数に到達 - 終了');
+                                        isLoadingPreset = false;
+                                        
+                                        // ページタイトルを更新
+                                        updatePageTitle();
+                                        
+                                        // 通常のonloadハンドラーに戻す
+                                        iframe.onload = function() {
+                                            console.log('iframe読み込み完了');
+                                            setTimeout(applyInitialSettings, 300);
+                                        };
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('プリセット適用エラー:', error);
+                                if (reloadAttempts < maxAttempts) {
+                                    setTimeout(attemptReload, 500);
+                                } else {
+                                    console.log('エラーにより処理終了');
+                                    isLoadingPreset = false;
+                                    
+                                    // ページタイトルを更新
+                                    updatePageTitle();
+                                    
+                                    // 通常のonloadハンドラーに戻す
+                                    iframe.onload = function() {
+                                        console.log('iframe読み込み完了');
+                                        setTimeout(applyInitialSettings, 300);
+                                    };
+                                }
+                            }
+                        }, 500);
+                    };
+                }, 100);
+            }
+            
+            // 初回試行を開始
+            attemptReload();
+            
+            console.log('プリセット「' + selectedPreset + '」を読み込み完了');
+        } else {
+            console.error('プリセットデータが見つかりません:', selectedPreset);
+            isLoadingPreset = false;
+            
+            // ページタイトルを更新
+            updatePageTitle();
+        }
+    }
+    
+    // 現在のプリセットに設定を自動保存
+    function saveCurrentPreset() {
+        console.log('saveCurrentPreset呼び出し - currentPreset:', currentPreset, 'isLoadingPreset:', isLoadingPreset);
+        
+        if (!currentPreset || isLoadingPreset) {
+            if (isLoadingPreset) console.log('プリセット読み込み中のため自動保存をスキップ');
+            if (!currentPreset) console.log('現在のプリセットが未設定のため自動保存をスキップ');
+            return;
+        }
+        
+        console.log('自動保存開始 - プリセット:', currentPreset);
+        
+        // 現在の設定を取得
+        const currentSettings = {};
+        for (const p of config_values) {
+            const element = document.getElementById(p);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    currentSettings[p] = element.checked;
+                } else {
+                    currentSettings[p] = element.value;
+                }
+            }
+        }
+        
+        // チェックボックス設定も含める
+        currentSettings.bouyomi = document.getElementById('bouyomi').checked;
+        currentSettings.anti_sexual = document.getElementById('anti_sexual').checked;
+        
+        // プリセットを保存
+        const savedPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+        savedPresets[currentPreset] = {
+            name: defaultPresets[currentPreset] ? defaultPresets[currentPreset].name : currentPreset,
+            settings: currentSettings,
+            lastModified: new Date().toISOString()
+        };
+        
+        localStorage.jimakuChan_presets = JSON.stringify(savedPresets);
+        console.log('プリセット「' + currentPreset + '」に自動保存しました');
+        console.log('保存された設定の一部:', {
+            bgcolor: currentSettings.bgcolor,
+            size1: currentSettings.size1,
+            color1: currentSettings.color1,
+            recog: currentSettings.recog,
+            trans: currentSettings.trans,
+            speech_text_font_selector: currentSettings.speech_text_font_selector
+        });
+        
+        // 保存確認のため、localStorageから読み直し
+        const verifyPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+        if (verifyPresets[currentPreset]) {
+            console.log('保存確認OK - プリセット「' + currentPreset + '」が存在します');
+        } else {
+            console.error('保存確認NG - プリセット「' + currentPreset + '」が見つかりません');
+        }
+    }
+    
+    // デバッグ用：保存されたプリセットを確認
+    function debugPresets() {
+        const savedPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+        console.log('=== 保存されたプリセット一覧 ===');
+        for (const [key, value] of Object.entries(savedPresets)) {
+            console.log(`${key}:`, {
+                name: value.name,
+                lastModified: value.lastModified,
+                settingsCount: Object.keys(value.settings).length,
+                sampleSettings: {
+                    bgcolor: value.settings.bgcolor,
+                    size1: value.settings.size1,
+                    recog: value.settings.recog,
+                    trans: value.settings.trans
+                }
+            });
+        }
+        console.log('=== 現在のプリセット ===', currentPreset);
+    }
+    
+    // グローバルに公開（ブラウザコンソールから実行可能）
+    window.debugPresets = debugPresets;
+    
+    // プリセット選択状態をデバッグする関数
+    function debugPresetSelection() {
+        console.log('=== プリセット選択状態デバッグ ===');
+        console.log('currentPreset変数:', currentPreset);
+        console.log('localStorage.selectedPreset:', localStorage.getItem('selectedPreset'));
+        
+        const presetSelect = document.getElementById('presetSelect');
+        if (presetSelect) {
+            console.log('プルダウンの現在値:', presetSelect.value);
+            console.log('プルダウンの選択されたオプション:', presetSelect.options[presetSelect.selectedIndex]?.text);
+        } else {
+            console.log('プルダウンが見つかりません');
+        }
+    }
+    
+    window.debugPresetSelection = debugPresetSelection;
+    
+    // プリセット初期化（ページ読み込み時に実行）
+    function initializePresets() {
+        console.log('=== プリセット初期化開始 ===');
+        const presetSelect = document.getElementById('presetSelect');
+        
+        if (!presetSelect) {
+            console.error('プリセットセレクトボックスが見つかりません');
+            return;
+        }
+        
+        // localStorageから保存されたプリセット選択状態を復元
+        const savedSelectedPreset = localStorage.getItem('selectedPreset');
+        console.log('保存されたプリセット選択状態:', savedSelectedPreset);
+        
+        if (savedSelectedPreset) {
+            currentPreset = savedSelectedPreset;
+        } else {
+            currentPreset = 'default'; // デフォルト値
+        }
+        
+        console.log('復元されたcurrentPreset:', currentPreset);
+        
+        // プルダウンメニューに値を設定
+        presetSelect.value = currentPreset;
+        
+        // プルダウンの値が正しく設定されたか確認
+        console.log('プルダウン設定後の値:', presetSelect.value);
+        
+        // 値が正しく設定されていない場合の対処
+        if (presetSelect.value !== currentPreset) {
+            console.warn('プルダウン設定に失敗、手動で設定:', currentPreset);
+            // オプションが存在するか確認
+            const options = Array.from(presetSelect.options);
+            const targetOption = options.find(option => option.value === currentPreset);
+            if (targetOption) {
+                targetOption.selected = true;
+                console.log('手動設定完了');
+            } else {
+                console.error('指定されたプリセットが見つかりません:', currentPreset);
+                currentPreset = 'default';
+                presetSelect.value = currentPreset;
+            }
+        }
+        
+        // 「選択してください」の場合は事前に保存済み設定を復元
+        if (currentPreset === 'default') {
+            console.log('「選択してください」の初期化 - 保存済み設定をチェック');
+            const savedPresets = JSON.parse(localStorage.jimakuChan_presets || '{}');
+            
+            if (savedPresets['default'] && savedPresets['default'].settings) {
+                console.log('保存済み「選択してください」設定を事前復元');
+                const savedSettings = savedPresets['default'].settings;
+                
+                // 設定をUIに事前適用
+                for (const [key, value] of Object.entries(savedSettings)) {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.checked = value;
+                        } else {
+                            element.value = value;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 少し遅延してプリセットを適用（DOM構築完了を待つ）
+        setTimeout(function() {
+            console.log('initializePresets内でloadPreset実行');
+            loadPreset();
+        }, 50);
+    }
+    
+    // 表示設定を更新（チェックボックス連動）
+    function updateVisualSettings() {
+        // 各スライダーの値表示を更新
+        for (let i = 1; i <= 4; i++) {
+            const sizeElement = document.getElementById('size' + i);
+            const weightElement = document.getElementById('weight' + i);
+            const stWidthElement = document.getElementById('st_width' + i);
+            
+            if (sizeElement) document.getElementById('text_size_view' + i).innerHTML = sizeElement.value;
+            if (weightElement) document.getElementById('text_weight_view' + i).innerHTML = weightElement.value;
+            if (stWidthElement) document.getElementById('text_st_size_view' + i).innerHTML = stWidthElement.value;
+        }
+    }
+</script>
+
+<!-- # 音声レベル監視機能　############################ -->
+<script>
+    // 音声レベル監視用の変数
+    let audioContext = null;
+    let analyser = null;
+    let microphone = null;
+    let dataArray = null;
+    
+    // Web Speech APIはデバイス選択をサポートしないため、この機能は無効化
+    function refreshAudioDevices() {
+        console.log('Web Speech APIの制限により、音声デバイス選択は使用できません');
+        console.log('既定の音声入力デバイスのみ使用されます');
+        // 音声レベル監視のみ開始（デバイス選択なし）
+        startAudioLevelMonitoring();
+    }
+    
+    // 音声レベル監視を開始（既定デバイスのみ使用）
+    async function startAudioLevelMonitoring() {
+        try {
+            // Web Speech APIの制限により、常に既定デバイスを使用
+            const constraints = { audio: true };
+                
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            microphone = audioContext.createMediaStreamSource(stream);
+            
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            
+            microphone.connect(analyser);
+            
+            updateAudioLevel();
+            
+        } catch (error) {
+            console.error('音声レベル監視の開始に失敗:', error);
+        }
+    }
+    
+    // 音声レベル監視を停止
+    function stopAudioLevelMonitoring() {
+        if (microphone) {
+            microphone.disconnect();
+            microphone = null;
+        }
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+        document.getElementById('audioLevelCover').style.width = '100%';
+        document.getElementById('audioLevelText').textContent = '0%';
+    }
+    
+    // 音声レベルを更新
+    function updateAudioLevel() {
+        if (!analyser || !dataArray) return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / dataArray.length;
+        const level = Math.min(100, (average / 128) * 100);
+        
+        // カバーの幅を調整（レベルが高いほどカバーが狭くなる）
+        document.getElementById('audioLevelCover').style.width = (100 - level) + '%';
+        document.getElementById('audioLevelText').textContent = Math.round(level) + '%';
+        
+        // 常に更新を続ける
+        requestAnimationFrame(updateAudioLevel);
+    }
+    
+    // Web Speech APIの制限により、デバイス選択機能は無効化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 音声レベル監視のみ開始（デバイス選択なし）
+        refreshAudioDevices();
+        
+        // システムフォント選択メニューを初期化
+        setTimeout(initializeFontSelectors, 100);
+        
+        // プリセット初期化（保存済み設定復元）
+        setTimeout(initializePresets, 200);
+        
+        // DOM読み込み完了後に設定を確実に反映
+        setTimeout(applyInitialSettings, 800);
+        
+        // さらに確実にするため、追加のタイマーでも実行
+        setTimeout(applyInitialSettings, 1500);
+    });
+</script>
+
 <!-- # 翻訳回数取得　############################ -->
 <script>
     function getTranslationCount() {
@@ -819,10 +2308,17 @@
     function toggleIframeHeight() {
         console.log("toggleIframeHeight");
         var iframe = document.getElementById('asr_frame');
+        var body = document.body;
+
+        // ページのスクロール位置を一番上に戻す
+        window.scrollTo(0, 0);
+
         if (iframe.style.height === '100%') {
             iframe.style.height = '30%';
+            body.style.overflow = 'auto';  // ページスクロールを有効にする
         } else {
             iframe.style.height = '100%';
+            body.style.overflow = 'hidden';  // ページスクロールを禁止する
         }
 
         document.getElementById('frame_height').value = iframe.style.height;
@@ -833,13 +2329,67 @@
 <!-- iframeの高さを自動調整する -->
 <script>
     window.addEventListener('load', function() {
-        var iframe = document.getElementById('asr_frame'); // iframeのIDに置き換えてください
-        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-
-        iframeDoc.addEventListener('click', function() {
-            // ここにクリックされた時の処理を書く
-            toggleIframeHeight(); // 高さを切り替える関数を呼び出す
+        var iframe = document.getElementById('asr_frame');
+        
+        // iframeの読み込み完了を待つ
+        iframe.addEventListener('load', function() {
+            try {
+                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                iframeDoc.addEventListener('click', function() {
+                    toggleIframeHeight();
+                });
+            } catch (e) {
+                console.error('iframeへのアクセスに失敗:', e);
+            }
         });
+        
+        // ページ全体のロード完了後に設定を確実に反映
+        setTimeout(applyInitialSettings, 1000);
+    });
+</script>
+
+<!-- # プリセット初期化（最終実行） ###################### -->
+<script>
+    // ページ完全読み込み後にプリセット初期化を実行
+    window.addEventListener('load', function() {
+        console.log('ページ完全読み込み完了 - プリセット初期化実行');
+        
+        // 少し遅延して確実に実行
+        setTimeout(function() {
+            console.log('プリセット初期化開始');
+            
+            const presetSelect = document.getElementById('presetSelect');
+            if (!presetSelect) {
+                console.error('プリセットセレクトボックスが見つかりません');
+                return;
+            }
+            
+            // localStorageから保存されたプリセット選択状態を復元
+            const savedSelectedPreset = localStorage.getItem('selectedPreset');
+            console.log('保存されたプリセット選択状態:', savedSelectedPreset);
+            
+            if (savedSelectedPreset) {
+                console.log('保存されたプリセットを復元:', savedSelectedPreset);
+                presetSelect.value = savedSelectedPreset;
+                
+                // プルダウンの値が正しく設定されたか確認
+                if (presetSelect.value === savedSelectedPreset) {
+                    console.log('プルダウン復元成功:', savedSelectedPreset);
+                    // プリセットを実際に読み込む
+                    const event = new Event('change');
+                    presetSelect.dispatchEvent(event);
+                } else {
+                    console.error('プルダウン復元失敗:', savedSelectedPreset, '現在値:', presetSelect.value);
+                }
+            } else {
+                console.log('保存されたプリセットなし、デフォルト値を使用');
+                presetSelect.value = 'default';
+                // デフォルトプリセットを読み込む
+                const event = new Event('change');
+                presetSelect.dispatchEvent(event);
+            }
+        }, 500);
     });
 </script>
 
