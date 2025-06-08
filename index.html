@@ -662,18 +662,8 @@
         console.log('iframe読み込み完了');
         setTimeout(applyInitialSettings, 300);
     };
-    // チェックボックス初期化はプリセットから行うため削除
-    if (config['frame_height'] !== null && config['frame_height'] !== undefined) {
-        var iframe = document.getElementById('asr_frame');
-            var body = document.body;
-            iframe.style.height = config['frame_height'];
-
-            if (config['frame_height'] === '100%') {
-                body.style.overflow = 'hidden';  // ページスクロールを禁止する
-            } else {
-                body.style.overflow = 'auto';  // ページスクロールを有効にする
-            }
-    }
+    // frame_heightの初期化はプリセット読み込み後に行うため、ここでは削除
+    // applyFrameHeight関数で処理される
 
 
     // フォントの直接入力の場合，テキストフィールドを有効化、システムフォントプルダウンを制御 ////////////////////
@@ -1891,6 +1881,7 @@
                 applyAllSettings();
                 selectFont(); // フォント状態も更新
                 updateVisualSettings(); // スライドバー数値表示を更新
+                applyFrameHeight(); // frame_height（設定画面表示/非表示）を適用
             }, 100);
             
             // フラグをリセット
@@ -1948,6 +1939,9 @@
             
             // 表示を更新（スライダー値表示など）
             updateVisualSettings();
+            
+            // frame_height（設定画面表示/非表示）を適用
+            applyFrameHeight();
             
             // 強制リロードによる確実な更新
             console.log('プリセット強制更新を実行中...');
@@ -2409,6 +2403,26 @@
     }
     
     window.forceMigration = forceMigration;
+    
+    // frame_height（設定画面表示/非表示）を適用する関数
+    function applyFrameHeight() {
+        const frameHeightElement = document.getElementById('frame_height');
+        const iframe = document.getElementById('asr_frame');
+        const body = document.body;
+        
+        if (frameHeightElement && iframe) {
+            const frameHeight = frameHeightElement.value || '30%';
+            iframe.style.height = frameHeight;
+            
+            console.log('frame_height適用:', frameHeight);
+            
+            if (frameHeight === '100%') {
+                body.style.overflow = 'hidden';  // ページスクロールを禁止する
+            } else {
+                body.style.overflow = 'auto';  // ページスクロールを有効にする
+            }
+        }
+    }
     
     // プリセット初期化（ページ読み込み時に実行）
     function initializePresets() {
