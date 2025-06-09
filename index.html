@@ -2552,7 +2552,14 @@
     async function startAudioLevelMonitoring() {
         try {
             // Web Speech APIの制限により、常に既定デバイスを使用
-            const constraints = { audio: true };
+            // autoGainControlをfalseに設定して自動ゲイン調整を無効化
+            const constraints = { 
+                audio: {
+                    autoGainControl: false,
+                    noiseSuppression: true,
+                    echoCancellation: true
+                }
+            };
                 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             
