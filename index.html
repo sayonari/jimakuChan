@@ -273,7 +273,7 @@
 
 フォント　：
 <select name="speech_text_font_selector" id="speech_text_font_selector" onchange="applySelectedFont(this, 'speech_text'); selectFont(); updateOptionValues();">
-    <option value="direct">[直接指定]</option>
+    <option value="direct">[PC内フォント]</option>
     <option value="M PLUS\\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
@@ -302,7 +302,9 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-システムフォント：<select id="speech_text_system_font" onchange="applySystemFont(this.value, 'speech_text'); updateOptionValues();"></select><br>
+PC内フォント：<select id="speech_text_system_font" onchange="applySystemFont(this.value, 'speech_text'); updateOptionValues();"></select>
+<input type="text" id="speech_text_direct_font" placeholder="フォント名を入力" style="width: 200px; margin-left: 10px;" disabled oninput="applyDirectFont(this.value, 'speech_text'); updateOptionValues();">
+<span id="font_api_status" style="font-size: 12px; margin-left: 10px;"></span><br>
 
 翻訳言語（１）：
 <select id="trans" onchange="updateOptionValues(only_url=false);">
@@ -334,7 +336,7 @@
 
 フォント　：
 <select name="trans_text_font_selector" id="trans_text_font_selector" onchange="applySelectedFont(this, 'trans_text'); selectFont(); updateOptionValues();">
-    <option value="direct">[直接指定]</option>
+    <option value="direct">[PC内フォント]</option>
     <option value="M PLUS\\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
@@ -363,7 +365,8 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-システムフォント：<select id="trans_text_system_font" onchange="applySystemFont(this.value, 'trans_text'); updateOptionValues();"></select><br>
+PC内フォント：<select id="trans_text_system_font" onchange="applySystemFont(this.value, 'trans_text'); updateOptionValues();"></select>
+<input type="text" id="trans_text_direct_font" placeholder="フォント名を入力" style="width: 200px; margin-left: 10px;" disabled oninput="applyDirectFont(this.value, 'trans_text'); updateOptionValues();"><br>
 
 翻訳言語（２）：
 <select id="trans2" onchange="updateOptionValues(only_url=false);">
@@ -395,7 +398,7 @@
 
 フォント　：
 <select name="trans_text2_font_selector" id="trans_text2_font_selector" onchange="applySelectedFont(this, 'trans_text2'); selectFont(); updateOptionValues();">
-    <option value="direct">[直接指定]</option>
+    <option value="direct">[PC内フォント]</option>
     <option value="M PLUS\\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
@@ -424,7 +427,8 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-システムフォント：<select id="trans_text2_system_font" onchange="applySystemFont(this.value, 'trans_text2'); updateOptionValues();"></select><br>
+PC内フォント：<select id="trans_text2_system_font" onchange="applySystemFont(this.value, 'trans_text2'); updateOptionValues();"></select>
+<input type="text" id="trans_text2_direct_font" placeholder="フォント名を入力" style="width: 200px; margin-left: 10px;" disabled oninput="applyDirectFont(this.value, 'trans_text2'); updateOptionValues();"><br>
 
 翻訳言語（３）：
 <select id="trans3" onchange="updateOptionValues(only_url=false);">
@@ -456,7 +460,7 @@
 
 フォント　：
 <select name="trans_text3_font_selector" id="trans_text3_font_selector" onchange="applySelectedFont(this, 'trans_text3'); selectFont(); updateOptionValues();">
-    <option value="direct">[直接指定]</option>
+    <option value="direct">[PC内フォント]</option>
     <option value="M PLUS\\ 1p">M PLUS 1p</option>
     <option value="M PLUS Rounded\\ 1c" selected>M PLUS Rounded 1c</option>
     <option value="Mamelon">マメロン</option>
@@ -485,7 +489,8 @@
     <option value="Sawarabi Gothic">さわらびゴシック</option>
     <option value="Nico Moji">ニコモジ</option>
 </select>　
-システムフォント：<select id="trans_text3_system_font" onchange="applySystemFont(this.value, 'trans_text3'); updateOptionValues();"></select><br>
+PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFont(this.value, 'trans_text3'); updateOptionValues();"></select>
+<input type="text" id="trans_text3_direct_font" placeholder="フォント名を入力" style="width: 200px; margin-left: 10px;" disabled oninput="applyDirectFont(this.value, 'trans_text3'); updateOptionValues();"><br>
 
 <HR>
 <!-- # テキストの揃え ######################### -->
@@ -635,7 +640,8 @@
         , "timer", "short_pause"
         , "bouyomi", "anti_sexual"
         , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector", "trans_text3_font_selector"
-        , "speech_text_system_font", "trans_text_system_font", "trans_text2_system_font", "trans_text3_system_font"];
+        , "speech_text_system_font", "trans_text_system_font", "trans_text2_system_font", "trans_text3_system_font"
+        , "speech_text_direct_font", "trans_text_direct_font", "trans_text2_direct_font", "trans_text3_direct_font"];
 
     // 新版：全設定はjimakuChan_presetsで管理（jimakuChan_configは廃止）
     // configオブジェクトはプリセット保存時の一時的なデータ収集用のみ
@@ -752,6 +758,8 @@
     
     // 初期設定の反映
     selectFont();
+    // PC内フォントと直接入力フィールドの初期状態を設定
+    initializeSystemFontFields();
     
     // プリセット初期化は最下部で実行
 
@@ -904,19 +912,48 @@
 
     // PCにインストールされているフォントを検出する関数
     function detectSystemFonts() {
-        // よく使われるシステムフォントのリスト
+        // よく使われるシステムフォントのリスト（拡張版）
         const commonFonts = [
-            // 日本語フォント
-            'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Yu Gothic Medium', 
-            'Meiryo', 'MS Gothic', 'MS Mincho', 'NotoSansCJK-Regular', 'Noto Sans JP',
-            'Osaka', 'Kozuka Gothic Pr6N', 'Kozuka Mincho Pr6N',
-            // 英語フォント  
-            'Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Verdana', 'Georgia',
-            'Comic Sans MS', 'Trebuchet MS', 'Arial Black', 'Impact', 'Palatino',
-            'Garamond', 'Bookman', 'Avant Garde', 'Helvetica Neue', 'Lucida Grande',
+            // 日本語フォント - Windows
+            'Yu Gothic', 'Yu Gothic UI', 'Yu Gothic Medium', 'Yu Mincho', 'Meiryo', 'Meiryo UI',
+            'MS Gothic', 'MS PGothic', 'MS UI Gothic', 'MS Mincho', 'MS PMincho',
+            'BIZ UDGothic', 'BIZ UDPGothic', 'BIZ UDMincho', 'BIZ UDPMincho',
+            'UD Digi Kyokasho', 'UD Digi Kyokasho N-R', 'UD Digi Kyokasho NK-R',
+            
+            // 日本語フォント - Mac
+            'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Hiragino Kaku Gothic Pro',
+            'Hiragino Mincho ProN', 'Hiragino Mincho Pro', 'Hiragino Maru Gothic ProN',
+            'Osaka', 'Osaka-Mono', 'Tsukushi A Round Gothic', 'Tsukushi B Round Gothic',
+            'YuKyokasho', 'YuKyokasho Yoko', 'Klee',
+            
+            // 日本語フォント - 共通/Web
+            'Noto Sans JP', 'Noto Sans CJK JP', 'Noto Serif JP', 'Noto Serif CJK JP',
+            'Source Han Sans', 'Source Han Serif', '源ノ角ゴシック', '源ノ明朝',
+            'Sawarabi Gothic', 'Sawarabi Mincho', 'Kosugi', 'Kosugi Maru',
+            'M PLUS 1p', 'M PLUS Rounded 1c', 'M PLUS 2',
+            
+            // 英語フォント - 基本
+            'Arial', 'Arial Black', 'Arial Narrow', 'Arial Unicode MS',
+            'Helvetica', 'Helvetica Neue', 'Times New Roman', 'Georgia',
+            'Verdana', 'Tahoma', 'Trebuchet MS', 'Comic Sans MS',
+            'Courier', 'Courier New', 'Lucida Console', 'Consolas',
+            
+            // 英語フォント - 追加
+            'Calibri', 'Cambria', 'Candara', 'Century', 'Century Gothic',
+            'Franklin Gothic', 'Futura', 'Garamond', 'Gill Sans',
+            'Impact', 'Lucida Grande', 'Lucida Sans', 'Monaco',
+            'Palatino', 'Palatino Linotype', 'Segoe UI', 'Segoe Print',
+            
             // システムフォント
-            'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto',
-            'SF Pro Display', 'SF Pro Text'
+            'system-ui', '-apple-system', 'BlinkMacSystemFont',
+            'SF Pro Display', 'SF Pro Text', 'SF Mono',
+            '.AppleSystemUIFont', 'Apple Color Emoji',
+            'Segoe UI Emoji', 'Segoe UI Symbol', 'Roboto',
+            
+            // 追加の装飾フォント
+            'HGP創英角ｺﾞｼｯｸUB', 'HGP創英角ﾎﾟｯﾌﾟ体', 'HGP教科書体', 'HGPｺﾞｼｯｸE',
+            'HGPｺﾞｼｯｸM', 'HGP明朝E', 'HGS創英角ｺﾞｼｯｸUB', 'HGS創英角ﾎﾟｯﾌﾟ体',
+            'DF平成明朝体', 'DF平成ゴシック体', 'DFP平成明朝体', 'DFP平成ゴシック体'
         ];
 
         const canvas = document.createElement('canvas');
@@ -959,6 +996,12 @@
                 defaultOption.textContent = '選択してください';
                 selector.appendChild(defaultOption);
                 
+                // [直接指定]オプションを追加
+                const directOption = document.createElement('option');
+                directOption.value = 'direct_input';
+                directOption.textContent = '[直接指定]';
+                selector.appendChild(directOption);
+                
                 // 検出されたフォントを追加
                 availableFonts.forEach(font => {
                     const option = document.createElement('option');
@@ -974,27 +1017,185 @@
         setTimeout(selectFont, 100);
     }
 
-    // システムフォントを適用する関数
-    function applySystemFont(fontName, targetElement) {
+    // フォントステータスを更新する関数
+    function updateFontStatus(message, color) {
+        const statusElement = document.getElementById('font_api_status');
+        if (!statusElement) return;
+        
+        statusElement.innerHTML = message;
+        statusElement.style.color = color || '#666';
+        console.log('フォントステータス:', message);
+    }
+    
+    // Font Access API対応状況をチェックして表示する関数
+    function checkFontAPIStatus() {
+        if ('queryLocalFonts' in window) {
+            updateFontStatus('Font Access API対応（実験的機能）', '#008000');
+            
+            // 実際に使えるかテスト
+            window.queryLocalFonts().then(fonts => {
+                updateFontStatus(`Font Access API対応（${fonts.length}個のフォント検出）`, '#008000');
+            }).catch(error => {
+                updateFontStatus('Font Access API（権限エラー）', '#ff6600');
+            });
+        } else {
+            updateFontStatus('限定リスト使用中（Font Access API非対応）', '#666');
+        }
+    }
+    
+    // 直接指定フォントを適用する関数
+    // フォントが実際に存在するかをチェックする関数
+    function checkFontExists(fontName) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const testString = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789あいうえおカキクケコ漢字';
+        
+        // ベースライン（確実に存在するフォント）のサイズを測定
+        context.font = '12px monospace';
+        const monoWidth = context.measureText(testString).width;
+        
+        context.font = '12px sans-serif';
+        const sansWidth = context.measureText(testString).width;
+        
+        // 指定されたフォントで測定
+        context.font = `12px "${fontName}", monospace`;
+        const testWidth = context.measureText(testString).width;
+        
+        // monospaceと同じ幅なら、フォントが見つからずフォールバックされた可能性が高い
+        return testWidth !== monoWidth;
+    }
+
+    function applyDirectFont(fontName, targetElement) {
+        if (!fontName || !targetElement) return;
+        
         try {
             const iframe = document.getElementById('asr_frame');
             if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
                 console.log('iframe not ready, font will be applied later');
+                updateFontStatus('⏳ iframe準備中...', '#ff6600');
                 return;
             }
             
-            if (fontName && fontName !== '') {
-                const element = iframe.contentWindow.document.getElementById(targetElement);
-                if (element) {
-                    element.style.fontFamily = `"${fontName}", sans-serif`;
-                    console.log(`システムフォント適用: ${fontName} → ${targetElement}`);
+            const iframeDoc = iframe.contentWindow.document;
+            const element = iframeDoc.getElementById(targetElement);
+            
+            if (element) {
+                // フォントを適用
+                element.style.fontFamily = `"${fontName}", sans-serif`;
+                console.log(`直接指定フォント適用: ${fontName} → ${targetElement}`);
+                
+                // フォントが実際に存在するかチェック
+                const fontExists = checkFontExists(fontName);
+                
+                if (fontExists) {
+                    // さらに実際に適用されたかを確認
+                    const computedStyle = iframeDoc.defaultView.getComputedStyle(element);
+                    const appliedFont = computedStyle.fontFamily;
+                    
+                    if (appliedFont.includes(fontName)) {
+                        updateFontStatus(`✅ 直接指定: ${fontName}`, '#008000');
+                    } else {
+                        updateFontStatus(`⚠️ 直接指定: ${fontName} (部分的に適用)`, '#ff6600');
+                    }
+                } else {
+                    updateFontStatus(`❌ フォントなしエラー 直接指定: ${fontName}`, '#cc0000');
                 }
             }
         } catch (error) {
-            console.log('システムフォント適用エラー:', error);
+            console.log('直接指定フォント適用エラー:', error);
+            updateFontStatus(`❌ エラー: ${error.message}`, '#cc0000');
+        }
+    }
+    
+    // システムフォントを適用する関数
+    function applySystemFont(fontName, targetElement) {
+        // 対応する直接入力フィールドを取得
+        const directFontInput = document.getElementById(targetElement + '_direct_font');
+        
+        if (fontName === 'direct_input') {
+            // [直接指定]が選ばれた場合、テキストフィールドを有効化
+            if (directFontInput) {
+                directFontInput.disabled = false;
+                directFontInput.style.backgroundColor = '';
+                directFontInput.style.color = '';
+                directFontInput.focus();
+            }
+        } else {
+            // それ以外の場合、テキストフィールドを無効化してクリア
+            if (directFontInput) {
+                directFontInput.disabled = true;
+                directFontInput.style.backgroundColor = '#f0f0f0';
+                directFontInput.style.color = '#999';
+                directFontInput.value = '';
+            }
+            
+            // 選択されたフォントを適用
+            if (fontName && fontName !== '') {
+                try {
+                    const iframe = document.getElementById('asr_frame');
+                    if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                        console.log('iframe not ready, font will be applied later');
+                        return;
+                    }
+                    
+                    const element = iframe.contentWindow.document.getElementById(targetElement);
+                    if (element) {
+                        element.style.fontFamily = `"${fontName}", sans-serif`;
+                        console.log(`システムフォント適用: ${fontName} → ${targetElement}`);
+                        
+                        // フォントが実際に適用されたかチェック
+                        const computedStyle = iframe.contentWindow.document.defaultView.getComputedStyle(element);
+                        const appliedFont = computedStyle.fontFamily;
+                        
+                        if (appliedFont.includes(fontName)) {
+                            updateFontStatus(`✅ PC内フォント: ${fontName}`, '#008000');
+                        } else {
+                            updateFontStatus(`⚠️ PC内フォント: ${fontName} (未検出)`, '#ff6600');
+                        }
+                    }
+                } catch (error) {
+                    console.log('システムフォント適用エラー:', error);
+                }
+            }
         }
     }
 
+    // PC内フォントと直接入力フィールドの状態を初期化する関数
+    function initializeSystemFontFields() {
+        const fontTargets = ['speech_text', 'trans_text', 'trans_text2', 'trans_text3'];
+        
+        fontTargets.forEach(target => {
+            const systemFontSelect = document.getElementById(target + '_system_font');
+            const directFontInput = document.getElementById(target + '_direct_font');
+            
+            if (systemFontSelect && directFontInput) {
+                // 保存された値がある場合は復元
+                const savedSystemFont = systemFontSelect.value;
+                const savedDirectFont = directFontInput.value;
+                
+                // 直接入力フィールドの状態を設定
+                if (savedSystemFont === 'direct_input') {
+                    // [直接指定]が選択されている場合は、フォント名が空でも有効化
+                    directFontInput.disabled = false;
+                    directFontInput.style.backgroundColor = '';
+                    directFontInput.style.color = '';
+                    // 直接入力されたフォントがある場合のみ適用
+                    if (savedDirectFont) {
+                        applyDirectFont(savedDirectFont, target);
+                    }
+                } else {
+                    directFontInput.disabled = true;
+                    directFontInput.style.backgroundColor = '#f0f0f0';
+                    directFontInput.style.color = '#999';
+                    // システムフォントを適用
+                    if (savedSystemFont && savedSystemFont !== '' && savedSystemFont !== 'direct_input') {
+                        applySystemFont(savedSystemFont, target);
+                    }
+                }
+            }
+        });
+    }
+    
     // 選択されたフォントを適用する関数
     function applySelectedFont(selector, targetElement) {
         try {
@@ -1018,6 +1219,7 @@
             if (element) {
                 element.style.fontFamily = `"${fontValue}", sans-serif`;
                 console.log(`フォント適用: ${fontValue} → ${targetElement}`);
+                updateFontStatus(`✅ フォント: ${fontValue}`, '#008000');
             }
         } catch (error) {
             console.log('フォント適用エラー:', error);
@@ -1242,7 +1444,7 @@
         try {
             const presetsData = JSON.parse(presets);
             const exportData = {
-                version: "2025.6.8",
+                version: "2025.7.6 14:45",
                 exportDate: new Date().toISOString(),
                 presets: presetsData
             };
@@ -1889,6 +2091,7 @@
             setTimeout(() => {
                 applyAllSettings();
                 selectFont(); // フォント状態も更新
+                initializeSystemFontFields(); // PC内フォントと直接入力フィールドの状態を復元
                 updateVisualSettings(); // スライドバー数値表示を更新
                 applyFrameHeight(); // frame_height（設定画面表示/非表示）を適用
             }, 100);
@@ -2626,6 +2829,9 @@
     
     // Web Speech APIの制限により、デバイス選択機能は無効化
     document.addEventListener('DOMContentLoaded', function() {
+        // Font Access API対応状況をチェックして表示
+        checkFontAPIStatus();
+        
         // 音声レベル監視のみ開始（デバイス選択なし）
         refreshAudioDevices();
         
