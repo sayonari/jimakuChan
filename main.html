@@ -353,7 +353,39 @@
                 'uk-UA': 'uk',     // ウクライナ語
                 'ru-RU': 'ru',     // ロシア語
                 'es-ES': 'es',     // スペイン語
-                'pt-PT': 'pt'      // ポルトガル語
+                'pt-PT': 'pt',     // ポルトガル語
+                'th-TH': 'th',     // タイ語
+                'el-GR': 'el'      // ギリシャ語
+            };
+            
+            return languageMapping[langCode] || langCode;
+        }
+        
+        // 翻訳API用の言語コードマッピング
+        function getTranslationLanguageId(langCode) {
+            const languageMapping = {
+                'zh-CN': 'zh-CN',  // 中国語（簡体字）
+                'zh-TW': 'zh-TW',  // 台湾語（繁体字）
+                'zh-HK': 'zh-HK',  // 香港語（繁体字）
+                'en-US': 'en',     // アメリカ英語
+                'fr-FR': 'fr',     // フランス語
+                'it-IT': 'it',     // イタリア語
+                'de-DE': 'de',     // ドイツ語
+                'tr-TR': 'tr',     // トルコ語
+                'sv-SE': 'sv',     // スウェーデン語
+                'pl-PL': 'pl',     // ポーランド語
+                'uk-UA': 'uk',     // ウクライナ語
+                'ru-RU': 'ru',     // ロシア語
+                'es-ES': 'es',     // スペイン語
+                'pt-PT': 'pt',     // ポルトガル語
+                'nl-NL': 'nl',     // オランダ語
+                'id-ID': 'id',     // インドネシア語
+                'vi-VN': 'vi',     // ベトナム語
+                'th-TH': 'th',     // タイ語
+                'ar-SA': 'ar',     // アラビア語
+                'el-GR': 'el',     // ギリシャ語
+                'ja': 'ja',        // 日本語
+                'ko': 'ko'         // 韓国語
             };
             
             return languageMapping[langCode] || langCode;
@@ -489,6 +521,7 @@
         // 分離されたタイマー管理システム ----------------------------
         var speechDeleteTimerId = null;  // 音声認識テキスト削除タイマーのID
         var translationDeleteTimerId = null;  // 翻訳テキスト削除タイマーのID
+        var isSpeechTextCleared = false;  // 音声認識テキストが削除済みかどうかのフラグ
         
         // 独立したプログレスバー管理
         var speechProgressUpdateIntervalId = null;  // 音声認識プログレスバー更新用インターバルID
@@ -504,6 +537,7 @@
             document.getElementById('speech_text-imb').innerHTML = '　'; // 全角スペース
             document.getElementById('speech_text-bg').innerHTML = '　';
             document.getElementById('speech_text-fg').innerHTML = '　';
+            isSpeechTextCleared = true;  // 削除済みフラグを立てる
             console.log('音声認識テキストをクリア（全角スペース置換）');
         }
 
@@ -893,6 +927,7 @@
                     // 最終結果が空でない場合のみタイマー開始
                     if (finalText && finalText.trim() !== '') {
                         startSpeechDeleteTimer();
+                        isSpeechTextCleared = false;  // 新しいテキストが表示されたのでフラグをリセット
                     } else {
                         console.log('⚠️ 最終結果が空のためタイマー開始をスキップ');
                     }
@@ -931,7 +966,8 @@
                         // 翻訳1言語目
                         if(arg_trans != null){
                             const processedText = applyCustomDictionary(recog_text);
-                            query = TRANS_URL + '?text=' + encodeURIComponent(processedText) + '&source=' + trans_sourcelang + '&target=' + trans_destlang;
+                            const sourceLang = getTranslationLanguageId(trans_sourcelang);
+                            query = TRANS_URL + '?text=' + encodeURIComponent(processedText) + '&source=' + sourceLang + '&target=' + trans_destlang;
                             request.open('GET', query, true);
 
                             request.onreadystatechange = function(){
@@ -952,9 +988,12 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    // 音声認識テキストが削除済みでない場合のみ再表示
+                                    if (!isSpeechTextCleared) {
+                                        document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    }
                                     
                                     // 翻訳結果1にフィルタリングを適用
                                     var filteredResponseText1 = applyTranslationFilter(responseText1, 1);
@@ -993,7 +1032,8 @@
                         // 翻訳2言語目
                         if(arg_trans2 != null){
                             const processedText2 = applyCustomDictionary(recog_text);
-                            query2 = TRANS_URL + '?text=' + encodeURIComponent(processedText2) + '&source=' + trans_sourcelang + '&target=' + trans2_destlang;
+                            const sourceLang2 = getTranslationLanguageId(trans_sourcelang);
+                            query2 = TRANS_URL + '?text=' + encodeURIComponent(processedText2) + '&source=' + sourceLang2 + '&target=' + trans2_destlang;
                             request2.open('GET', query2, true);
 
                             request2.onreadystatechange = function(){
@@ -1015,9 +1055,12 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    // 音声認識テキストが削除済みでない場合のみ再表示
+                                    if (!isSpeechTextCleared) {
+                                        document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    }
                                     
                                     // 翻訳結果2にフィルタリングを適用
                                     var filteredResponseText2 = applyTranslationFilter(responseText2, 2);
@@ -1056,7 +1099,8 @@
                         // 翻訳2言語目
                         if(arg_trans3 != null){
                             const processedText3 = applyCustomDictionary(recog_text);
-                            query3 = TRANS_URL + '?text=' + encodeURIComponent(processedText3) + '&source=' + trans_sourcelang + '&target=' + trans3_destlang;
+                            const sourceLang3 = getTranslationLanguageId(trans_sourcelang);
+                            query3 = TRANS_URL + '?text=' + encodeURIComponent(processedText3) + '&source=' + sourceLang3 + '&target=' + trans3_destlang;
                             request3.open('GET', query3, true);
 
                             request3.onreadystatechange = function(){
@@ -1078,9 +1122,12 @@
                                         // JSON形式でなければ何もしない
                                     }
 
-                                    document.getElementById('speech_text-imb').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-bg').innerHTML = lastFinalText;
-                                    document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    // 音声認識テキストが削除済みでない場合のみ再表示
+                                    if (!isSpeechTextCleared) {
+                                        document.getElementById('speech_text-imb').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-bg').innerHTML = lastFinalText;
+                                        document.getElementById('speech_text-fg').innerHTML = lastFinalText;
+                                    }
                                     
                                     // 翻訳結果3にフィルタリングを適用
                                     var filteredResponseText3 = applyTranslationFilter(responseText3, 3);
@@ -1237,7 +1284,7 @@
 
 // バージョン情報の表示 ---------------------------------
 const SoftwareTitle = "音声認識字幕ちゃん";
-const SoftwareVersion = "2025.6.9 10:18";
+const SoftwareVersion = "2025.7.6 13:50";
 const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
 
 // Web Speech API使用時のデバイス制限について

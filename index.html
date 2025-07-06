@@ -838,7 +838,12 @@
         if(short_pause != '') {new_url = new_url + "&short_pause=" + short_pause;} 
 
         if(bouyomi == true) {new_url = new_url + "&bouyomi=" + bouyomi;}
-        if(anti_sexual == true) {new_url = new_url + "&anti_sexual=" + "false";}
+        // anti_sexualは、チェックON=削除をやめる(false)、チェックOFF=削除する(true)
+        if(anti_sexual == true) {
+            new_url = new_url + "&anti_sexual=" + "false";
+        } else {
+            new_url = new_url + "&anti_sexual=" + "true";
+        }
         if(gas_key != '') {new_url = new_url + "&gas_key=" + gas_key;}
    
         // config の更新
