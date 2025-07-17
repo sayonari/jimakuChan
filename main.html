@@ -1284,7 +1284,7 @@
 
 // バージョン情報の表示 ---------------------------------
 const SoftwareTitle = "音声認識字幕ちゃん";
-const SoftwareVersion = "2025.7.6 14:45";
+const SoftwareVersion = "2025.7.17 20:49";
 const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
 
 // Web Speech API使用時のデバイス制限について
@@ -1398,7 +1398,31 @@ if (getParam('st_width4') != null){
 
 // 音声認識結果 ----------------
 if (getParam('speech_text_font') != null){
-    document.getElementById("speech_text").style.fontFamily = "'" + getParam('speech_text_font') + "'";
+    var fontValue = getParam('speech_text_font');
+    console.log('[DEBUG] speech_text_font from URL:', fontValue);
+    
+    // バックスラッシュを除去
+    fontValue = fontValue.replace(/\\\\/g, '');
+    
+    // フォント名を正しく設定（クォートを追加）
+    // Kleeフォントの場合、正しい名前に変換
+    if (fontValue.toLowerCase() === 'klee') {
+        fontValue = 'Klee';  // macOSでは大文字で始まる
+    }
+    var fontFamily = '"' + fontValue + '", sans-serif';
+    document.getElementById("speech_text").style.fontFamily = fontFamily;
+    
+    // 子要素にも適用
+    var bgElement = document.getElementById("speech_text-bg");
+    var fgElement = document.getElementById("speech_text-fg");
+    var imbElement = document.getElementById("speech_text-imb");
+    
+    if (bgElement) bgElement.style.fontFamily = fontFamily;
+    if (fgElement) fgElement.style.fontFamily = fontFamily;
+    if (imbElement) imbElement.style.fontFamily = fontFamily;
+    
+    console.log('[DEBUG] Applied font to speech_text:', document.getElementById("speech_text").style.fontFamily);
+    console.log('[DEBUG] Applied font to speech_text-fg:', fgElement ? fgElement.style.fontFamily : 'element not found');
 }
 
 if (getParam('size1') != null){
@@ -1423,7 +1447,23 @@ if (getParam('st_width1') != null){
 
 // 翻訳結果テキスト ----------------
 if (getParam('trans_text_font') != null){
-    document.getElementById("trans_text").style.fontFamily = "'" + getParam('trans_text_font') + "'";
+    var fontValue = getParam('trans_text_font');
+    // バックスラッシュを除去
+    fontValue = fontValue.replace(/\\\\/g, '');
+    if (fontValue.toLowerCase() === 'klee') {
+        fontValue = 'Klee';
+    }
+    var fontFamily = '"' + fontValue + '", sans-serif';
+    document.getElementById("trans_text").style.fontFamily = fontFamily;
+    
+    // 子要素にも適用
+    var bgElement = document.getElementById("trans_text-bg");
+    var fgElement = document.getElementById("trans_text-fg");
+    var imbElement = document.getElementById("trans_text-imb");
+    
+    if (bgElement) bgElement.style.fontFamily = fontFamily;
+    if (fgElement) fgElement.style.fontFamily = fontFamily;
+    if (imbElement) imbElement.style.fontFamily = fontFamily;
 }
 
 if (getParam('size2') != null){
@@ -1448,7 +1488,23 @@ if (getParam('st_width2') != null){
 
 // 翻訳結果テキスト（第2言語） -----------
 if (getParam('trans_text2_font') != null){
-    document.getElementById("trans_text2").style.fontFamily = "'" + getParam('trans_text2_font') + "'";
+    var fontValue = getParam('trans_text2_font');
+    // バックスラッシュを除去
+    fontValue = fontValue.replace(/\\\\/g, '');
+    if (fontValue.toLowerCase() === 'klee') {
+        fontValue = 'Klee';
+    }
+    var fontFamily = '"' + fontValue + '", sans-serif';
+    document.getElementById("trans_text2").style.fontFamily = fontFamily;
+    
+    // 子要素にも適用
+    var bgElement = document.getElementById("trans_text2-bg");
+    var fgElement = document.getElementById("trans_text2-fg");
+    var imbElement = document.getElementById("trans_text2-imb");
+    
+    if (bgElement) bgElement.style.fontFamily = fontFamily;
+    if (fgElement) fgElement.style.fontFamily = fontFamily;
+    if (imbElement) imbElement.style.fontFamily = fontFamily;
 }
 
 
@@ -1474,7 +1530,23 @@ if (getParam('st_width3') != null){
 
 // 翻訳結果テキスト（第2言語） -----------
 if (getParam('trans_text3_font') != null){
-    document.getElementById("trans_text3").style.fontFamily = "'" + getParam('trans_text3_font') + "'";
+    var fontValue = getParam('trans_text3_font');
+    // バックスラッシュを除去
+    fontValue = fontValue.replace(/\\\\/g, '');
+    if (fontValue.toLowerCase() === 'klee') {
+        fontValue = 'Klee';
+    }
+    var fontFamily = '"' + fontValue + '", sans-serif';
+    document.getElementById("trans_text3").style.fontFamily = fontFamily;
+    
+    // 子要素にも適用
+    var bgElement = document.getElementById("trans_text3-bg");
+    var fgElement = document.getElementById("trans_text3-fg");
+    var imbElement = document.getElementById("trans_text3-imb");
+    
+    if (bgElement) bgElement.style.fontFamily = fontFamily;
+    if (fgElement) fgElement.style.fontFamily = fontFamily;
+    if (imbElement) imbElement.style.fontFamily = fontFamily;
 }
 
 

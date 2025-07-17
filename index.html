@@ -649,7 +649,7 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
 
     // 翻訳画面とURLを初期化 ///////////////
     // 初期読み込み時は設定を反映したURLを生成してから読み込む
-    updateOptionValues(true); // URL生成のみ
+    // updateOptionValues(true); // URL生成のみ - DOM要素がまだ存在しないためコメントアウト
     
     // 設定を含むURLでiframeを読み込む
     var initial_url = base_url + "textAlign=" + (config.textAlign || "center") + "&v_align=" + (config.v_align || "bottom")
@@ -803,6 +803,12 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
         }
         var bouyomi = document.getElementById('bouyomi').checked;
         var anti_sexual = document.getElementById('anti_sexual').checked;
+        
+        // フォント変数の初期化
+        var speech_text_font = '';
+        var trans_text_font = '';
+        var trans_text2_font = '';
+        var trans_text3_font = '';
 
         var new_url = base_url + "textAlign=" + textAlign + "&v_align=" + v_align 
                      + "&recog=" + recog 
@@ -825,19 +831,64 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
         if(trans3 != 'none') {new_url = new_url + "&trans3=" + trans3;} 
 
         // font の処理
+        console.log('[DEBUG] Font processing:', {
+            speech_text_font_selector,
+            speech_text_system_font,
+            speech_text_direct_font
+        });
         if (speech_text_font_selector !== "direct") {
             speech_text_font = speech_text_font_selector;
+        } else {
+            // 直接指定の場合、直接入力の値を優先、なければシステムフォントの値を使用
+            // ただし、システムフォントの値が'direct'の場合は無視
+            if (speech_text_direct_font && speech_text_direct_font !== '') {
+                speech_text_font = speech_text_direct_font;
+            } else if (speech_text_system_font && speech_text_system_font !== '' && speech_text_system_font !== 'direct') {
+                speech_text_font = speech_text_system_font;
+            } else {
+                speech_text_font = '';
+            }
+            console.log('[DEBUG] Direct font selected:', speech_text_font);
         }
         if (trans_text_font_selector !== "direct") {
             trans_text_font = trans_text_font_selector;
+        } else {
+            if (trans_text_direct_font && trans_text_direct_font !== '') {
+                trans_text_font = trans_text_direct_font;
+            } else if (trans_text_system_font && trans_text_system_font !== '' && trans_text_system_font !== 'direct') {
+                trans_text_font = trans_text_system_font;
+            } else {
+                trans_text_font = '';
+            }
         }
         if (trans_text2_font_selector !== "direct") {
             trans_text2_font = trans_text2_font_selector;
+        } else {
+            if (trans_text2_direct_font && trans_text2_direct_font !== '') {
+                trans_text2_font = trans_text2_direct_font;
+            } else if (trans_text2_system_font && trans_text2_system_font !== '' && trans_text2_system_font !== 'direct') {
+                trans_text2_font = trans_text2_system_font;
+            } else {
+                trans_text2_font = '';
+            }
         }
         if (trans_text3_font_selector !== "direct") {
             trans_text3_font = trans_text3_font_selector;
+        } else {
+            if (trans_text3_direct_font && trans_text3_direct_font !== '') {
+                trans_text3_font = trans_text3_direct_font;
+            } else if (trans_text3_system_font && trans_text3_system_font !== '' && trans_text3_system_font !== 'direct') {
+                trans_text3_font = trans_text3_system_font;
+            } else {
+                trans_text3_font = '';
+            }
         }
-        if(speech_text_font != '') {new_url = new_url + "&speech_text_font=" + speech_text_font;} 
+        if(speech_text_font != '') {
+            new_url = new_url + "&speech_text_font=" + speech_text_font;
+            console.log('[DEBUG] Adding speech_text_font to URL:', speech_text_font);
+        } else {
+            console.log('[DEBUG] speech_text_font is empty, not adding to URL');
+        } 
         if(trans_text_font != '') {new_url = new_url + "&trans_text_font=" + trans_text_font;} 
         if(trans_text2_font != '') {new_url = new_url + "&trans_text2_font=" + trans_text2_font;} 
         if(trans_text3_font != '') {new_url = new_url + "&trans_text3_font=" + trans_text3_font;} 
@@ -998,7 +1049,7 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                 
                 // [直接指定]オプションを追加
                 const directOption = document.createElement('option');
-                directOption.value = 'direct_input';
+                directOption.value = 'direct';
                 directOption.textContent = '[直接指定]';
                 selector.appendChild(directOption);
                 
@@ -1080,8 +1131,24 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
             const element = iframeDoc.getElementById(targetElement);
             
             if (element) {
+                // フォント名の大文字小文字を調整（Kleeなど）
+                if (fontName.toLowerCase() === 'klee') {
+                    fontName = 'Klee';
+                }
+                
                 // フォントを適用
-                element.style.fontFamily = `"${fontName}", sans-serif`;
+                const fontFamily = `"${fontName}", sans-serif`;
+                element.style.fontFamily = fontFamily;
+                
+                // 子要素にも適用（-bg, -fg, -imb）
+                const bgElement = iframeDoc.getElementById(targetElement + '-bg');
+                const fgElement = iframeDoc.getElementById(targetElement + '-fg');
+                const imbElement = iframeDoc.getElementById(targetElement + '-imb');
+                
+                if (bgElement) bgElement.style.fontFamily = fontFamily;
+                if (fgElement) fgElement.style.fontFamily = fontFamily;
+                if (imbElement) imbElement.style.fontFamily = fontFamily;
+                
                 console.log(`直接指定フォント適用: ${fontName} → ${targetElement}`);
                 
                 // フォントが実際に存在するかチェック
@@ -1112,7 +1179,7 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
         // 対応する直接入力フィールドを取得
         const directFontInput = document.getElementById(targetElement + '_direct_font');
         
-        if (fontName === 'direct_input') {
+        if (fontName === 'direct') {
             // [直接指定]が選ばれた場合、テキストフィールドを有効化
             if (directFontInput) {
                 directFontInput.disabled = false;
@@ -1138,9 +1205,26 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                         return;
                     }
                     
-                    const element = iframe.contentWindow.document.getElementById(targetElement);
+                    const iframeDoc = iframe.contentWindow.document;
+                    const element = iframeDoc.getElementById(targetElement);
                     if (element) {
-                        element.style.fontFamily = `"${fontName}", sans-serif`;
+                        // フォント名の大文字小文字を調整（Kleeなど）
+                        if (fontName.toLowerCase() === 'klee') {
+                            fontName = 'Klee';
+                        }
+                        
+                        const fontFamily = `"${fontName}", sans-serif`;
+                        element.style.fontFamily = fontFamily;
+                        
+                        // 子要素にも適用（-bg, -fg, -imb）
+                        const bgElement = iframeDoc.getElementById(targetElement + '-bg');
+                        const fgElement = iframeDoc.getElementById(targetElement + '-fg');
+                        const imbElement = iframeDoc.getElementById(targetElement + '-imb');
+                        
+                        if (bgElement) bgElement.style.fontFamily = fontFamily;
+                        if (fgElement) fgElement.style.fontFamily = fontFamily;
+                        if (imbElement) imbElement.style.fontFamily = fontFamily;
+                        
                         console.log(`システムフォント適用: ${fontName} → ${targetElement}`);
                         
                         // フォントが実際に適用されたかチェック
@@ -1174,7 +1258,7 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                 const savedDirectFont = directFontInput.value;
                 
                 // 直接入力フィールドの状態を設定
-                if (savedSystemFont === 'direct_input') {
+                if (savedSystemFont === 'direct') {
                     // [直接指定]が選択されている場合は、フォント名が空でも有効化
                     directFontInput.disabled = false;
                     directFontInput.style.backgroundColor = '';
@@ -1188,7 +1272,7 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                     directFontInput.style.backgroundColor = '#f0f0f0';
                     directFontInput.style.color = '#999';
                     // システムフォントを適用
-                    if (savedSystemFont && savedSystemFont !== '' && savedSystemFont !== 'direct_input') {
+                    if (savedSystemFont && savedSystemFont !== '' && savedSystemFont !== 'direct') {
                         applySystemFont(savedSystemFont, target);
                     }
                 }
@@ -1212,12 +1296,30 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                 return;
             }
             
+            // directでない場合、直接入力フィールドをクリア
+            const directFontInput = document.getElementById(targetElement + '_direct_font');
+            if (directFontInput) {
+                directFontInput.value = '';
+            }
+            
             // バックスラッシュを除去してフォント名を正規化
             fontValue = fontValue.replace(/\\\\/g, '');
             
-            const element = iframe.contentWindow.document.getElementById(targetElement);
+            const iframeDoc = iframe.contentWindow.document;
+            const element = iframeDoc.getElementById(targetElement);
             if (element) {
-                element.style.fontFamily = `"${fontValue}", sans-serif`;
+                const fontFamily = `"${fontValue}", sans-serif`;
+                element.style.fontFamily = fontFamily;
+                
+                // 子要素にも適用（-bg, -fg, -imb）
+                const bgElement = iframeDoc.getElementById(targetElement + '-bg');
+                const fgElement = iframeDoc.getElementById(targetElement + '-fg');
+                const imbElement = iframeDoc.getElementById(targetElement + '-imb');
+                
+                if (bgElement) bgElement.style.fontFamily = fontFamily;
+                if (fgElement) fgElement.style.fontFamily = fontFamily;
+                if (imbElement) imbElement.style.fontFamily = fontFamily;
+                
                 console.log(`フォント適用: ${fontValue} → ${targetElement}`);
                 updateFontStatus(`✅ フォント: ${fontValue}`, '#008000');
             }
