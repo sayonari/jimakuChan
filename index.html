@@ -120,28 +120,42 @@
 　上の画面をクリックすると設定画面が閉じ，もう一度押すと再度開きます．<BR>
 <HR>
 
-<!-- # プリセット機能 ################## -->
-設定プリセット：
-<select id="presetSelect" onchange="loadPreset()">
-    <option value="default">📋 選択してください</option>
-    <option value="gaming">🎮 ゲーム配信用</option>
-    <option value="meeting">💼 会議・打ち合わせ用</option>
-    <option value="language_learning">📚 語学学習用</option>
-    <option value="accessibility">♿ アクセシビリティ重視</option>
-    <option value="cute_streaming">🌸 かわいい配信用</option>
-    <option value="dark_theme">🌙 ダークテーマ</option>
-    <option value="rainbow">🌈 レインボー</option>
-    <option value="custom1">🔧 カスタム１</option>
-    <option value="custom2">🔧 カスタム２</option>
-    <option value="custom3">🔧 カスタム３</option>
-</select><BR>
-<small style="color: #666;">プリセットを選択すると設定が切り替わり、変更した設定は自動保存されます ✨</small><BR>
-<HR>
-
-<!-- # API key text box ##################### -->
-翻訳用 Google API-KEY: <input type="text" name="gas_key" id="gas_key" size="60" oninput="updateOptionValues();" /> キーの作成方法 → <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html">[LINK]</a><BR>
-翻訳回数：<div id="displayTransCount" style="display: inline-block; _display: inline;"></div><font color="gray">（上限 無料：5,000回，有料：20,000回）</font><BR>
-翻訳ステータス：<span id="translationStatus" style="font-weight: bold; color: #666;">待機中</span><BR>
+<!-- # プリセット機能とAPIキー ################## -->
+<div style="display: flex; gap: 10px; margin-bottom: 5px;">
+    <!-- 左側：設定プリセット -->
+    <div style="width: 350px; background-color: #ffe0e6; padding: 8px 10px; border-radius: 5px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 14px; white-space: nowrap;">設定プリセット：</span>
+            <select id="presetSelect" onchange="loadPreset()" style="flex: 1;">
+                <option value="default">📋 選択してください</option>
+                <option value="gaming">🎮 ゲーム配信用</option>
+                <option value="meeting">💼 会議・打ち合わせ用</option>
+                <option value="language_learning">📚 語学学習用</option>
+                <option value="accessibility">♿ アクセシビリティ重視</option>
+                <option value="cute_streaming">🌸 かわいい配信用</option>
+                <option value="dark_theme">🌙 ダークテーマ</option>
+                <option value="rainbow">🌈 レインボー</option>
+                <option value="custom1">🔧 カスタム１</option>
+                <option value="custom2">🔧 カスタム２</option>
+                <option value="custom3">🔧 カスタム３</option>
+            </select>
+        </div>
+        <small style="color: #666; font-size: 11px;">※ 選択すると設定が自動保存されます ✨</small>
+    </div>
+    
+    <!-- 右側：APIキー関連 -->
+    <div style="flex: 1; background-color: #e0e8ff; padding: 8px 10px; border-radius: 5px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+            <span style="font-size: 14px;">翻訳用 Google API-KEY：</span>
+            <input type="text" name="gas_key" id="gas_key" size="30" oninput="updateOptionValues();" style="height: 22px;" />
+            <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html" style="font-size: 11px;">[作成方法]</a>
+        </div>
+        <div style="font-size: 13px;">
+            翻訳回数：<span id="displayTransCount">0</span><span style="color: gray; font-size: 11px;">（無料上限5,000回）</span>
+            　翻訳：<span id="translationStatus" style="font-weight: bold; color: #666;">待機中</span>
+        </div>
+    </div>
+</div>
 <HR>
 
 <!-- # テキスト設定 (テーブルレイアウト) ######################### -->
@@ -493,6 +507,29 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
 <input type="text" id="trans_text3_direct_font" placeholder="フォント名を入力" style="width: 200px; margin-left: 10px;" disabled oninput="applyDirectFont(this.value, 'trans_text3'); updateOptionValues();"><br>
 
 <HR>
+<!-- # 行間調整 ######################### -->
+<div style="background-color: #f0f0f0; padding: 8px; border-radius: 5px; margin: 5px 0;">
+    <strong>行間：</strong>
+    認識→翻訳１
+    <input type="range" id="line_spacing_1" min="0" max="50" value="0" 
+           oninput="document.getElementById('line_spacing_1_value').textContent = this.value + 'px'; updateLineSpacing('speech_text', this.value); updateOptionValues();"
+           style="width: 80px; vertical-align: middle;">
+    <span id="line_spacing_1_value" style="display: inline-block; width: 35px; text-align: right;">0px</span>
+    　
+    翻訳１→２
+    <input type="range" id="line_spacing_2" min="0" max="50" value="0" 
+           oninput="document.getElementById('line_spacing_2_value').textContent = this.value + 'px'; updateLineSpacing('trans_text', this.value); updateOptionValues();"
+           style="width: 80px; vertical-align: middle;">
+    <span id="line_spacing_2_value" style="display: inline-block; width: 35px; text-align: right;">0px</span>
+    　
+    翻訳２→３
+    <input type="range" id="line_spacing_3" min="0" max="50" value="0" 
+           oninput="document.getElementById('line_spacing_3_value').textContent = this.value + 'px'; updateLineSpacing('trans_text2', this.value); updateOptionValues();"
+           style="width: 80px; vertical-align: middle;">
+    <span id="line_spacing_3_value" style="display: inline-block; width: 35px; text-align: right;">0px</span>
+</div>
+
+<HR>
 <!-- # テキストの揃え ######################### -->
 テキストの位置：　
 左右：
@@ -641,7 +678,8 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
         , "bouyomi", "anti_sexual"
         , "speech_text_font_selector", "trans_text_font_selector", "trans_text2_font_selector", "trans_text3_font_selector"
         , "speech_text_system_font", "trans_text_system_font", "trans_text2_system_font", "trans_text3_system_font"
-        , "speech_text_direct_font", "trans_text_direct_font", "trans_text2_direct_font", "trans_text3_direct_font"];
+        , "speech_text_direct_font", "trans_text_direct_font", "trans_text2_direct_font", "trans_text3_direct_font"
+        , "line_spacing_1", "line_spacing_2", "line_spacing_3"];
 
     // 新版：全設定はjimakuChan_presetsで管理（jimakuChan_configは廃止）
     // configオブジェクトはプリセット保存時の一時的なデータ収集用のみ
@@ -894,7 +932,12 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
         if(trans_text3_font != '') {new_url = new_url + "&trans_text3_font=" + trans_text3_font;} 
 
         if(timer != '') {new_url = new_url + "&timer=" + timer;} 
-        if(short_pause != '') {new_url = new_url + "&short_pause=" + short_pause;} 
+        if(short_pause != '') {new_url = new_url + "&short_pause=" + short_pause;}
+        
+        // 行間設定
+        if(line_spacing_1 != '') {new_url = new_url + "&line_spacing_1=" + line_spacing_1;}
+        if(line_spacing_2 != '') {new_url = new_url + "&line_spacing_2=" + line_spacing_2;}
+        if(line_spacing_3 != '') {new_url = new_url + "&line_spacing_3=" + line_spacing_3;} 
 
         if(bouyomi == true) {new_url = new_url + "&bouyomi=" + bouyomi;}
         // anti_sexualは、チェックON=削除をやめる(false)、チェックOFF=削除する(true)
@@ -1278,6 +1321,25 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                 }
             }
         });
+    }
+    
+    // 行間をリアルタイムで更新する関数
+    function updateLineSpacing(targetElement, spacing) {
+        try {
+            const iframe = document.getElementById('asr_frame');
+            if (!iframe || !iframe.contentWindow || !iframe.contentWindow.document) {
+                console.log('iframe not ready for line spacing update');
+                return;
+            }
+            
+            const element = iframe.contentWindow.document.getElementById(targetElement);
+            if (element) {
+                element.style.marginBottom = spacing + 'px';
+                console.log(`行間更新: ${targetElement} → ${spacing}px`);
+            }
+        } catch (error) {
+            console.log('行間更新エラー:', error);
+        }
     }
     
     // 選択されたフォントを適用する関数
@@ -2842,6 +2904,18 @@ PC内フォント：<select id="trans_text3_system_font" onchange="applySystemFo
                 console.log('st_width' + i + '表示を更新:', stWidthElement.value);
             }
         }
+        
+        // 行間設定の表示を更新
+        for (let i = 1; i <= 3; i++) {
+            const lineSpacingElement = document.getElementById('line_spacing_' + i);
+            const lineSpacingValueElement = document.getElementById('line_spacing_' + i + '_value');
+            
+            if (lineSpacingElement && lineSpacingValueElement) {
+                lineSpacingValueElement.textContent = lineSpacingElement.value + 'px';
+                console.log('line_spacing_' + i + '表示を更新:', lineSpacingElement.value + 'px');
+            }
+        }
+        
         console.log('スライドバー数値表示更新完了');
     }
 </script>

@@ -1284,7 +1284,7 @@
 
 // バージョン情報の表示 ---------------------------------
 const SoftwareTitle = "音声認識字幕ちゃん";
-const SoftwareVersion = "2025.7.17 20:49";
+const SoftwareVersion = "2025.7.21 11:21";
 const SoftwareDeveloper = "[開発者：さぁたん ＆ さよなりω/(大学教員)西村良太]"
 
 // Web Speech API使用時のデバイス制限について
@@ -1568,6 +1568,22 @@ if (getParam('st_color4') != null){
 
 if (getParam('st_width4') != null){
     document.getElementById("trans_text3-bg").style.webkitTextStrokeWidth = getParam('st_width4') + 'pt';
+}
+
+// 行間設定 ############################################
+if (getParam('line_spacing_1') != null){
+    // 認識テキストと翻訳テキスト1の間
+    document.getElementById("speech_text").style.marginBottom = getParam('line_spacing_1') + 'px';
+}
+
+if (getParam('line_spacing_2') != null){
+    // 翻訳テキスト1と翻訳テキスト2の間
+    document.getElementById("trans_text").style.marginBottom = getParam('line_spacing_2') + 'px';
+}
+
+if (getParam('line_spacing_3') != null){
+    // 翻訳テキスト2と翻訳テキスト3の間
+    document.getElementById("trans_text2").style.marginBottom = getParam('line_spacing_3') + 'px';
 }
 
 </script>
