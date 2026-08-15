@@ -1,0 +1,103 @@
+/* jimakuChan v2 – 字幕オーバーレイ表示 */
+html, body {
+  margin: 0; padding: 0; height: 100%; width: 100%;
+  overflow: hidden;
+  background: var(--bg, transparent);
+}
+body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
+
+.stage {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: flex-end;              /* v_align=bottom */
+  padding: var(--pad, 6px 10px);
+  box-sizing: border-box;
+  text-align: center;                     /* textAlign */
+}
+.stage[data-valign="top"]    { justify-content: flex-start; }
+.stage[data-valign="middle"] { justify-content: center; }
+.stage[data-align="left"]    { text-align: left; }
+.stage[data-align="right"]   { text-align: right; }
+.stage[data-wrap="nowrap"] .line { white-space: nowrap; }
+
+/* ---- 1 行 = 1 スロット（認識 / 翻訳1 / 翻訳2 / 翻訳3） ---- */
+.line {
+  --size: 25pt; --weight: 900; --color: #fff; --sc: #000; --sw: 6pt; --gap: 0px;
+  --font: 'M PLUS Rounded 1c';
+  font-family: var(--font), 'M PLUS Rounded 1c', sans-serif;
+  font-size: var(--size); font-weight: var(--weight); color: var(--color);
+  line-height: 1.35;
+  margin-bottom: var(--gap);
+  overflow-wrap: anywhere; word-break: normal;
+  white-space: pre-wrap;
+  min-height: 0;
+}
+.line:empty, .line.is-empty { display: none; }
+.stage.keep-height .line.is-empty { display: block; visibility: hidden; }
+
+/*
+ * 縁取りは「外側にだけ伸びる」ようにする．
+ *   .txt        … 前面の塗り（ストロークなし）
+ *   .txt::before … 同じ文字列を同じボックスに絶対配置し，縁だけを描く（前面の塗りが内側を隠す）
+ * 同じ要素幅・同じフォント・同じ white-space なので改行位置は必ず一致する．
+ * 縁の描き方（--stroke-mode）:
+ *   round（既定）… text-shadow を円周状に多数重ねて文字を「膨張」させる．角が丸くなめらか（-webkit-text-stroke の
+ *                  ような miter のトゲが出ない）．影の本数は overlay.js が幅に応じて生成（最大 200 本程度）
+ *   sharp        … -webkit-text-stroke（2倍幅）．軽量だが鋭角にトゲが出る
+ */
+.txt {
+  position: relative; z-index: 0;
+  display: inline-block; max-width: 100%;
+  white-space: inherit;
+}
+.txt::before {
+  content: attr(data-text);
+  position: absolute; inset: 0; z-index: -1;
+  color: transparent;
+  text-shadow: var(--stroke-shadow, none);
+  pointer-events: none;
+  white-space: inherit;
+}
+.line[data-stroke="sharp"] .txt::before {
+  text-shadow: var(--extra-shadow, none);
+  -webkit-text-stroke: calc(var(--sw) * 2) var(--sc);
+  text-stroke: calc(var(--sw) * 2) var(--sc);
+}
+
+/* ---- テーマ ---- */
+/* glow / shadow の影は overlay.js が --stroke-shadow に合成する */
+/* box: 半透明の帯 */
+.stage[data-theme="box"] .txt {
+  background: var(--box, rgba(0,0,0,.55));
+  border-radius: var(--radius, 12px);
+  padding: .12em .5em;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+.stage[data-theme="box"] .txt::before { inset: .12em .5em; }
+/* pill: 行ごとの角丸カード（縁取りなし前提） */
+.stage[data-theme="pill"] .txt {
+  background: var(--box, rgba(255,255,255,.92));
+  border-radius: 999px; padding: .12em .8em;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+.stage[data-theme="pill"] .txt::before { inset: .12em .8em; }
+
+/* ---- 認識途中（暫定）部分 ---- */
+.interim { opacity: var(--interim-opacity, 1); }
+
+/* ---- 出現アニメーション ---- */
+@keyframes jc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jc-rise { from { opacity: 0; transform: translateY(.35em); } to { opacity: 1; transform: none; } }
+@keyframes jc-pop  { 0% { opacity: 0; transform: scale(.92); } 60% { transform: scale(1.02); } 100% { opacity: 1; transform: none; } }
+.stage[data-anim="fade"] .line.animate .txt { animation: jc-fade .22s ease-out both; }
+.stage[data-anim="rise"] .line.animate .txt { animation: jc-rise .28s cubic-bezier(.2,.8,.2,1) both; }
+.stage[data-anim="pop"]  .line.animate .txt { animation: jc-pop  .30s cubic-bezier(.2,.8,.2,1) both; }
+.line.fade-out .txt { transition: opacity .35s ease; opacity: 0; }
+
+/* プレビュー用の下地（設定画面の iframe 内でのみ .preview が付く） */
+body.preview.checker {
+  background-color: #cfd3d8;
+  background-image: linear-gradient(45deg, #b8bcc2 25%, transparent 25%), linear-gradient(-45deg, #b8bcc2 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #b8bcc2 75%), linear-gradient(-45deg, transparent 75%, #b8bcc2 75%);
+  background-size: 24px 24px; background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+}

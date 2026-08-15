@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jimakuChan: 音声認識字幕ちゃん</title>
+<link rel="icon" href="./img/favicon2/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@100;300;400;500;700;800;900&family=M+PLUS+Rounded+1c:wght@100;300;400;500;700;800;900&family=Hachi+Maru+Pop&family=Yusei+Magic&family=Reggae+One&family=Noto+Sans+JP:wght@100..900&family=Sawarabi+Gothic&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Zen+Maru+Gothic:wght@300;400;500;700;900&family=Kaisei+Decol:wght@400;700&family=Dela+Gothic+One&family=Kosugi+Maru&family=Mochiy+Pop+One&family=RocknRoll+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+<link href="./font.css" rel="stylesheet">
+<link rel="stylesheet" href="./css/app.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5RNP0LDER8"></script>
+<script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-5RNP0LDER8');</script>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="./">
+    <img src="./img/14c9b73c039a789f.png" alt="">
+    <span>
+      <span class="name" data-i18n="appName">音声認識字幕ちゃん</span><br>
+      <span class="sub">jimakuChan v2 · realtime subtitles</span>
+    </span>
+  </a>
+  <span class="ver" id="verBadge">v2</span>
+  <div class="pills">
+    <span class="pill" id="pillMic"><i class="dot"></i><span data-i18n="pillMicOff">認識 停止中</span></span>
+    <span class="pill" id="pillTrans"><i class="dot"></i><span id="pillTransText" data-i18n="pillTransIdle">翻訳 待機</span></span>
+    <span class="pill" id="pillObs"><i class="dot"></i><span id="pillObsText" data-i18n="pillObsOff">OBS 未接続</span></span>
+  </div>
+  <button class="themesw" id="themeToggle" title="ライト／ダーク切替">🌙</button>
+  <div class="langsw"><button id="langJa" class="on">日本語</button><button id="langEn">English</button></div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== プレビュー ===================== -->
+  <section class="preview" id="previewCard">
+    <div class="frame">
+      <iframe id="previewFrame" src="./overlay.html?preview=1" title="preview"></iframe>
+      <div class="hud">
+        <button class="btn mini" id="btnPreviewBg" data-i18n="previewBg">背景: 緑</button>
+        <button class="btn mini" id="btnPreviewTall" data-i18n="previewTall">大きく</button>
+      </div>
+    </div>
+    <div class="bar">
+      <button class="btn big primary" id="btnStart"><span class="ico">🎤</span><span data-i18n="btnStart">認識をはじめる</span></button>
+      <button class="btn big stop" id="btnStop" hidden><span class="ico">■</span><span data-i18n="btnStop">とめる</span></button>
+      <div class="timerbars">
+        <div class="tbar speech" title="認識テキストが消えるまで"><i id="barSpeech"></i><b id="barSpeechT"></b></div>
+        <div class="tbar trans" title="翻訳テキストが消えるまで"><i id="barTrans"></i><b id="barTransT"></b></div>
+      </div>
+      <span class="status" id="engineStatus"></span>
+      <button class="btn" id="btnPopup" title="別ウィンドウ（OBS ウィンドウキャプチャ用）"><span class="ico">🪟</span><span data-i18n="btnPopup">表示ウィンドウ</span></button>
+    </div>
+  </section>
+
+  <!-- ===================== タブ ===================== -->
+  <nav class="tabs" id="tabs">
+    <button data-tab="basic" class="on" data-i18n="tabBasic">基本</button>
+    <button data-tab="look" data-i18n="tabLook">見た目</button>
+    <button data-tab="obs" data-i18n="tabObs">OBS連携</button>
+    <button data-tab="filter" data-i18n="tabFilter">フィルタ・辞書</button>
+    <button data-tab="save" data-i18n="tabSave">保存・起動</button>
+  </nav>
+
+  <!-- ===================== 基本 ===================== -->
+  <section class="tabpane on" data-pane="basic">
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="em">🎛</span><span data-i18n="hPreset">プリセット</span></h3>
+        <div class="row">
+          <select id="presetSelect" class="grow"></select>
+          <button class="btn mini" id="btnPresetSave" data-i18n="presetSave">現在の設定を保存</button>
+          <button class="btn mini ghost" id="btnPresetReset" data-i18n="presetReset">初期値に戻す</button>
+        </div>
+        <p class="help" data-i18n="presetHelp">プリセットを選ぶと見た目・言語などがまとめて切り替わります．変更は自動でそのプリセットに保存されます．</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="em">🎤</span><span data-i18n="hRecog">音声認識</span></h3>
+        <div class="kv">
+          <label data-i18n="lRecogLang">認識する言語</label>
+          <select data-bind="recog" data-restart="1">
+            <option value="ja">日本語 (Japanese)</option>
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="ko">한국어 (Korean)</option>
+            <option value="zh-CN">中文 简体 (zh-CN)</option>
+            <option value="zh-TW">中文 繁體 台灣 (zh-TW)</option>
+            <option value="zh-HK">中文 繁體 香港 (zh-HK)</option>
+            <option value="fr-FR">Français</option>
+            <option value="it-IT">Italiano</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="es-ES">Español</option>
+            <option value="pt-BR">Português (BR)</option>
+            <option value="pt-PT">Português (PT)</option>
+            <option value="ru-RU">Русский</option>
+            <option value="uk-UA">Українська</option>
+            <option value="pl-PL">Polski</option>
+            <option value="nl-NL">Nederlands</option>
+            <option value="sv-SE">Svenska</option>
+            <option value="tr-TR">Türkçe</option>
+            <option value="id-ID">Bahasa Indonesia</option>
+            <option value="vi-VN">Tiếng Việt</option>
+            <option value="th-TH">ไทย</option>
+            <option value="ar-SA">العربية</option>
+            <option value="el-GR">Ελληνικά</option>
+            <option value="hi-IN">हिन्दी</option>
+          </select>
+          <label data-i18n="lShortPause">文の区切り</label>
+          <div class="row" style="margin:0"><input type="number" class="sm" data-bind="shortPause" min="0" step="50" data-restart="1"> <span class="hint" data-i18n="msShortPause">ミリ秒 黙ったら確定（500:すぐ / 750:普通 / 1000:つなぐ，0=自動）</span></div>
+          <label data-i18n="lTimer">消すまで</label>
+          <div class="row" style="margin:0"><input type="number" class="sm" data-bind="timer" min="0" step="500"> <span class="hint" data-i18n="msTimer">ミリ秒（0=消さない）</span></div>
+          <label data-i18n="lAutoStart">自動開始</label>
+          <label class="switch"><input type="checkbox" data-bind="autoStart"> <span data-i18n="autoStartOn">ページを開いたらすぐ認識をはじめる</span></label>
+          <label data-i18n="lBouyomi">棒読みちゃん</label>
+          <label class="switch"><input type="checkbox" data-bind="bouyomi"> <span data-i18n="bouyomiOn">認識結果を棒読みちゃんに送る</span> <a target="_blank" href="https://twitter.com/sayonari/status/1386937837682003968" class="hint">(詳細)</a></label>
+        </div>
+        <details class="adv">
+          <summary data-i18n="advRecog">詳細（認識モデル・優先語句）</summary>
+          <div class="kv" style="margin-top:8px">
+            <label data-i18n="lRecogMode">認識セッション</label>
+            <div class="row" style="margin:0">
+              <div class="seg pinky" data-seg="recogMode"><button data-val="continuous" data-i18n="modeCont">連続（次の文の頭が切れない）</button><button data-val="restart" data-i18n="modeRestart">文ごとに再起動（従来）</button></div>
+            </div>
+            <label data-i18n="lRecogModel">認識モデル</label>
+            <div class="row" style="margin:0">
+              <div class="seg pinky" data-seg="recogModel"><button data-val="cloud" data-i18n="modelCloud">クラウド（Google）</button><button data-val="local" data-i18n="modelLocal">ローカル（PC内）</button></div>
+              <span class="status" id="localModelStatus"></span>
+              <button class="btn mini" id="btnInstallLocal" hidden data-i18n="btnInstallLocal">モデルを取得</button>
+            </div>
+            <label data-i18n="lWordBoost">優先語句</label>
+            <div>
+              <textarea data-bind="wordBoost" rows="2" data-restart="1" data-i18n-ph="phWordBoost" placeholder="1行に1語句（ローカル認識時のみ有効）&#10;例：字幕ちゃん"></textarea>
+              <div class="row"><span class="hint" data-i18n="lBoost">優先度</span><select data-bind="wordBoostStrength" data-restart="1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="7">7</option><option value="10">10</option></select></div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="em">🌐</span><span data-i18n="hTrans">翻訳</span><small id="transCountLabel"></small></h3>
+      <div class="grid3">
+        <div class="row"><label data-i18n="lTrans1">翻訳 1</label><select data-bind="trans.0" class="grow trans-select"></select><span class="badge" id="modelBadge0" hidden></span></div>
+        <div class="row"><label data-i18n="lTrans2">翻訳 2</label><select data-bind="trans.1" class="grow trans-select"></select><span class="badge" id="modelBadge1" hidden></span></div>
+        <div class="row"><label data-i18n="lTrans3">翻訳 3</label><select data-bind="trans.2" class="grow trans-select"></select><span class="badge" id="modelBadge2" hidden></span></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label data-i18n="lTransMethod">翻訳方法</label>
+        <div class="seg pinky" data-seg="translationMethod"><button data-val="chrome" data-i18n="methodChrome">Chrome内蔵（高速・無料）</button><button data-val="gas" data-i18n="methodGas">Google翻訳 (GAS)</button></div>
+        <span class="status" id="chromeApiStatus"></span>
+        <button class="btn mini" id="btnDownloadModels" hidden data-i18n="btnDlModels">翻訳モデルをダウンロード</button>
+      </div>
+      <div class="row" id="rowGas">
+        <label data-i18n="lGasKey">GAS キー</label>
+        <input type="text" data-bind="gasKey" class="grow" data-i18n-ph="phGasKey" placeholder="Google Apps Script のデプロイ ID">
+        <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html" class="hint" data-i18n="gasHow">[作成方法]</a>
+      </div>
+      <p class="help" id="chromeApiHelp" data-i18n="chromeApiHelp">Chrome 138 以降なら，PC 内で動く高速翻訳が使えます（言語ごとに初回だけモデルのダウンロードが必要）．それ以外のブラウザや言語では GAS キーを使った Google 翻訳になります．</p>
+    </div>
+  </section>
+
+  <!-- ===================== 見た目 ===================== -->
+  <section class="tabpane" data-pane="look">
+    <div class="card">
+      <h3><span class="em">✨</span><span data-i18n="hTheme">テーマ</span><small data-i18n="themeHelp">縁取りは外側にだけ太くなります</small></h3>
+      <div class="chips" data-chips="theme">
+        <button class="chip" data-val="outline" data-i18n="thOutline">縁取り</button>
+        <button class="chip" data-val="box" data-i18n="thBox">ボックス</button>
+        <button class="chip" data-val="glow" data-i18n="thGlow">ネオン</button>
+        <button class="chip" data-val="shadow" data-i18n="thShadow">シャドウ</button>
+        <button class="chip" data-val="pill" data-i18n="thPill">ピル</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label data-i18n="lAnim">出現アニメ</label>
+        <div class="seg" data-seg="anim"><button data-val="none" data-i18n="animNone">なし</button><button data-val="fade" data-i18n="animFade">フェード</button><button data-val="rise" data-i18n="animRise">せり上がり</button><button data-val="pop" data-i18n="animPop">ポップ</button></div>
+        <label data-i18n="lStrokeMode">縁の描き方</label>
+        <div class="seg" data-seg="strokeMode"><button data-val="round" data-i18n="strokeRound">なめらか（推奨）</button><button data-val="sharp" data-i18n="strokeSharp">シャープ（軽量）</button></div>
+        <label data-i18n="lBoxColor" id="lBoxColor">帯の色</label><input type="text" data-bind="boxColor" class="sm" style="width:11em" placeholder="rgba(0,0,0,.55)">
+        <input type="range" data-bind="boxRadius" min="0" max="40" style="width:90px"><span class="num" data-num="boxRadius"></span><span class="hint">px</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="em">🔤</span><span data-i18n="hText">文字</span><small data-i18n="textHelp">認識・翻訳1・2・3 それぞれに設定できます</small></h3>
+      <div class="tblwrap">
+      <table class="styletbl">
+        <thead><tr><th></th><th data-i18n="thFont">フォント</th><th data-i18n="thColor">文字色</th><th data-i18n="thStrokeColor">フチ色</th><th data-i18n="thSize">サイズ</th><th data-i18n="thWeight">太さ</th><th data-i18n="thStroke">縁取り</th></tr></thead>
+        <tbody id="styleRows"></tbody>
+      </table>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label data-i18n="lPcFont">PC内フォント</label>
+        <button class="btn mini" id="btnLocalFonts" data-i18n="btnLocalFonts">PC内フォントを読み込む</button>
+        <span class="hint" data-i18n="pcFontHelp">読み込むと（初回は許可ダイアログ），フォント欄に PC のフォントが並びます．「PC内フォント…」でフォント名の直接入力もできます</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="em">📐</span><span data-i18n="hLayout">配置</span></h3>
+      <div class="kv">
+        <label data-i18n="lBg">背景</label>
+        <div class="row" style="margin:0">
+          <input type="color" data-bind="bgcolor">
+          <label class="switch"><input type="checkbox" data-bind="bgTransparent"> <span data-i18n="bgTransparent">OBSブラウザソースでは透過にする</span></label>
+        </div>
+        <label data-i18n="lAlign">左右</label>
+        <div class="seg" data-seg="textAlign"><button data-val="left" data-i18n="alLeft">左</button><button data-val="center" data-i18n="alCenter">中央</button><button data-val="right" data-i18n="alRight">右</button></div>
+        <label data-i18n="lVAlign">上下</label>
+        <div class="seg" data-seg="vAlign"><button data-val="top" data-i18n="vaTop">上</button><button data-val="middle" data-i18n="vaMiddle">中央</button><button data-val="bottom" data-i18n="vaBottom">下</button></div>
+        <label data-i18n="lWrap">改行</label>
+        <div class="seg" data-seg="whiteSpace"><button data-val="normal" data-i18n="wrapOn">画面端で折り返す</button><button data-val="nowrap" data-i18n="wrapOff">折り返さない</button></div>
+        <label data-i18n="lGap">行間</label>
+        <div class="row" style="margin:0">
+          <span class="hint" data-i18n="gap1">認識→翻訳1</span><input type="range" data-bind="lineSpacing.0" min="0" max="60" style="width:80px"><span class="num" data-num="lineSpacing.0"></span>
+          <span class="hint" data-i18n="gap2">翻訳1→2</span><input type="range" data-bind="lineSpacing.1" min="0" max="60" style="width:80px"><span class="num" data-num="lineSpacing.1"></span>
+          <span class="hint" data-i18n="gap3">翻訳2→3</span><input type="range" data-bind="lineSpacing.2" min="0" max="60" style="width:80px"><span class="num" data-num="lineSpacing.2"></span>
+        </div>
+        <label data-i18n="lInterim">認識途中の印</label>
+        <div class="row" style="margin:0">
+          <span class="hint" data-i18n="left">左</span><input type="text" data-bind="interimLeft" class="sm" style="width:5em">
+          <span class="hint" data-i18n="right">右</span><input type="text" data-bind="interimRight" class="sm" style="width:5em">
+          <span class="hint" data-i18n="interimHelp">確定前の文字を挟む記号（空欄で印なし）</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== OBS 連携 ===================== -->
+  <section class="tabpane" data-pane="obs">
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="em">🎬</span><span data-i18n="hObsA">方法A：ブラウザソースに直接（おすすめ）</span></h3>
+        <p class="help" data-i18n="obsAHelp">OBS 28 以降に内蔵の WebSocket で字幕を送ります．背景は透過，クロマキー不要，見た目はこの画面と同じです．</p>
+        <ol class="steps">
+          <li><span class="t" data-i18n="obsS1">OBS の「ツール」→「WebSocket サーバー設定」で「WebSocket サーバーを有効にする」にチェック</span><br><span class="d" data-i18n="obsS1d">「パスワードを表示」でパスワードを確認（認証なしでも可）</span></li>
+          <li><span class="t" data-i18n="obsS2">下にパスワードを入れて「OBSに接続」</span></li>
+          <li><span class="t" data-i18n="obsS3">「現在のシーンに字幕を追加」を押す</span><br><span class="d" data-i18n="obsS3d">ブラウザソース「jimakuChan 字幕」が自動で追加されます．手動で追加したい場合は下の URL をブラウザソースに貼ってください</span></li>
+        </ol>
+        <div class="kv">
+          <label data-i18n="lObsUrl">WebSocket</label><input type="text" data-bind="obs.url" placeholder="ws://localhost:4455">
+          <label data-i18n="lObsPw">パスワード</label><input type="password" data-bind="obs.password" placeholder="">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="btnObsConnect" data-i18n="btnObsConnect">OBSに接続</button>
+          <button class="btn" id="btnObsDisconnect" hidden data-i18n="btnObsDisconnect">切断</button>
+          <label class="switch"><input type="checkbox" data-bind="obs.auto"> <span data-i18n="obsAuto">起動時に自動接続</span></label>
+          <span class="status" id="obsStatus"></span>
+        </div>
+        <div class="row">
+          <button class="btn ok" id="btnObsAddSource" disabled data-i18n="btnObsAddSource">現在のシーンに字幕を追加</button>
+          <button class="btn" id="btnObsTest" disabled data-i18n="btnObsTest">テスト送信</button>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span class="lbl" data-i18n="lOverlayUrl">オーバーレイURL</span>
+          <div class="urlbox grow"><input type="text" id="overlayUrl" readonly><button class="btn mini" id="btnCopyOverlay" data-i18n="copy">コピー</button></div>
+        </div>
+        <details class="adv">
+          <summary data-i18n="advObsText">テキストソースに文字だけ送る（上級）</summary>
+          <p class="help" data-i18n="obsTextHelp">OBS の「テキスト」ソース名を入れると，そのソースの文字列を直接書き換えます（見た目は OBS 側で設定）．</p>
+          <div class="kv">
+            <label data-i18n="lTsRecog">認識</label><input type="text" data-bind="obs.textSources.0" placeholder="例: 字幕_認識">
+            <label data-i18n="lTsTrans">翻訳1/2/3</label>
+            <div class="row" style="margin:0"><input type="text" data-bind="obs.textSources.1" style="width:9em" placeholder="翻訳1"><input type="text" data-bind="obs.textSources.2" style="width:9em" placeholder="翻訳2"><input type="text" data-bind="obs.textSources.3" style="width:9em" placeholder="翻訳3"></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h3><span class="em">🟩</span><span data-i18n="hObsB">方法B：ウィンドウキャプチャ＋クロマキー（従来）</span></h3>
+        <p class="help" data-i18n="obsBHelp">OBS が古い／WebSocket を使いたくない場合．緑背景の表示ウィンドウを OBS でウィンドウキャプチャし，フィルタ「クロマキー」で緑を抜きます．</p>
+        <ol class="steps">
+          <li><span class="t" data-i18n="obsB1">「表示ウィンドウ」ボタンで字幕だけのウィンドウを開く</span></li>
+          <li><span class="t" data-i18n="obsB2">OBS で「ウィンドウキャプチャ」→ そのウィンドウを選択</span></li>
+          <li><span class="t" data-i18n="obsB3">ソースを右クリック →「フィルタ」→「クロマキー」（緑）</span></li>
+        </ol>
+        <div class="row"><button class="btn" id="btnPopup2"><span class="ico">🪟</span><span data-i18n="btnPopup">表示ウィンドウ</span></button>
+        <span class="hint" data-i18n="popupHint">※ 認識はこの設定画面で動きます．設定画面のタブは閉じないでください</span></div>
+        <h3 style="margin-top:16px"><span class="em">💡</span><span data-i18n="hObsTips">ヒント</span></h3>
+        <ul class="hint" style="margin:0; padding-left:18px">
+          <li data-i18n="tip1">全画面ゲーム中に認識が止まる場合は「保存・起動」タブの起動ファイル（.bat / .command）を使ってください</li>
+          <li data-i18n="tip2">マイクは Chrome の既定デバイスが使われます．変えたい場合は OS の入力デバイスを切り替えてください</li>
+          <li data-i18n="tip3">OBS のブラウザソースは「表示されていないときにソースをシャットダウン」を OFF にしてください</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== フィルタ・辞書 ===================== -->
+  <section class="tabpane" data-pane="filter">
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="em">🙈</span><span data-i18n="hFilter">センシティブワードの伏字</span><small id="filterInfo"></small></h3>
+        <label class="switch"><input type="checkbox" data-bind="filterOn"> <span data-i18n="filterOn">不適切な語を *** に置き換える</span></label>
+        <p class="help" data-i18n="filterHelp">単語リストは <a target="_blank" href="https://github.com/sayonari/goodBadWordlist">goodBadWordlist</a>（皆で育てるリスト）を認識言語・翻訳言語ごとに自動で読み込みます．英語などは単語単位で判定するので "class" の "ass" のような誤伏字は起きません．</p>
+        <div class="grid2">
+          <div><span class="hint" data-i18n="lExtraBad">追加で伏せる語（1行1語）</span><textarea data-bind="extraBad" rows="4"></textarea></div>
+          <div><span class="hint" data-i18n="lExtraGood">伏せない語（誤検出の回避，1行1語）</span><textarea data-bind="extraGood" rows="4"></textarea></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="filterTestIn" class="grow" data-i18n-ph="phFilterTest" placeholder="ここに文を入れると伏字の結果を確認できます">
+          <span class="status" id="filterTestOut"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="em">📝</span><span data-i18n="hReplace">語句置換</span></h3>
+        <p class="help" data-i18n="replaceHelp">認識結果の文字列を置き換えます（表示・翻訳・OBS すべてに反映）．1 行に 1 つ「置換前→置換後」．</p>
+        <textarea data-bind="wordReplace" rows="6" data-i18n-ph="phReplace" placeholder="にしむら→西村&#10;じまく→字幕"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 保存・起動 ===================== -->
+  <section class="tabpane" data-pane="save">
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="em">💾</span><span data-i18n="hSave">設定ファイル</span></h3>
+        <p class="help" data-i18n="saveHelp">全プリセット（GAS キー・OBS 設定を含む）を 1 つの JSON ファイルに保存／読込します．別 PC や起動ファイル用プロファイルへの引っ越しに．</p>
+        <div class="row">
+          <button class="btn primary" id="btnExport" data-i18n="btnExport">ファイルに保存</button>
+          <button class="btn" id="btnImport" data-i18n="btnImport">ファイルから読込</button>
+          <button class="btn ghost" id="btnMigrate" hidden data-i18n="btnMigrate">旧バージョンの設定を取り込む</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="em">🚀</span><span data-i18n="hLaunch">起動ファイル（全画面ゲーム中も止まらない）</span></h3>
+        <p class="help" data-i18n="launchHelp">Chrome の省電力で認識が止まるのを防ぐ起動ファイルを作ります．専用プロファイルで開くので，初回はそちらで「ファイルから読込」してください．</p>
+        <div class="row">
+          <button class="btn" id="btnBatWin">🪟 Windows (.bat)</button>
+          <button class="btn" id="btnBatMac">🍎 Mac (.command)</button>
+          <a class="hint" target="_blank" href="https://www.youtube.com/watch?v=8-UXx_tVeYk" data-i18n="launchVideo">解説動画</a>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="em">ℹ️</span><span data-i18n="hAbout">このアプリについて</span></h3>
+      <p class="help" data-i18n="aboutText">音声認識字幕ちゃんは，ブラウザだけで動くリアルタイム字幕ツールです．インストール不要・超軽量．音声認識は Chrome（Google）で行われます．</p>
+      <p class="help">
+        <a target="_blank" href="https://www.sayonari.com/trans_asr/index_asr.html" data-i18n="linkGuide">使い方ガイド</a> ·
+        <a target="_blank" href="https://github.com/sayonari/jimakuChan">GitHub</a> ·
+        <a target="_blank" href="https://github.com/sayonari/goodBadWordlist" data-i18n="linkWords">伏字リスト</a> ·
+        <span data-i18n="devs">開発者：さぁたん（構想，助言）／ さよなりω．西村良太（実装）</span>
+      </p>
+    </div>
+  </section>
+
+  <p class="foot">jimakuChan v2 — <span id="footVer"></span></p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./js/i18n.js"></script>
+<script src="./js/bouyomichan_client.js"></script>
+<script src="./js/chrome_translator.js"></script>
+<script src="./js/filter.js"></script>
+<script src="./js/recognizer.js"></script>
+<script src="./js/translator.js"></script>
+<script src="./js/obs.js"></script>
+<script src="./js/presets.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>

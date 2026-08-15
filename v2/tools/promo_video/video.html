@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>jimakuChan v2 promo</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Hachi+Maru+Pop&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+<style>
+  :root { --pink:#ff5c93; --pink2:#e0407a; --yellow:#d19b00; --mint:#16a34a; --sky:#1d7fd6; --bg0:#f5f7fc; --fg:#1b2237; --fg2:#4b5675; --card:#ffffff; --line:rgba(20,30,60,.12); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:1280px; height:720px; overflow:hidden; background:var(--bg0); color:var(--fg); font-family:'Zen Kaku Gothic New','Hiragino Sans',sans-serif; }
+  #stage { position:relative; width:1280px; height:720px; overflow:hidden;
+    background: radial-gradient(900px 500px at 15% 0%, rgba(255,92,147,.16), transparent 60%),
+                radial-gradient(800px 500px at 100% 10%, rgba(94,200,255,.18), transparent 60%),
+                radial-gradient(700px 400px at 50% 110%, rgba(255,224,102,.22), transparent 60%), var(--bg0); }
+  .grain { position:absolute; inset:0; opacity:.12; pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:.35; }
+  .scene { position:absolute; inset:0; opacity:0; }
+  .disp { font-family:'M PLUS Rounded 1c', sans-serif; font-weight:900; }
+  /* ---- 共通字幕（ナレーションのライブ字幕） ---- */
+  #live { position:absolute; left:0; right:0; bottom:22px; text-align:center; padding:0 90px; }
+  #live .txt { position:relative; z-index:0; display:inline-block; font-family:'M PLUS Rounded 1c'; font-weight:900; font-size:28px; white-space:nowrap; color:#fff; line-height:1.35; white-space:pre-wrap; }
+  #live .txt::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:transparent; text-shadow:var(--live-sh); white-space:pre-wrap; }
+  #live .interim { opacity:.7; }
+  #mic { position:absolute; left:40px; bottom:26px; display:flex; align-items:center; gap:10px; }
+  #mic .ico { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--pink),#ff8f6b); display:grid; place-items:center; font-size:22px; box-shadow:0 0 0 0 rgba(255,107,157,.6); }
+  #mic .bars { display:flex; gap:3px; align-items:center; height:36px; }
+  #mic .bars i { width:5px; border-radius:3px; background:var(--pink2); height:6px; }
+  /* ---- タイトル ---- */
+  .logo { position:absolute; left:130px; top:150px; width:280px; height:280px; }
+  .title { position:absolute; left:460px; top:180px; }
+  .title h1 { margin:0; font-size:78px; line-height:1.05; letter-spacing:.01em; }
+  .title .v2 { display:inline-block; margin-left:14px; padding:4px 18px; border-radius:999px; background:linear-gradient(135deg,var(--pink),#ff8f6b); color:#fff; font-size:36px; vertical-align:middle; }
+  .title p { margin:18px 0 0; font-size:30px; color:var(--fg2); font-weight:700; }
+  .tags { position:absolute; left:460px; top:400px; display:flex; gap:12px; }
+  .tag { padding:8px 18px; border-radius:999px; border:1px solid var(--line); background:var(--card); font-weight:800; font-size:22px; box-shadow:0 4px 14px rgba(30,40,80,.08); }
+  /* ---- ステップ ---- */
+  .steps { position:absolute; left:70px; top:120px; width:520px; }
+  .step { display:flex; gap:18px; align-items:center; margin-bottom:26px; }
+  .step .n { width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--pink),#ff8f6b); color:#fff; display:grid; place-items:center; font-size:30px; flex:none; }
+  .step .t { font-size:32px; font-weight:900; }
+  .step .d { font-size:19px; color:var(--fg2); }
+  .shot { position:absolute; border-radius:16px; overflow:hidden; box-shadow:0 30px 70px rgba(30,40,80,.25), 0 0 0 1px var(--line); background:#fff; }
+  .shot img { display:block; width:100%; }
+  .ring { position:absolute; border:5px solid var(--pink); border-radius:14px; box-shadow:0 0 0 6px rgba(255,92,147,.25), 0 0 30px rgba(255,92,147,.5); }
+  .h2 { position:absolute; left:70px; top:34px; font-size:44px; }
+  .h2 small { display:block; font-size:22px; color:var(--fg2); font-weight:700; margin-top:4px; }
+  /* ---- デモ ---- */
+  .game { position:absolute; left:80px; top:140px; width:1120px; height:420px; border-radius:18px; overflow:hidden;
+    background: linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a); box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line); }
+  .game .sky { position:absolute; inset:0; background: radial-gradient(500px 300px at 70% 20%, rgba(255,224,102,.35), transparent 60%), radial-gradient(400px 400px at 20% 90%, rgba(94,200,255,.35), transparent 60%); }
+  .game .hill { position:absolute; left:-10%; right:-10%; bottom:-40px; height:180px; border-radius:50% 50% 0 0; background:#0e1a2a; }
+  .game .hill2 { position:absolute; left:30%; right:-20%; bottom:-70px; height:200px; border-radius:50% 50% 0 0; background:#0a1420; }
+  .game .hud { position:absolute; left:16px; top:14px; padding:6px 12px; border-radius:8px; background:rgba(0,0,0,.4); font-size:16px; font-weight:800; color:#fff; }
+  .game .hud b { color:#ff5c5c; }
+  .sub { position:absolute; left:0; right:0; bottom:26px; text-align:center; padding:0 40px; }
+  .sub .line { --sw:7px; --sc:#000; --c:#fff; --fs:40px; --font:'M PLUS Rounded 1c'; font-family:var(--font); font-weight:900; font-size:var(--fs); color:var(--c); line-height:1.3; margin-top:2px; }
+  .sub .line .txt { position:relative; z-index:0; display:inline-block; white-space:pre-wrap; }
+  .sub .line .txt::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:transparent; text-shadow:var(--sub-sh, none); white-space:pre-wrap; }
+  .sub[data-theme="box"] .txt { background:rgba(0,0,0,.55); border-radius:12px; padding:.1em .5em; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+  .sub[data-theme="box"] .txt::before { inset:.1em .5em; }
+  
+  .sub .interim { opacity:.7; }
+  .chips { position:absolute; left:80px; top:585px; display:flex; gap:12px; }
+  .chip { padding:8px 22px; border-radius:999px; border:1.5px solid var(--line); background:var(--card); font-weight:900; font-size:22px; color:var(--fg2); }
+  .chip.on { background:rgba(255,92,147,.15); border-color:var(--pink); color:var(--pink2); }
+  .langs { position:absolute; right:80px; top:585px; display:flex; gap:10px; }
+  .lang { padding:6px 14px; border-radius:10px; background:var(--card); font-weight:800; font-size:20px; border:1px solid var(--line); }
+  .lang.on { background:rgba(22,163,74,.12); border-color:var(--mint); color:var(--mint); }
+  /* ---- OBS ---- */
+  .obswin { position:absolute; left:640px; top:120px; width:580px; height:400px; border-radius:14px; background:#1e1e1e; box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line); overflow:hidden; }
+  .obswin .bar { height:34px; background:#2b2b2b; display:flex; align-items:center; padding:0 12px; font-size:15px; font-weight:800; color:#ddd; gap:8px; }
+  .obswin .bar i { width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .obswin .canvas { position:absolute; left:14px; top:48px; right:14px; height:270px; border-radius:6px; overflow:hidden; background:linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a); }
+  .obswin .foot { position:absolute; left:14px; right:14px; bottom:12px; height:56px; display:flex; gap:8px; }
+  .obswin .foot div { flex:1; background:#2b2b2b; border-radius:6px; padding:6px 8px; font-size:12px; color:#bbb; font-weight:700; }
+  .obswin .src { color:#fff; background:#3a3a3a; border-radius:4px; padding:2px 6px; display:inline-block; margin-top:4px; }
+  /* ---- フィルタ ---- */
+  .fx { position:absolute; left:100px; top:150px; width:1080px; }
+  .fxrow { display:flex; align-items:center; gap:24px; margin-bottom:26px; font-size:30px; font-weight:800; }
+  .fxrow .in { padding:14px 26px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
+  .fxrow .arr { color:var(--fg2); font-size:40px; }
+  .fxrow .out { padding:14px 26px; border-radius:16px; background:rgba(22,163,74,.10); border:1px solid rgba(22,163,74,.5); }
+  .fxrow .out b { color:var(--pink2); }
+  .fxrow .ok { color:var(--mint); font-size:34px; }
+  /* ---- アウトロ ---- */
+  .url { position:absolute; left:0; right:0; top:420px; text-align:center; font-size:44px; font-family:'M PLUS Rounded 1c'; font-weight:900; color:var(--pink2); letter-spacing:.01em; }
+  .big { position:absolute; left:0; right:0; top:200px; text-align:center; font-size:64px; }
+  .center-logo { position:absolute; left:540px; top:40px; width:200px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob" id="blob1" style="left:-120px;top:-100px;width:520px;height:520px;background:#ff6b9d"></div>
+  <div class="blob" id="blob2" style="right:-140px;top:120px;width:480px;height:480px;background:#5ec8ff"></div>
+  <div class="blob" id="blob3" style="left:520px;bottom:-320px;width:420px;height:420px;background:#ffe066"></div>
+  <div class="grain"></div>
+
+  <!-- S1 title -->
+  <div class="scene" id="s_title">
+    <img class="logo" id="logo" src="../../img/14c9b73c039a789f.png">
+    <div class="title"><h1 class="disp" id="ttl">音声認識字幕ちゃん<span class="v2 disp">v2</span></h1><p id="ttl2">ブラウザだけで，話した言葉がそのまま字幕に．</p></div>
+    <div class="tags"><span class="tag" id="tg1">🎤 リアルタイム認識</span><span class="tag" id="tg2">🌐 3か国語 同時翻訳</span><span class="tag" id="tg3">🎬 OBS ワンクリック</span></div>
+  </div>
+
+  <!-- S2 setup -->
+  <div class="scene" id="s_setup">
+    <div class="h2 disp">導入は 3 ステップ<small>インストール不要・無料</small></div>
+    <div class="steps" style="top:140px">
+      <div class="step" id="st1"><div class="n disp">1</div><div><div class="t">Chrome でページを開く</div><div class="d">sayonari.github.io/jimakuChan/v2/</div></div></div>
+      <div class="step" id="st2"><div class="n disp">2</div><div><div class="t">マイクを許可</div><div class="d">アドレスバーのマイクアイコンから</div></div></div>
+      <div class="step" id="st3"><div class="n disp">3</div><div><div class="t">開いた瞬間から認識スタート</div><div class="d">止めたいときは「■ とめる」．設定は自動保存</div></div></div>
+    </div>
+    <div class="shot" id="shot_basic" style="left:620px;top:130px;width:620px"><img src="assets/ui_basic.png"></div>
+    <div class="ring" id="ring_start"></div>
+  </div>
+
+  <!-- S3 demo -->
+  <div class="scene" id="s_demo">
+    <div class="h2 disp">話すだけ<small>認識中の言葉もリアルタイムに．確定すると翻訳が出ます</small></div>
+    <div class="game" id="game1"><div class="sky"></div><div class="hill2"></div><div class="hill"></div><div class="hud">🎮 LIVE <b>●</b> 1,234</div>
+      <div class="sub" id="sub1" data-theme="outline">
+        <div class="line" id="d0"><span class="txt" data-text=""></span></div>
+        <div class="line" id="d1" style="--fs:30px;--c:#ffe066"><span class="txt" data-text=""></span></div>
+        <div class="line" id="d2" style="--fs:30px;--c:#a8e4ff"><span class="txt" data-text=""></span></div>
+        <div class="line" id="d3" style="--fs:30px;--c:#ffb3d1"><span class="txt" data-text=""></span></div>
+      </div>
+    </div>
+    <div class="langs"><span class="lang" id="lg0">日本語</span><span class="lang" id="lg1">English</span><span class="lang" id="lg2">中文</span><span class="lang" id="lg3">한국어</span></div>
+  </div>
+
+  <!-- S4 themes -->
+  <div class="scene" id="s_themes">
+    <div class="h2 disp">見た目はテーマを選ぶだけ<small>縁取りは外側にだけ太くなる（文字がつぶれない）</small></div>
+    <div class="game" id="game2"><div class="sky"></div><div class="hill2"></div><div class="hill"></div>
+      <div class="sub" id="sub2" data-theme="outline">
+        <div class="line" id="t0"><span class="txt" data-text=""></span></div>
+        <div class="line" id="t1" style="--fs:30px;--c:#ffe066"><span class="txt" data-text=""></span></div>
+      </div>
+    </div>
+    <div class="chips" id="chips"><span class="chip on">縁取り</span><span class="chip">ボックス</span><span class="chip">ネオン</span><span class="chip">シャドウ</span></div>
+    <div class="langs" style="top:596px"><span class="lang" id="swlabel">縁取り 6pt</span></div>
+  </div>
+
+  <!-- S5 OBS -->
+  <div class="scene" id="s_obs">
+    <div class="h2 disp">OBS 連携もかんたん<small>ブラウザソースをワンクリックで追加．背景は透過・クロマキー不要</small></div>
+    <div class="steps" style="top:150px;width:560px">
+      <div class="step" id="ob1"><div class="n disp">1</div><div><div class="t">OBS で WebSocket を有効に</div><div class="d">ツール → WebSocket サーバー設定</div></div></div>
+      <div class="step" id="ob2"><div class="n disp">2</div><div><div class="t">パスワードを入れて「接続」</div><div class="d">字幕ちゃんの OBS 連携タブ</div></div></div>
+      <div class="step" id="ob3"><div class="n disp">3</div><div><div class="t">「字幕を追加」を押す</div><div class="d">シーンにブラウザソースが自動追加</div></div></div>
+    </div>
+    <div class="shot" id="shot_obs" style="left:660px;top:130px;width:560px"><img src="assets/ui_obs.png"></div>
+    <div class="ring" id="ring_obs"></div>
+    <div class="obswin" id="obswin" style="left:660px;top:130px;width:560px"><div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i>&nbsp; OBS Studio — シーン</div>
+      <div class="canvas"><div class="sky"></div><div class="hill2" style="bottom:-90px"></div><div class="hill" style="bottom:-60px"></div>
+        <div class="sub" id="sub3" data-theme="outline" style="bottom:12px"><div class="line" style="--fs:24px"><span class="txt" data-text="字幕がそのまま OBS に出ます">字幕がそのまま OBS に出ます</span></div><div class="line" style="--fs:18px;--c:#ffe066"><span class="txt" data-text="Subtitles appear right in OBS">Subtitles appear right in OBS</span></div></div>
+      </div>
+      <div class="foot"><div>シーン<br><span class="src">シーン 1</span></div><div>ソース<br><span class="src" id="obssrc">🌐 jimakuChan 字幕</span> <span class="src">🎮 ゲームキャプチャ</span></div><div>音声ミキサー<br><span class="src">🎤 マイク</span></div></div>
+    </div>
+  </div>
+
+  <!-- S6 filter -->
+  <div class="scene" id="s_filter">
+    <div class="h2 disp">言いたくない言葉は自動で伏字<small>英語などは単語単位で判定．伏字だらけになりません</small></div>
+    <div class="fx">
+      <div class="fxrow" id="f1"><span class="in">くそっ このゲーム むずかしすぎる</span><span class="arr">→</span><span class="out"><b>***</b> このゲーム むずかしすぎる</span></div>
+      <div class="fxrow" id="f2"><span class="in">what the hell, this class is hard</span><span class="arr">→</span><span class="out">what the hell, this class is hard</span><span class="ok">✔ そのまま</span></div>
+      <div class="fxrow" id="f3"><span class="in">ASMR 配信で タイマンコラボ</span><span class="arr">→</span><span class="out">ASMR 配信で タイマンコラボ</span><span class="ok">✔ 例外語</span></div>
+    </div>
+    <div style="position:absolute;left:100px;top:600px;font-size:22px;color:var(--fg2);font-weight:700" id="f4">単語リストは GitHub「goodBadWordlist」でみんなで育てています．自分だけの追加語・除外語も設定できます．</div>
+  </div>
+
+  <!-- S7 outro -->
+  <div class="scene" id="s_outro">
+    <img class="center-logo" id="ologo" src="../../img/14c9b73c039a789f.png">
+    <div class="big disp" id="obig">音声認識字幕ちゃん <span class="v2 disp" style="font-size:40px;color:#fff">v2</span></div>
+    <div class="tags" style="left:0;right:0;top:310px;justify-content:center" id="otags"><span class="tag">無料</span><span class="tag">インストール不要</span><span class="tag">超軽量</span><span class="tag">OBS 対応</span></div>
+    <div class="url" id="ourl">sayonari.github.io/jimakuChan/v2/</div>
+    <div style="position:absolute;left:0;right:0;top:500px;text-align:center;font-size:24px;color:var(--fg2);font-weight:700" id="odev">開発者：さぁたん（構想，助言）／ さよなりω．西村良太（実装）</div>
+  </div>
+
+  <!-- 共通：ナレーションのライブ字幕 ＋ マイク -->
+  <div id="mic"><div class="ico">🎤</div><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  <div id="live"><span class="txt" data-text=""></span></div>
+</div>
+
+<script>
+// ---- タイムライン（render.mjs が window.TL を注入） ----
+// TL = { fps, scenes:[{id, start, dur, text, env:[...]}], meta:{ui_basic:{...bbox}}, total }
+const $ = s => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const easeOut = p => 1 - Math.pow(1 - clamp(p), 3);
+const easeInOut = p => { p = clamp(p); return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function setTxt(el, text, interim = '') {
+  const plain = text + (interim ? ' << ' + interim + ' >>' : '');
+  el.dataset.text = plain;
+  el.innerHTML = esc(text) + (interim ? '<span class="interim">' + esc(' << ' + interim + ' >>') + '</span>' : '');
+}
+function fadeIn(el, p, dy = 20) { el.style.opacity = easeOut(p); el.style.transform = `translateY(${(1 - easeOut(p)) * dy}px)`; }
+function pop(el, p, s0 = .85) { const e = easeOut(p); el.style.opacity = e; el.style.transform = `scale(${lerp(s0, 1, e)})`; }
+function ringTo(ring, shotEl, meta, sel, shotW, imgW) {
+  const bb = meta[sel]; if (!bb) { ring.style.opacity = 0; return; }
+  const sc = shotW / imgW; const sl = parseFloat(shotEl.style.left), st = parseFloat(shotEl.style.top);
+  ring.style.left = (sl + bb.x * sc - 8) + 'px'; ring.style.top = (st + bb.y * sc - 8) + 'px';
+  ring.style.width = (bb.width * sc + 16) + 'px'; ring.style.height = (bb.height * sc + 16) + 'px';
+}
+// ナレーション文字の進み（音量エンベロープの累積で進める）
+function progressText(sc, lt) {
+  const env = sc.env || []; const fps = TL.fps;
+  const i = clamp(Math.floor(lt * fps), 0, env.length);
+  let acc = 0, tot = 0; for (let k = 0; k < env.length; k++) { tot += env[k] > .08 ? env[k] : 0; if (k < i) acc += env[k] > .08 ? env[k] : 0; }
+  const p = tot ? acc / tot : clamp(lt / sc.dur);
+  const n = Math.round(sc.text.length * clamp(p * 1.04));
+  return { n, done: lt > sc.dur - 0.35 };
+}
+function envAt(sc, lt) { const env = sc.env || []; const i = Math.floor(lt * TL.fps); return env[clamp(i, 0, env.length - 1)] || 0; }
+
+const IDS = ['s_title', 's_setup', 's_demo', 's_themes', 's_obs', 's_filter', 's_outro'];
+const DEMO_JA = 'こんばんは！今日も配信はじめていきます';
+const DEMO = ['Good evening! Let\'s start today\'s stream.', '晚上好！今天也开始直播啦', '안녕하세요! 오늘도 방송 시작합니다'];
+
+(function(){ const out=[]; const r=10, color='#1a1f3a'; const step=Math.max(1.4,r/6); for(let rr=r; rr>0.4; rr-=step){ const n=Math.min(36,Math.max(8,Math.round(2*Math.PI*rr/1.5))); for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push(`${(rr*Math.cos(a)).toFixed(2)}px ${(rr*Math.sin(a)).toFixed(2)}px 0 ${color}`);} } document.documentElement.style.setProperty('--live-sh', out.join(',')); })();
+// デモ字幕も同じ（.sub .line の ::before は CSS 変数 --sub-sh を使う）
+function subShadow(r, color){ const out=[]; const step=Math.max(1.4,r/6); for(let rr=r; rr>0.4; rr-=step){ const n=Math.min(36,Math.max(8,Math.round(2*Math.PI*rr/1.5))); for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push(`${(rr*Math.cos(a)).toFixed(2)}px ${(rr*Math.sin(a)).toFixed(2)}px 0 ${color}`);} } return out.join(','); }
+function applySub(el, r, color, theme){ let sh = subShadow(r, color); if (theme==='glow') sh += `,0 0 ${(r*2+6)}px ${color},0 0 ${(r*4+14)}px ${color}`; if (theme==='shadow') sh += `,0 ${(r*.8+3)}px ${(r*1.5+8)}px rgba(0,0,0,.6)`; el.style.setProperty('--sub-sh', sh); }
+// 静的な字幕行に既定の縁を設定
+document.querySelectorAll('#sub1 .line, #sub3 .line').forEach(el => applySub(el, 7, '#000', 'outline'));
+window.seek = function (t) {
+  const scenes = TL.scenes;
+  // 背景ブロブの漂い
+  $('#blob1').style.transform = `translate(${Math.sin(t * .35) * 40}px, ${Math.cos(t * .3) * 30}px)`;
+  $('#blob2').style.transform = `translate(${Math.cos(t * .28) * 50}px, ${Math.sin(t * .33) * 40}px)`;
+  $('#blob3').style.transform = `translate(${Math.sin(t * .22) * 60}px, ${Math.cos(t * .4) * 20}px)`;
+
+  let cur = null;
+  scenes.forEach((sc, i) => {
+    const el = document.getElementById(IDS[i]);
+    const lt = t - sc.start;
+    const inP = seg(lt, 0, .5), outP = seg(lt, sc.dur + TL.gap - .45, sc.dur + TL.gap);
+    const vis = lt >= 0 && lt < sc.dur + TL.gap;
+    el.style.opacity = vis ? (inP * (1 - outP)) : 0;
+    el.style.transform = vis ? `translateY(${(1 - easeOut(inP)) * 16}px)` : '';
+    if (vis) { cur = { sc, lt, i }; renderScene(i, sc, lt); }
+  });
+  // ライブ字幕・マイク
+  const live = $('#live .txt');
+  if (cur) {
+    const { n, done } = progressText(cur.sc, cur.lt);
+    const txt = cur.sc.text;
+    const tail = s => (s.length > 34 ? '…' + s.slice(-32) : s);   // 実際の字幕っぽく直近だけ 1 行で
+    if (n <= 0) setTxt(live, '');
+    else if (done) setTxt(live, tail(txt));
+    else setTxt(live, '', tail(txt.slice(0, n)));
+    const e = envAt(cur.sc, cur.lt);
+    document.querySelectorAll('#mic .bars i').forEach((b, k) => { const ph = Math.sin(t * 9 + k * 1.3) * .5 + .5; b.style.height = (6 + e * 30 * (0.5 + ph * 0.5)) + 'px'; });
+    $('#mic .ico').style.boxShadow = `0 0 0 ${e * 14}px rgba(255,107,157,${.35 * e})`;
+    $('#mic').style.opacity = 1;
+    $('#live').style.opacity = 1;
+  } else { setTxt(live, ''); $('#mic').style.opacity = 0; }
+};
+
+function renderScene(i, sc, lt) {
+  const M = TL.meta;
+  switch (IDS[i]) {
+    case 's_title': {
+      pop($('#logo'), seg(lt, .1, .9), .6);
+      $('#logo').style.transform += ` rotate(${Math.sin(lt * 1.5) * 3}deg)`;
+      fadeIn($('#ttl'), seg(lt, .4, 1.1), 30); fadeIn($('#ttl2'), seg(lt, .9, 1.6));
+      ['#tg1', '#tg2', '#tg3'].forEach((s, k) => fadeIn($(s), seg(lt, 1.6 + k * .35, 2.2 + k * .35), 16));
+      break;
+    }
+    case 's_setup': {
+      ['#st1', '#st2', '#st3'].forEach((s, k) => fadeIn($(s), seg(lt, .3 + k * 1.3, .9 + k * 1.3), 24));
+      const sh = $('#shot_basic'); pop(sh, seg(lt, .2, 1), .92);
+      const ring = $('#ring_start'); ringTo(ring, sh, M.ui_basic, M.ui_basic['#btnStop'] ? '#btnStop' : '#btnStart', 620, 1280);
+      ring.style.opacity = seg(lt, 3.2, 3.7) * (0.6 + 0.4 * Math.sin(lt * 8));
+      break;
+    }
+    case 's_demo': {
+      pop($('#game1'), seg(lt, .1, .8), .95);
+      // 認識テキストが 0.6s〜4.0s で進む，4.2s で確定
+      const p = seg(lt, .6, 4.0); const n = Math.round(DEMO_JA.length * p);
+      const d0 = $('#d0 .txt');
+      if (lt < 4.2) setTxt(d0, '', DEMO_JA.slice(0, n)); else setTxt(d0, DEMO_JA);
+      $('#lg0').classList.toggle('on', lt > .6);
+      [1, 2, 3].forEach(k => {
+        const st = 4.6 + (k - 1) * 1.1; const el = $('#d' + k + ' .txt');
+        if (lt >= st) { setTxt(el, DEMO[k - 1]); const pp = seg(lt, st, st + .35); el.parentElement.style.opacity = pp; el.parentElement.style.transform = `translateY(${(1 - easeOut(pp)) * 10}px)`; }
+        else { setTxt(el, ''); el.parentElement.style.opacity = 0; }
+        $('#lg' + k).classList.toggle('on', lt >= st);
+      });
+      break;
+    }
+    case 's_themes': {
+      pop($('#game2'), seg(lt, .1, .8), .95);
+      const themes = ['outline', 'box', 'glow', 'shadow'];
+      const idx = Math.min(3, Math.floor(seg(lt, .8, sc.dur - 2.4) * 4));
+      const sub = $('#sub2'); sub.dataset.theme = themes[idx];
+      document.querySelectorAll('#chips .chip').forEach((c, k) => c.classList.toggle('on', k === idx));
+      setTxt($('#t0 .txt'), 'テーマを選ぶだけで，かわいくも，かっこよくも'); setTxt($('#t1 .txt'), 'Pick a theme: cute or cool, your call');
+      const strokeColors = ['#1a237e', '#000', '#ff2d95', '#000'];
+      const fs = ['\'M PLUS Rounded 1c\'', '\'Zen Kaku Gothic New\'', '\'Hachi Maru Pop\'', '\'Dela Gothic One\''];
+      const cols = ['#fff', '#fff', '#fff', '#ffe066'];
+      // 最後の 2.4 秒：縁取りが外側に伸びるデモ
+      const grow = seg(lt, sc.dur - 2.3, sc.dur - .4);
+      const sw = idx === 3 && grow > 0 ? lerp(2, 16, easeInOut(grow)) : (idx === 2 ? 5 : 7);
+      ['#t0', '#t1'].forEach(s => { const l = $(s); l.style.setProperty('--sw', sw + 'px'); l.style.setProperty('--sc', strokeColors[idx]); l.style.setProperty('--font', fs[idx]); applySub(l, sw, strokeColors[idx], themes[idx]); });
+      $('#t0').style.setProperty('--c', cols[idx]);
+      $('#swlabel').textContent = (['縁取り', 'ボックス', 'ネオン', 'シャドウ'][idx]) + (grow > 0 ? `  縁 ${sw.toFixed(0)}pt →`: '');
+      break;
+    }
+    case 's_obs': {
+      ['#ob1', '#ob2', '#ob3'].forEach((s, k) => fadeIn($(s), seg(lt, .3 + k * 1.6, .9 + k * 1.6), 24));
+      const sh = $('#shot_obs'); const win = $('#obswin');
+      const toWin = seg(lt, 6.4, 7.2);
+      pop(sh, seg(lt, .2, 1), .92); sh.style.opacity = (1 - toWin) * easeOut(seg(lt, .2, 1));
+      win.style.opacity = toWin; win.style.transform = `scale(${lerp(.92, 1, easeOut(toWin))})`;
+      const ring = $('#ring_obs');
+      const which = lt < 3.4 ? '[data-bind="obs.password"]' : (lt < 5.2 ? '#btnObsConnect' : '#btnObsAddSource');
+      ringTo(ring, sh, M.ui_obs, which, 560, 1280);
+      ring.style.opacity = (lt > 1.6 && toWin < .5) ? (0.6 + 0.4 * Math.sin(lt * 8)) : 0;
+      $('#obssrc').style.background = toWin > .5 ? 'rgba(255,107,157,.5)' : '';
+      break;
+    }
+    case 's_filter': {
+      ['#f1', '#f2', '#f3', '#f4'].forEach((s, k) => fadeIn($(s), seg(lt, .4 + k * 1.5, 1.0 + k * 1.5), 24));
+      break;
+    }
+    case 's_outro': {
+      pop($('#ologo'), seg(lt, .1, .9), .6); fadeIn($('#obig'), seg(lt, .5, 1.2), 30);
+      fadeIn($('#otags'), seg(lt, 1.2, 1.9), 16); fadeIn($('#ourl'), seg(lt, 2.0, 2.7), 16); fadeIn($('#odev'), seg(lt, 2.8, 3.4), 10);
+      $('#ourl').style.transform += ` scale(${1 + Math.sin(lt * 2) * .01})`;
+      break;
+    }
+  }
+}
+window.__ready = document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300)));
+</script>
+</body>
+</html>

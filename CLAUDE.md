@@ -8,37 +8,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-jimakuChan (音声認識字幕ちゃん) is a real-time speech recognition and translation subtitle application for streamers and content creators. The application provides live subtitles with multi-language translation support and customizable visual styling.
+jimakuChan v2 (音声認識字幕ちゃん) — ブラウザだけで動く配信者向けリアルタイム音声認識・翻訳字幕．
+2026-08-16 に v1（index.html + main.html の URL パラメータ方式）から全面再実装した（**`v2/` フォルダ**，β公開 https://sayonari.github.io/jimakuChan/v2/）．
+リポジトリ直下は **v1 のまま**（2 万人以上が利用中なので触らない．トップにだけ v2 β へのバナーを追加）．将来メイン URL を v2 に切り替える．
+旧版のスナップショットは `/Users/sayonari/_data/program/_Legacy/twitch/ninshikiChan_all/jimakuChan_20260216/` にもある．
 
-## Architecture
+## Architecture (v2)
 
-The application consists of three main components:
+- （以下すべて `v2/` 配下）`index.html` + `js/app.js` … 設定画面 **かつエンジン**．認識(`js/recognizer.js`)・翻訳(`js/translator.js`)・伏字(`js/filter.js`)・タイマー・OBS 送信(`js/obs.js`)をここで行う
+- `overlay.html` + `js/overlay.js` + `css/overlay.css` … 表示専用．プレビュー iframe／表示ウィンドウ(popup)／OBS ブラウザソースで共通．メッセージ `{type:'config'|'text'|'clear'}` を postMessage / BroadcastChannel('jimakuChan') / DOM イベント `jimakuChan`（obs-browser の emit_event）で受け取る
+- `js/presets.js` … 設定スキーマ（DEFAULTS）・組み込みプリセット・localStorage(`jimakuChan_v2_presets`)・v1 設定(`jimakuChan_presets`)からの自動移行
+- `js/i18n.js` … `data-i18n` 属性による日英切替
+- 縁取りは `.txt::before{content:attr(data-text); -webkit-text-stroke: 2×幅}` を同一ボックスに重ねる 2 層方式（外側にだけ太くなる・改行が一致）
+- OBS 連携：obs-websocket v5（`ws://localhost:4455`）．`CallVendorRequest(obs-browser/emit_event)` で全ブラウザソースへ字幕を配信，`CreateInput` でブラウザソースを自動追加
+- 詳細は v2/README.md．紹介動画ツールは v2/tools/promo_video
 
-1. **Configuration Interface** (`index.html`) - A comprehensive settings panel where users configure:
-   - Speech recognition language settings
-   - Translation target languages (up to 3 simultaneous translations)
-   - Visual styling (fonts, colors, borders, sizes)
-   - Google Translate API integration
-   - Bouyomi-chan TTS integration
-
-2. **Subtitle Display** (`main.html`) - The actual subtitle overlay that:
-   - Performs real-time speech recognition using Web Speech API
-   - Displays recognized text with visual effects (stroke, colors, positioning)
-   - Handles translation via Google Translate API
-   - Supports multiple simultaneous translation outputs
-   - Manages text timing and cleanup
-
-3. **Development Server** (`run_server.py`) - HTTPS localhost server for testing
-
-## Key Features
-
-- **Multi-language Recognition**: Supports 20+ languages for speech recognition
-- **Multi-translation Support**: Up to 3 simultaneous translation outputs
-- **Visual Customization**: Extensive font, color, size, and positioning controls
-- **Layered Text Rendering**: Uses background/foreground/invisible layers for stroke effects
-- **Content Filtering**: Optional profanity filtering with allow/block word lists
-- **Bouyomi-chan Integration**: WebSocket client for Japanese TTS software
-- **Settings Persistence**: Local storage with import/export functionality
+## Policy（西村）
+- 導入が簡単であることに全振り／機能は絞る／安定・超軽量／縁取りは外側にだけ伸び改行がずれない
+- 句読点は「，．」
 
 ## Development Commands
 
@@ -63,40 +50,6 @@ Starts HTTPS server on localhost:4443 (required for Web Speech API)
 - **`python run_server.py` などのサーバー起動コマンドを実行してはいけません**
 - サーバー起動は**必ずユーザーが手動で行う**
 - Bashツールでサーバー起動コマンドを実行することは**絶対禁止**
-
-## File Structure
-- `index.html` - Configuration interface (loads `main.html` in iframe)
-- `main.html` - Subtitle display with speech recognition engine
-- `js/bouyomichan_client.js` - WebSocket client for TTS integration
-- `font/` - Custom font files for visual styling
-- `font.css` - Font face definitions
-
-## Configuration Flow
-
-1. User configures settings in `index.html`
-2. Settings are stored in localStorage and URL parameters
-3. `main.html` is loaded in iframe with configuration as URL parameters
-4. Speech recognition starts automatically and displays real-time results
-
-## Translation Integration
-
-Uses Google Apps Script as a proxy for Google Translate API:
-- Requires `gas_key` parameter for API access
-- Supports source language detection and target language specification
-- Handles JSON responses with translation count tracking
-
-## Text Rendering System
-
-The application uses a three-layer text rendering approach:
-- `*-bg`: Background stroke layer
-- `*-fg`: Foreground text layer  
-- `*-imb`: Invisible positioning layer (same color as background)
-
-This creates customizable text outlines and ensures proper text positioning across different fonts and sizes.
-
-## Beta Version
-
-The repository includes beta versions (`beta_index.html`, `beta_main.html`) which may contain experimental features or modifications under development.
 
 ## SSL Certificates
 

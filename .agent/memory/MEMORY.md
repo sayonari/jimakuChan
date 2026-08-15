@@ -1,14 +1,15 @@
 # MEMORY
 
 ## プロジェクト概要
-- jimakuChan（音声認識字幕ちゃん）: 配信者・コンテンツクリエイター向けリアルタイム音声認識・翻訳字幕アプリ
-- 主要ファイル: index.html（設定UI）、main.html（字幕表示・認識エンジン）、js/i18n.js（多言語対応）
-- Web Speech API使用、HTTPS必須（run_server.py: localhost:4443）
+- jimakuChan v2（音声認識字幕ちゃん）：2026-08-16 に全面再実装．旧版は `_data/program/_Legacy/twitch/ninshikiChan_all/jimakuChan_20260216`
+- 構成：index.html(設定＋エンジン) / overlay.html(表示) / js/*.js（1 ファイル 1 責務）．詳細は README.md・CLAUDE.md
+- git：origin=github.com/sayonari/jimakuChan，作業ブランチ `v2-rebuild`（西村テスト後にコミット）
 
 ## 学習した知識・教訓
-- テスト前にコミットしない（CLAUDE.mdルール）
-- サーバー起動はユーザーが手動で行う（自動起動禁止）
-- 秘密機能パスワード: ponpontanuki（XOR 42で難読化）、リセット: death
-- Chrome v138+でオンデバイス音声認識対応（processLocally）
-- 設定はlocalStorageとURLパラメータ経由でiframeに渡される
-- 3層テキストレンダリング: bg（縁取り）、fg（前面）、imb（背景色合わせ）
+- テスト前にコミットしない／サーバー起動はユーザーが行う（CLAUDE.md）
+- 句読点は「，．」（西村ルール）．UI 文言も同様
+- 西村ポリシー：導入簡単・機能を絞る・軽量・縁取りは外側にだけ伸びて改行がずれない
+- 伏字：ラテン系は単語境界，CJK は部分一致＋GoodList．goodBadWordlist は同階層の別リポジトリ（ローカル main に 2 コミット，未 push）
+- 外部 AI 監査：`codex exec --skip-git-repo-check -s read-only -m gpt-5.6-sol < prompt.txt`（30 分程度かかる）
+- Playwright は tools/promo_video/node_modules にインストール済（テスト・動画生成に使用）
+- fake_sr.js（tools/promo_video）で Web Speech API をモックして E2E テストできる

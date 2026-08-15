@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const root = new URL('../../', import.meta.url).href;
+const b = await chromium.launch(); const p = await b.newPage({ viewport:{width:1280,height:360} });
+await p.goto(root + 'overlay.html?preview=1');
+await p.waitForTimeout(1500);
+const cfg = { bgcolor:'#00ff00', theme: process.argv[2]||'outline', anim:'none', lines:[{font:'M PLUS Rounded 1c',size:34,weight:900,color:'#fff',strokeColor:'#1a237e',strokeWidth:8},{font:'Hachi Maru Pop',size:26,weight:700,color:'#ffe066',strokeColor:'#000',strokeWidth:5}] };
+await p.evaluate(c => window.jimakuOverlay.handle({type:'config',config:c}), cfg);
+await p.evaluate(() => { window.jimakuOverlay.handle({type:'text',slot:0,text:'今日も配信始めていきます！このゲーム、めちゃくちゃ難しいんだけど誰か助けて〜',interim:'えっと'}); window.jimakuOverlay.handle({type:'text',slot:1,text:"Let's start today's stream! This game is crazy hard, somebody help me~"}); });
+await p.waitForTimeout(1200);
+await p.screenshot({ path: '../../.output/overlay_test_'+(process.argv[2]||'outline')+'.png' });
+await b.close();

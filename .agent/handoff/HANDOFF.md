@@ -1,25 +1,27 @@
-# HANDOFF - 2026-03-05
+# HANDOFF - 2026-08-16 02:00
 
 ## 使用ツール
-Claude Code Opus 4.6
+Claude Code (Fable 5) ＋ Codex CLI (GPT-5.6 Sol, 旧版監査) ＋ Playwright（headless 検証・動画生成）
 
 ## 現在のタスクと進捗
-- [x] 音声認識モデル選択（クラウド/ローカル）ラジオボタン実装
-- [x] 秘密機能パスワードシステム実装
-- [x] バージョン更新・コミット・プッシュ
-- [ ] 設定画面UIのカードベース再構成 → 試行したが改悪となりリバート済み
-- [x] make_project スキルによるプロジェクト構成整備
+- [x] 旧版精査（バグ監査 2 系統）
+- [x] v2 再実装（別フォルダ＝ここ，ブランチ v2-rebuild，**未コミット**）
+- [x] 伏字ルール見直し＋ goodBadWordlist 全言語更新（別リポジトリ，ローカル main にコミット済・未 push）
+- [x] 紹介動画の全自動生成ツール（tools/promo_video，`node build.mjs`）
+- [ ] 西村の実機テスト → コミット → GitHub Pages 反映
 
 ## 試したこと・結果
-- 成功: 音声認識モデル選択、秘密機能、語句置換、Chrome省エネ回避など複数機能の実装
-- 失敗: index.htmlのUI再構成（カードベースレイアウト）→ テキストスタイルテーブルが消失するなど問題が多く、ユーザー判断でリバート
+- headless Chromium で設定画面・overlay・疑似認識フロー・タイマー・プリセットは動作確認済（.output/*.png）
+- Chrome 実機（マイク・Chrome 翻訳・OBS 接続）は未検証（サーバー起動は西村が行うルールのため）
 
 ## 次のセッションで最初にやること
-1. AGENTS.mdとMEMORY.mdを読み込む
-2. UI再構成を行う場合は、より慎重なアプローチを取る（元ファイルのバックアップ、小さな変更の積み重ね）
-3. .spec/PLAN.mdにユーザーの要望があれば確認して作業開始
+1. AGENTS.md / MEMORY.md を読む
+2. 西村のテスト結果を聞き，不具合があれば修正 → コミット
+3. goodBadWordlist の push 可否を確認
+
+## 2026-08-16 深夜：初回テストの指摘 4 件に対応済（スペース除去／途中結果のみ／連続モード／PC内フォント／OBS http:4444）．再テスト待ち
 
 ## 注意点・ブロッカー
-- UI再構成は大規模変更のため、段階的に行う方が安全
-- 400行超の一括Edit置換は失敗しやすい（Pythonスプライスを使う方が確実）
-- .gitignoreが.claude/を除外しているため、.claude/commands/配下はgit管理外
+- goodBadWordlist の変更は push すると v1（部分一致）にも即反映される．v1 に影響しそうな短い語は入れていないつもりだが要注意
+- overlay.html を OBS で使うには GitHub Pages 反映後の URL が必要（file:// は OBS 側では読めない場合がある）
+- 動画の音声は macOS `say -v Kyoko`．別ボイスに変えるなら narration.mjs の buildNarration('Kyoko') を変更

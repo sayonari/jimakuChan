@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>jimakuChan v2 promo</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Hachi+Maru+Pop&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+<style>
+  :root { --pink:#ff5c93; --pink2:#e0407a; --yellow:#d19b00; --mint:#16a34a; --sky:#1d7fd6; --bg0:#f5f7fc; --fg:#1b2237; --fg2:#4b5675; --card:#ffffff; --line:rgba(20,30,60,.12); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:1280px; height:720px; overflow:hidden; background:var(--bg0); color:var(--fg); font-family:'Zen Kaku Gothic New','Hiragino Sans',sans-serif; }
+  #stage { position:relative; width:1280px; height:720px; overflow:hidden;
+    background: radial-gradient(900px 500px at 15% 0%, rgba(255,92,147,.16), transparent 60%),
+                radial-gradient(800px 500px at 100% 10%, rgba(94,200,255,.18), transparent 60%),
+                radial-gradient(700px 400px at 50% 110%, rgba(255,224,102,.22), transparent 60%), var(--bg0); }
+  .grain { position:absolute; inset:0; opacity:.12; pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:.35; }
+  .scene { position:absolute; inset:0; opacity:0; }
+  .disp { font-family:'M PLUS Rounded 1c', sans-serif; font-weight:900; }
+  /* ---- 共通字幕（ナレーションのライブ字幕） ---- */
+  #live { position:absolute; left:0; right:0; bottom:22px; text-align:center; padding:0 90px; }
+  #live .txt { position:relative; z-index:0; display:inline-block; font-family:'M PLUS Rounded 1c'; font-weight:900; font-size:28px; white-space:nowrap; color:#fff; line-height:1.35; white-space:pre-wrap; }
+  #live .txt::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:transparent; text-shadow:var(--live-sh); white-space:pre-wrap; }
+  #live .interim { opacity:.7; }
+  #mic { position:absolute; left:40px; bottom:26px; display:flex; align-items:center; gap:10px; }
+  #mic .ico { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--pink),#ff8f6b); display:grid; place-items:center; font-size:22px; box-shadow:0 0 0 0 rgba(255,107,157,.6); }
+  #mic .bars { display:flex; gap:3px; align-items:center; height:36px; }
+  #mic .bars i { width:5px; border-radius:3px; background:var(--pink2); height:6px; }
+  /* ---- タイトル ---- */
+  .logo { position:absolute; left:130px; top:150px; width:280px; height:280px; }
+  .title { position:absolute; left:460px; top:180px; }
+  .title h1 { margin:0; font-size:78px; line-height:1.05; letter-spacing:.01em; }
+  .title .v2 { display:inline-block; margin-left:14px; padding:4px 18px; border-radius:999px; background:linear-gradient(135deg,var(--pink),#ff8f6b); color:#fff; font-size:36px; vertical-align:middle; }
+  .title p { margin:18px 0 0; font-size:30px; color:var(--fg2); font-weight:700; }
+  .tags { position:absolute; left:460px; top:400px; display:flex; gap:12px; }
+  .tag { padding:8px 18px; border-radius:999px; border:1px solid var(--line); background:var(--card); font-weight:800; font-size:22px; box-shadow:0 4px 14px rgba(30,40,80,.08); }
+  /* ---- ステップ ---- */
+  .steps { position:absolute; left:70px; top:120px; width:520px; }
+  .step { display:flex; gap:18px; align-items:center; margin-bottom:26px; }
+  .step .n { width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--pink),#ff8f6b); color:#fff; display:grid; place-items:center; font-size:30px; flex:none; }
+  .step .t { font-size:32px; font-weight:900; }
+  .step .d { font-size:19px; color:var(--fg2); }
+  .shot { position:absolute; border-radius:16px; overflow:hidden; box-shadow:0 30px 70px rgba(30,40,80,.25), 0 0 0 1px var(--line); background:#fff; }
+  .shot img { display:block; width:100%; }
+  .ring { position:absolute; border:5px solid var(--pink); border-radius:14px; box-shadow:0 0 0 6px rgba(255,92,147,.25), 0 0 30px rgba(255,92,147,.5); }
+  .h2 { position:absolute; left:70px; top:34px; font-size:44px; }
+  .h2 small { display:block; font-size:22px; color:var(--fg2); font-weight:700; margin-top:4px; }
+  /* ---- デモ ---- */
+  .game { position:absolute; left:80px; top:140px; width:1120px; height:420px; border-radius:18px; overflow:hidden;
+    background: linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a); box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line); }
+  .game .sky { position:absolute; inset:0; background: radial-gradient(500px 300px at 70% 20%, rgba(255,224,102,.35), transparent 60%), radial-gradient(400px 400px at 20% 90%, rgba(94,200,255,.35), transparent 60%); }
+  .game .hill { position:absolute; left:-10%; right:-10%; bottom:-40px; height:180px; border-radius:50% 50% 0 0; background:#0e1a2a; }
+  .game .hill2 { position:absolute; left:30%; right:-20%; bottom:-70px; height:200px; border-radius:50% 50% 0 0; background:#0a1420; }
+  .game .hud { position:absolute; left:16px; top:14px; padding:6px 12px; border-radius:8px; background:rgba(0,0,0,.4); font-size:16px; font-weight:800; color:#fff; }
+  .game .hud b { color:#ff5c5c; }
+  .sub { position:absolute; left:0; right:0; bottom:26px; text-align:center; padding:0 40px; }
+  .sub .line { --sw:7px; --sc:#000; --c:#fff; --fs:40px; --font:'M PLUS Rounded 1c'; font-family:var(--font); font-weight:900; font-size:var(--fs); color:var(--c); line-height:1.3; margin-top:2px; }
+  .sub .line .txt { position:relative; z-index:0; display:inline-block; white-space:pre-wrap; }
+  .sub .line .txt::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:transparent; text-shadow:var(--sub-sh, none); white-space:pre-wrap; }
+  .sub[data-theme="box"] .txt { background:rgba(0,0,0,.55); border-radius:12px; padding:.1em .5em; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+  .sub[data-theme="box"] .txt::before { inset:.1em .5em; }
+  
+  .sub .interim { opacity:.7; }
+  .chips { position:absolute; left:80px; top:585px; display:flex; gap:12px; }
+  .chip { padding:8px 22px; border-radius:999px; border:1.5px solid var(--line); background:var(--card); font-weight:900; font-size:22px; color:var(--fg2); }
+  .chip.on { background:rgba(255,92,147,.15); border-color:var(--pink); color:var(--pink2); }
+  .langs { position:absolute; right:80px; top:585px; display:flex; gap:10px; }
+  .lang { padding:6px 14px; border-radius:10px; background:var(--card); font-weight:800; font-size:20px; border:1px solid var(--line); }
+  .lang.on { background:rgba(22,163,74,.12); border-color:var(--mint); color:var(--mint); }
+  /* ---- OBS ---- */
+  .obswin { position:absolute; left:640px; top:120px; width:580px; height:400px; border-radius:14px; background:#1e1e1e; box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line); overflow:hidden; }
+  .obswin .bar { height:34px; background:#2b2b2b; display:flex; align-items:center; padding:0 12px; font-size:15px; font-weight:800; color:#ddd; gap:8px; }
+  .obswin .bar i { width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .obswin .canvas { position:absolute; left:14px; top:48px; right:14px; height:270px; border-radius:6px; overflow:hidden; background:linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a); }
+  .obswin .foot { position:absolute; left:14px; right:14px; bottom:12px; height:56px; display:flex; gap:8px; }
+  .obswin .foot div { flex:1; background:#2b2b2b; border-radius:6px; padding:6px 8px; font-size:12px; color:#bbb; font-weight:700; }
+  .obswin .src { color:#fff; background:#3a3a3a; border-radius:4px; padding:2px 6px; display:inline-block; margin-top:4px; }
+  /* ---- フィルタ ---- */
+  .fx { position:absolute; left:100px; top:150px; width:1080px; }
+  .fxrow { display:flex; align-items:center; gap:24px; margin-bottom:26px; font-size:30px; font-weight:800; }
+  .fxrow .in { padding:14px 26px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
+  .fxrow .arr { color:var(--fg2); font-size:40px; }
+  .fxrow .out { padding:14px 26px; border-radius:16px; background:rgba(22,163,74,.10); border:1px solid rgba(22,163,74,.5); }
+  .fxrow .out b { color:var(--pink2); }
+  .fxrow .ok { color:var(--mint); font-size:34px; }
+  /* ---- アウトロ ---- */
+  .url { position:absolute; left:0; right:0; top:420px; text-align:center; font-size:44px; font-family:'M PLUS Rounded 1c'; font-weight:900; color:var(--pink2); letter-spacing:.01em; }
+  .big { position:absolute; left:0; right:0; top:200px; text-align:center; font-size:64px; }
+  .center-logo { position:absolute; left:540px; top:40px; width:200px; }
+</style>
+<style>
+  /* OBS ガイド用追加 */
+  .obsapp { position:absolute; left:640px; top:135px; width:580px; height:410px; border-radius:14px; background:#1e1e1e; box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line); overflow:hidden; color:#ddd; font-size:14px; }
+  .obsapp .bar { height:34px; background:#2b2b2b; display:flex; align-items:center; padding:0 12px; font-weight:800; gap:8px; }
+  .obsapp .bar i { width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .obsapp .menu { position:absolute; left:0; right:0; top:34px; height:26px; background:#262626; display:flex; gap:18px; padding:0 14px; align-items:center; font-size:13px; }
+  .obsapp .menu span.on { background:#3d5afe; color:#fff; border-radius:4px; padding:2px 8px; }
+  .obsapp .drop { position:absolute; left:120px; top:60px; background:#2f2f2f; border:1px solid #444; border-radius:6px; padding:6px 0; width:230px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .obsapp .drop div { padding:5px 14px; }
+  .obsapp .drop div.on { background:#3d5afe; color:#fff; }
+  .dlg { position:absolute; left:120px; top:120px; width:400px; background:#2a2a2a; border:1px solid #555; border-radius:8px; box-shadow:0 20px 50px rgba(0,0,0,.6); }
+  .dlg .t { background:#333; padding:8px 12px; font-weight:800; border-radius:8px 8px 0 0; }
+  .dlg .b { padding:14px 16px; }
+  .dlg .row { display:flex; align-items:center; gap:10px; margin:8px 0; }
+  .cb { width:18px; height:18px; border:2px solid #888; border-radius:4px; display:inline-grid; place-items:center; color:#fff; font-size:14px; }
+  .cb.on { background:#3d5afe; border-color:#3d5afe; }
+  .fld { flex:1; background:#1a1a1a; border:1px solid #555; border-radius:4px; padding:5px 8px; font-family:ui-monospace,Menlo,monospace; letter-spacing:.06em; }
+  .obtn { background:#444; border:1px solid #666; border-radius:4px; padding:4px 10px; }
+  .obtn.on { background:#3d5afe; border-color:#3d5afe; color:#fff; }
+  .obsapp .canvas { position:absolute; left:14px; top:70px; right:14px; height:250px; border-radius:6px; overflow:hidden; background:linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a); }
+  .obsapp .foot { position:absolute; left:14px; right:14px; bottom:12px; height:80px; display:flex; gap:8px; }
+  .obsapp .foot > div { flex:1; background:#2b2b2b; border-radius:6px; padding:6px 8px; font-size:12px; color:#bbb; font-weight:700; }
+  .src { color:#fff; background:#3a3a3a; border-radius:4px; padding:2px 6px; display:inline-block; margin-top:4px; }
+  .src.new { background:rgba(255,92,147,.55); }
+  .check { position:absolute; left:80px; top:130px; width:1120px; }
+  .check .it { display:flex; gap:16px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(30,40,80,.06); }
+  .check .it b { font-size:26px; }
+  .check .it .d { font-size:18px; color:var(--fg2); }
+  .check .ico { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--pink),#ff8f6b); color:#fff; display:grid; place-items:center; font-size:22px; flex:none; }
+  .greenwin { position:absolute; left:80px; top:150px; width:520px; height:200px; border-radius:10px; overflow:hidden; box-shadow:0 20px 50px rgba(30,40,80,.3); border:1px solid var(--line); background:#0f0; }
+  .greenwin .bar { height:26px; background:#e8e8e8; display:flex; align-items:center; gap:6px; padding:0 10px; color:#333; font-size:12px; }
+  .greenwin .bar i { width:11px; height:11px; border-radius:50%; display:inline-block; }
+</style>
+
+<body>
+<div id="stage">
+  <div class="blob" id="blob1" style="left:-120px;top:-100px;width:520px;height:520px;background:#ff6b9d"></div>
+  <div class="blob" id="blob2" style="right:-140px;top:120px;width:480px;height:480px;background:#5ec8ff"></div>
+  <div class="blob" id="blob3" style="left:520px;bottom:-320px;width:420px;height:420px;background:#ffe066"></div>
+  <div class="grain"></div>
+
+  <!-- 1 intro -->
+  <div class="scene" id="s_intro">
+    <img class="logo" id="logo" src="../../img/14c9b73c039a789f.png" style="left:110px;top:170px;width:240px;height:240px">
+    <div class="title" style="left:420px;top:190px"><h1 class="disp" id="ttl" style="font-size:60px">OBS 連携ガイド</h1><p id="ttl2">音声認識字幕ちゃん v2 の字幕を OBS に映す</p></div>
+    <div class="tags" style="left:420px;top:390px;flex-direction:column;align-items:flex-start"><span class="tag" id="tg1">🎬 方法A：ブラウザソースに直接（おすすめ）</span><span class="tag" id="tg2">🟩 方法B：ウィンドウキャプチャ＋クロマキー</span></div>
+  </div>
+
+  <!-- 2 OBS WebSocket 設定 -->
+  <div class="scene" id="s_ws">
+    <div class="h2 disp">① OBS で WebSocket を有効にする<small>ツール → WebSocket サーバー設定（OBS 28 以降に内蔵）</small></div>
+    <div class="steps" style="top:150px;width:520px">
+      <div class="step" id="w1"><div class="n disp">1</div><div><div class="t">メニュー「ツール」</div><div class="d">→「WebSocket サーバー設定」</div></div></div>
+      <div class="step" id="w2"><div class="n disp">2</div><div><div class="t">「WebSocket サーバーを有効にする」に ✔</div><div class="d">ポートは 4455 のまま</div></div></div>
+      <div class="step" id="w3"><div class="n disp">3</div><div><div class="t">「パスワードを表示」で控える</div><div class="d">認証なしにしてもOK</div></div></div>
+    </div>
+    <div class="obsapp" id="obs1">
+      <div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i>&nbsp; OBS Studio</div>
+      <div class="menu"><span>ファイル</span><span>編集</span><span>表示</span><span>ドック</span><span>プロファイル</span><span>シーンコレクション</span><span id="mTools">ツール</span><span>ヘルプ</span></div>
+      <div class="drop" id="drop" style="opacity:0"><div>自動シーンスイッチャー</div><div>自動設定ウィザード</div><div>出力タイマー</div><div id="dWs">WebSocket サーバー設定</div><div>スクリプト</div></div>
+      <div class="dlg" id="dlg" style="opacity:0">
+        <div class="t">WebSocket サーバー設定</div>
+        <div class="b">
+          <div class="row"><span class="cb" id="cbOn"></span><span>WebSocket サーバーを有効にする</span></div>
+          <div class="row"><span style="width:110px">サーバーポート</span><span class="fld" style="flex:0 0 80px">4455</span></div>
+          <div class="row"><span class="cb on">✔</span><span>認証を有効にする</span></div>
+          <div class="row"><span style="width:110px">サーバーパスワード</span><span class="fld" id="pwFld">••••••••••••</span></div>
+          <div class="row" style="justify-content:flex-end"><span class="obtn" id="btnShowPw">パスワードを表示</span><span class="obtn on">OK</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 接続 -->
+  <div class="scene" id="s_connect">
+    <div class="h2 disp">② 字幕ちゃんで OBS に接続<small>「OBS連携」タブ → パスワード → 「OBSに接続」</small></div>
+    <div class="steps" style="top:150px;width:540px">
+      <div class="step" id="c1"><div class="n disp">1</div><div><div class="t">「OBS連携」タブを開く</div><div class="d">方法A の欄</div></div></div>
+      <div class="step" id="c2"><div class="n disp">2</div><div><div class="t">パスワードを貼り付け</div><div class="d">WebSocket は ws://localhost:4455 のまま</div></div></div>
+      <div class="step" id="c3"><div class="n disp">3</div><div><div class="t">「OBSに接続」</div><div class="d">右上が「OBS 接続中」になれば成功</div></div></div>
+    </div>
+    <div class="shot" id="shot_obs" style="left:660px;top:130px;width:560px"><img src="assets/ui_obs.png"></div>
+    <div class="ring" id="ring_c"></div>
+  </div>
+
+  <!-- 4 追加 -->
+  <div class="scene" id="s_add">
+    <div class="h2 disp">③ 「現在のシーンに字幕を追加」<small>ブラウザソース「jimakuChan 字幕」が自動で追加されます</small></div>
+    <div class="shot" id="shot_add" style="left:60px;top:130px;width:560px"><img src="assets/ui_obs.png"></div>
+    <div class="ring" id="ring_a"></div>
+    <div class="obsapp" id="obs2" style="left:660px;top:130px;width:560px;height:400px">
+      <div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i>&nbsp; OBS Studio — シーン 1</div>
+      <div class="canvas" style="top:48px;height:240px"><div class="sky"></div><div class="hill2" style="bottom:-90px"></div><div class="hill" style="bottom:-60px"></div>
+        <div class="sub" id="sub4" data-theme="outline" style="bottom:12px"><div class="line" style="--fs:24px"><span class="txt" data-text=""></span></div><div class="line" style="--fs:18px;--c:#ffe066"><span class="txt" data-text=""></span></div></div>
+      </div>
+      <div class="foot"><div>シーン<br><span class="src">シーン 1</span></div><div>ソース<br><span class="src new" id="srcNew" style="opacity:0">🌐 jimakuChan 字幕</span> <span class="src">🎮 ゲームキャプチャ</span> <span class="src">📷 カメラ</span></div><div>音声ミキサー<br><span class="src">🎤 マイク</span></div></div>
+    </div>
+  </div>
+
+  <!-- 5 ライブ -->
+  <div class="scene" id="s_live">
+    <div class="h2 disp">あとは話すだけ<small>背景は透過（クロマキー不要）．見た目の変更もその場で OBS に反映</small></div>
+    <div class="game" id="game5"><div class="sky"></div><div class="hill2"></div><div class="hill"></div><div class="hud">🎬 OBS プレビュー</div>
+      <div class="sub" id="sub5" data-theme="outline">
+        <div class="line" id="l0"><span class="txt" data-text=""></span></div>
+        <div class="line" id="l1" style="--fs:30px;--c:#ffe066"><span class="txt" data-text=""></span></div>
+      </div>
+    </div>
+    <div class="chips" id="chips5"><span class="chip on">縁取り</span><span class="chip">ボックス</span><span class="chip">ネオン</span><span class="chip">シャドウ</span></div>
+  </div>
+
+  <!-- 6 クロマキー -->
+  <div class="scene" id="s_classic">
+    <div class="h2 disp">方法B：ウィンドウキャプチャ＋クロマキー<small>WebSocket が使えない／古い OBS のとき</small></div>
+    <div class="greenwin" id="gw"><div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i>&nbsp; jimakuChan 表示ウィンドウ</div>
+      <div class="sub" data-theme="outline" style="bottom:20px"><div class="line" id="gl0" style="--fs:26px"><span class="txt" data-text="緑背景の窓を OBS で取り込む">緑背景の窓を OBS で取り込む</span></div></div>
+    </div>
+    <div class="steps" style="top:380px;left:70px;width:560px">
+      <div class="step" id="k1"><div class="n disp">1</div><div><div class="t" style="font-size:26px">「表示ウィンドウ」ボタン</div><div class="d">字幕だけの緑背景ウィンドウが開く</div></div></div>
+      <div class="step" id="k2"><div class="n disp">2</div><div><div class="t" style="font-size:26px">OBS：ソース → ウィンドウキャプチャ</div><div class="d">そのウィンドウを選ぶ</div></div></div>
+      <div class="step" id="k3"><div class="n disp">3</div><div><div class="t" style="font-size:26px">フィルタ → クロマキー（緑）</div><div class="d">背景が抜けて字幕だけ残る</div></div></div>
+    </div>
+    <div class="obsapp" id="obs6" style="left:660px;top:130px;width:560px;height:400px">
+      <div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i>&nbsp; OBS Studio — フィルタ</div>
+      <div class="canvas" id="cv6" style="top:48px;height:240px;background:#0f0">
+        <div class="sub" data-theme="outline" style="bottom:12px"><div class="line" style="--fs:24px"><span class="txt" data-text="クロマキーで緑を抜く">クロマキーで緑を抜く</span></div></div>
+      </div>
+      <div class="foot"><div>エフェクトフィルタ<br><span class="src new">🟩 クロマキー</span></div><div>色キーの種類<br><span class="src">緑</span></div><div>類似性<br><span class="src">400</span></div></div>
+    </div>
+  </div>
+
+  <!-- 7 tips -->
+  <div class="scene" id="s_tips">
+    <div class="h2 disp">映らないときのチェック</div>
+    <div class="check">
+      <div class="it" id="tp1"><div class="ico">1</div><div><b>ブラウザソースを右クリック →「対話」</b><div class="d">ページが表示されているか確認．真っ白なら URL（https の証明書／file://）を疑う</div></div></div>
+      <div class="it" id="tp2"><div class="ico">2</div><div><b>「表示されていないときにソースをシャットダウン」を OFF</b><div class="d">ON だと非表示中に字幕が届かない</div></div></div>
+      <div class="it" id="tp3"><div class="ico">3</div><div><b>字幕ちゃんの設定タブは閉じない</b><div class="d">認識は設定画面のタブで動いています（最小化は OK）</div></div></div>
+      <div class="it" id="tp4"><div class="ico">4</div><div><b>全画面ゲーム中に止まるなら起動ファイル</b><div class="d">「保存・起動」タブの .bat / .command で Chrome の省電力を回避</div></div></div>
+    </div>
+  </div>
+
+  <!-- 8 outro -->
+  <div class="scene" id="s_outro">
+    <img class="center-logo" id="ologo" src="../../img/14c9b73c039a789f.png">
+    <div class="big disp" id="obig">音声認識字幕ちゃん <span class="v2 disp" style="font-size:40px;color:#fff">v2</span></div>
+    <div class="tags" style="left:0;right:0;top:310px;justify-content:center" id="otags"><span class="tag">OBS へワンクリック</span><span class="tag">透過・クロマキー不要</span><span class="tag">見た目もその場で反映</span></div>
+    <div class="url" id="ourl">sayonari.github.io/jimakuChan/v2/</div>
+    <div style="position:absolute;left:0;right:0;top:500px;text-align:center;font-size:24px;color:var(--fg2);font-weight:700" id="odev">開発者：さぁたん（構想，助言）／ さよなりω．西村良太（実装）</div>
+  </div>
+
+  <div id="mic"><div class="ico">🎤</div><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  <div id="live"><span class="txt" data-text=""></span></div>
+</div>
+<script>
+// ---- タイムライン（render.mjs が window.TL を注入） ----
+// TL = { fps, scenes:[{id, start, dur, text, env:[...]}], meta:{ui_basic:{...bbox}}, total }
+const $ = s => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const easeOut = p => 1 - Math.pow(1 - clamp(p), 3);
+const easeInOut = p => { p = clamp(p); return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function setTxt(el, text, interim = '') {
+  const plain = text + (interim ? ' << ' + interim + ' >>' : '');
+  el.dataset.text = plain;
+  el.innerHTML = esc(text) + (interim ? '<span class="interim">' + esc(' << ' + interim + ' >>') + '</span>' : '');
+}
+function fadeIn(el, p, dy = 20) { el.style.opacity = easeOut(p); el.style.transform = `translateY(${(1 - easeOut(p)) * dy}px)`; }
+function pop(el, p, s0 = .85) { const e = easeOut(p); el.style.opacity = e; el.style.transform = `scale(${lerp(s0, 1, e)})`; }
+function ringTo(ring, shotEl, meta, sel, shotW, imgW) {
+  const bb = meta[sel]; if (!bb) { ring.style.opacity = 0; return; }
+  const sc = shotW / imgW; const sl = parseFloat(shotEl.style.left), st = parseFloat(shotEl.style.top);
+  ring.style.left = (sl + bb.x * sc - 8) + 'px'; ring.style.top = (st + bb.y * sc - 8) + 'px';
+  ring.style.width = (bb.width * sc + 16) + 'px'; ring.style.height = (bb.height * sc + 16) + 'px';
+}
+// ナレーション文字の進み（音量エンベロープの累積で進める）
+function progressText(sc, lt) {
+  const env = sc.env || []; const fps = TL.fps;
+  const i = clamp(Math.floor(lt * fps), 0, env.length);
+  let acc = 0, tot = 0; for (let k = 0; k < env.length; k++) { tot += env[k] > .08 ? env[k] : 0; if (k < i) acc += env[k] > .08 ? env[k] : 0; }
+  const p = tot ? acc / tot : clamp(lt / sc.dur);
+  const n = Math.round(sc.text.length * clamp(p * 1.04));
+  return { n, done: lt > sc.dur - 0.35 };
+}
+function envAt(sc, lt) { const env = sc.env || []; const i = Math.floor(lt * TL.fps); return env[clamp(i, 0, env.length - 1)] || 0; }
+
+
+const IDS = ['s_intro', 's_ws', 's_connect', 's_add', 's_live', 's_classic', 's_tips', 's_outro'];
+(function(){ const out=[]; const r=10, color='#1a1f3a'; const step=Math.max(1.4,r/6); for(let rr=r; rr>0.4; rr-=step){ const n=Math.min(36,Math.max(8,Math.round(2*Math.PI*rr/1.5))); for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push(`${(rr*Math.cos(a)).toFixed(2)}px ${(rr*Math.sin(a)).toFixed(2)}px 0 ${color}`);} } document.documentElement.style.setProperty('--live-sh', out.join(',')); })();
+function subShadow(r, color){ const out=[]; const step=Math.max(1.4,r/6); for(let rr=r; rr>0.4; rr-=step){ const n=Math.min(36,Math.max(8,Math.round(2*Math.PI*rr/1.5))); for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push(`${(rr*Math.cos(a)).toFixed(2)}px ${(rr*Math.sin(a)).toFixed(2)}px 0 ${color}`);} } return out.join(','); }
+function applySub(el, r, color, theme){ let sh = subShadow(r, color); if (theme==='glow') sh += `,0 0 ${(r*2+6)}px ${color},0 0 ${(r*4+14)}px ${color}`; if (theme==='shadow') sh += `,0 ${(r*.8+3)}px ${(r*1.5+8)}px rgba(0,0,0,.6)`; el.style.setProperty('--sub-sh', sh); }
+document.querySelectorAll('.sub .line').forEach(el => applySub(el, 7, '#000', 'outline'));
+const LIVE_JA = 'こんばんは！今日も配信はじめていきます';
+const LIVE_EN = "Good evening! Let's start today's stream.";
+
+window.seek = function (t) {
+  const scenes = TL.scenes;
+  $('#blob1').style.transform = `translate(${Math.sin(t * .35) * 40}px, ${Math.cos(t * .3) * 30}px)`;
+  $('#blob2').style.transform = `translate(${Math.cos(t * .28) * 50}px, ${Math.sin(t * .33) * 40}px)`;
+  $('#blob3').style.transform = `translate(${Math.sin(t * .22) * 60}px, ${Math.cos(t * .4) * 20}px)`;
+  let cur = null;
+  scenes.forEach((sc, i) => {
+    const el = document.getElementById(IDS[i]);
+    const lt = t - sc.start;
+    const inP = seg(lt, 0, .5), outP = seg(lt, sc.dur + TL.gap - .45, sc.dur + TL.gap);
+    const vis = lt >= 0 && lt < sc.dur + TL.gap;
+    el.style.opacity = vis ? (inP * (1 - outP)) : 0;
+    el.style.transform = vis ? `translateY(${(1 - easeOut(inP)) * 16}px)` : '';
+    if (vis) { cur = { sc, lt, i }; renderScene(i, sc, lt); }
+  });
+  const live = $('#live .txt');
+  if (cur) {
+    const { n, done } = progressText(cur.sc, cur.lt);
+    const txt = cur.sc.text;
+    const tail = s => (s.length > 34 ? '…' + s.slice(-32) : s);
+    if (n <= 0) setTxt(live, ''); else if (done) setTxt(live, tail(txt)); else setTxt(live, '', tail(txt.slice(0, n)));
+    const e = envAt(cur.sc, cur.lt);
+    document.querySelectorAll('#mic .bars i').forEach((b, k) => { const ph = Math.sin(t * 9 + k * 1.3) * .5 + .5; b.style.height = (6 + e * 30 * (0.5 + ph * 0.5)) + 'px'; });
+    $('#mic .ico').style.boxShadow = `0 0 0 ${e * 14}px rgba(255,107,157,${.35 * e})`;
+    $('#mic').style.opacity = 1; $('#live').style.opacity = 1;
+  } else { setTxt(live, ''); $('#mic').style.opacity = 0; }
+};
+
+function renderScene(i, sc, lt) {
+  const M = TL.meta;
+  switch (IDS[i]) {
+    case 's_intro':
+      pop($('#logo'), seg(lt, .1, .9), .6); fadeIn($('#ttl'), seg(lt, .4, 1.1), 30); fadeIn($('#ttl2'), seg(lt, .9, 1.6));
+      fadeIn($('#tg1'), seg(lt, 2.0, 2.6), 16); fadeIn($('#tg2'), seg(lt, 2.6, 3.2), 16);
+      break;
+    case 's_ws': {
+      ['#w1', '#w2', '#w3'].forEach((s, k) => fadeIn($(s), seg(lt, .3 + k * 3.0, .9 + k * 3.0), 24));
+      pop($('#obs1'), seg(lt, .2, 1), .95);
+      const p1 = seg(lt, 1.2, 1.5), p2 = seg(lt, 2.4, 2.8), p3 = seg(lt, 3.6, 4.0);
+      $('#mTools').classList.toggle('on', lt > 1.2 && lt < 3.6);
+      $('#drop').style.opacity = lt > 1.5 && lt < 3.6 ? 1 : 0;
+      $('#dWs').classList.toggle('on', lt > 2.4 && lt < 3.6);
+      const dlg = $('#dlg'); dlg.style.opacity = p3; dlg.style.transform = `scale(${lerp(.95, 1, easeOut(p3))})`;
+      const on = lt > 5.6; $('#cbOn').classList.toggle('on', on); $('#cbOn').textContent = on ? '✔' : '';
+      const show = lt > 8.4; $('#pwFld').textContent = show ? 'Kx8Q2mV7pLz3' : '••••••••••••'; $('#btnShowPw').classList.toggle('on', show);
+      break;
+    }
+    case 's_connect': {
+      ['#c1', '#c2', '#c3'].forEach((s, k) => fadeIn($(s), seg(lt, .3 + k * 2.4, .9 + k * 2.4), 24));
+      const sh = $('#shot_obs'); pop(sh, seg(lt, .2, 1), .92);
+      const ring = $('#ring_c'); const which = lt < 5.0 ? '[data-bind="obs.password"]' : '#btnObsConnect';
+      ringTo(ring, sh, M.ui_obs, which, 560, 1280); ring.style.opacity = lt > 2.6 ? (0.6 + 0.4 * Math.sin(lt * 8)) : 0;
+      break;
+    }
+    case 's_add': {
+      const sh = $('#shot_add'); pop(sh, seg(lt, .2, 1), .92);
+      const ring = $('#ring_a'); ringTo(ring, sh, M.ui_obs, '#btnObsAddSource', 560, 1280); ring.style.opacity = lt > .8 && lt < 4.5 ? (0.6 + 0.4 * Math.sin(lt * 8)) : 0;
+      pop($('#obs2'), seg(lt, .4, 1.2), .95);
+      const added = seg(lt, 3.6, 4.2); $('#srcNew').style.opacity = added;
+      const l = document.querySelectorAll('#sub4 .line .txt');
+      if (lt > 4.6) { setTxt(l[0], '字幕がそのまま OBS に出ます'); setTxt(l[1], 'Subtitles appear right in OBS'); } else { setTxt(l[0], ''); setTxt(l[1], ''); }
+      break;
+    }
+    case 's_live': {
+      pop($('#game5'), seg(lt, .1, .8), .95);
+      const p = seg(lt, .8, 3.6); const n = Math.round(LIVE_JA.length * p);
+      const l0 = $('#l0 .txt'), l1 = $('#l1 .txt');
+      if (lt < 3.8) setTxt(l0, '', LIVE_JA.slice(0, n)); else setTxt(l0, LIVE_JA);
+      if (lt > 4.4) setTxt(l1, LIVE_EN); else setTxt(l1, '');
+      const themes = ['outline', 'box', 'glow', 'shadow'];
+      const idx = lt < 6.5 ? 0 : Math.min(3, 1 + Math.floor(seg(lt, 6.5, sc.dur) * 3));
+      $('#sub5').dataset.theme = themes[idx];
+      document.querySelectorAll('#chips5 .chip').forEach((c, k) => c.classList.toggle('on', k === idx));
+      const cols = ['#000', '#000', '#ff2d95', '#000'];
+      ['#l0', '#l1'].forEach(s => { const el = $(s); el.style.setProperty('--sc', cols[idx]); applySub(el, 7, cols[idx], themes[idx]); });
+      break;
+    }
+    case 's_classic': {
+      pop($('#gw'), seg(lt, .2, 1), .95);
+      ['#k1', '#k2', '#k3'].forEach((s, k) => fadeIn($(s), seg(lt, .6 + k * 2.6, 1.2 + k * 2.6), 20));
+      pop($('#obs6'), seg(lt, 3.0, 3.8), .95);
+      const chroma = seg(lt, 6.4, 7.6);
+      $('#cv6').style.background = chroma > .5 ? 'linear-gradient(160deg,#1f2c4a,#3b1f4a 50%,#12303a)' : '#0f0';
+      break;
+    }
+    case 's_tips':
+      ['#tp1', '#tp2', '#tp3', '#tp4'].forEach((s, k) => fadeIn($(s), seg(lt, .3 + k * 2.2, .9 + k * 2.2), 20));
+      break;
+    case 's_outro':
+      pop($('#ologo'), seg(lt, .1, .9), .6); fadeIn($('#obig'), seg(lt, .5, 1.2), 30);
+      fadeIn($('#otags'), seg(lt, 1.2, 1.9), 16); fadeIn($('#ourl'), seg(lt, 2.0, 2.7), 16); fadeIn($('#odev'), seg(lt, 2.8, 3.4), 10);
+      break;
+  }
+}
+window.__ready = document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300)));
+</script>
+</body>
+</html>
