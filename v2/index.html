@@ -53,7 +53,8 @@
         <div class="tbar trans" title="翻訳テキストが消えるまで"><i id="barTrans"></i><b id="barTransT"></b></div>
       </div>
       <span class="status" id="engineStatus"></span>
-      <button class="btn" id="btnPopup" title="別ウィンドウ（OBS ウィンドウキャプチャ用）"><span class="ico">🪟</span><span data-i18n="btnPopup">表示ウィンドウ</span></button>
+      <button class="btn" id="btnDisplayMode" data-i18n-title="displayModeTitle" title="設定を隠して字幕だけにする（クリック／Esc で戻る）"><span class="ico">🖥</span><span data-i18n="btnDisplayMode">表示モード</span></button>
+      <button class="btn ghost" id="btnPopup" title="別ウィンドウ（必要な場合）"><span class="ico">🪟</span><span data-i18n="btnPopup">別窓</span></button>
     </div>
   </section>
 
@@ -272,14 +273,14 @@
 
       <div class="card">
         <h3><span class="em">🟩</span><span data-i18n="hObsB">方法B：ウィンドウキャプチャ＋クロマキー（従来）</span></h3>
-        <p class="help" data-i18n="obsBHelp">OBS が古い／WebSocket を使いたくない場合．緑背景の表示ウィンドウを OBS でウィンドウキャプチャし，フィルタ「クロマキー」で緑を抜きます．</p>
+        <p class="help" data-i18n="obsBHelp">OBS が古い／WebSocket を使いたくない場合．「表示モード」で設定を隠して字幕だけにし（v1 と同じ），この Chrome ウィンドウを OBS でウィンドウキャプチャして，フィルタ「クロマキー」で緑を抜きます．次回からは同じ URL を開くだけで表示モードで始まります．</p>
         <ol class="steps">
-          <li><span class="t" data-i18n="obsB1">「表示ウィンドウ」ボタンで字幕だけのウィンドウを開く</span></li>
+          <li><span class="t" data-i18n="obsB1">「表示モード」ボタンで設定を隠す（クリック／Esc で戻る）</span></li>
           <li><span class="t" data-i18n="obsB2">OBS で「ウィンドウキャプチャ」→ そのウィンドウを選択</span></li>
           <li><span class="t" data-i18n="obsB3">ソースを右クリック →「フィルタ」→「クロマキー」（緑）</span></li>
         </ol>
-        <div class="row"><button class="btn" id="btnPopup2"><span class="ico">🪟</span><span data-i18n="btnPopup">表示ウィンドウ</span></button>
-        <span class="hint" data-i18n="popupHint">※ 認識はこの設定画面で動きます．設定画面のタブは閉じないでください</span></div>
+        <div class="row"><button class="btn" id="btnDisplayMode2"><span class="ico">🖥</span><span data-i18n="btnDisplayMode">表示モード</span></button><button class="btn ghost" id="btnPopup2"><span class="ico">🪟</span><span data-i18n="btnPopup">別窓</span></button>
+        <span class="hint" data-i18n="popupHint">※ 認識はこのタブで動きます．タブは閉じないでください</span></div>
         <h3 style="margin-top:16px"><span class="em">💡</span><span data-i18n="hObsTips">ヒント</span></h3>
         <ul class="hint" style="margin:0; padding-left:18px">
           <li data-i18n="tip1">全画面ゲーム中に認識が止まる場合は「保存・起動」タブの起動ファイル（.bat / .command）を使ってください</li>
@@ -352,6 +353,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="displayHint" data-i18n="displayHint">クリック（または Esc）で設定に戻る</div>
 
 <script src="./js/i18n.js"></script>
 <script src="./js/bouyomichan_client.js"></script>

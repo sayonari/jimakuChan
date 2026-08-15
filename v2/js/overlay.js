@@ -207,6 +207,8 @@
     state[0].text = params.get('t0') || '音声認識字幕ちゃん v2';
     render(0, true);
   }
+  // プレビュー iframe 内クリック → 親へ通知（表示モードのトグル用）
+  if (isPreview) document.addEventListener('click', () => { try { window.parent.postMessage({ jimakuChanEvent: 'click' }, '*'); } catch (e) {} });
   // ホストに設定を要求（同一ブラウザ内）
   reply({ type: 'hello', inOBS, preview: isPreview });
 

@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const root = new URL('../../', import.meta.url).href;
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport:{width:1280,height:400} }); await ctx.addInitScript({ path: 'fake_sr.js' });
+const p = await ctx.newPage(); const errs=[]; p.on('pageerror', e => errs.push(e.message));
+await p.goto(root + 'index.html'); await p.waitForTimeout(1200);
+await p.click('#btnDisplayMode'); await p.waitForTimeout(600);
+await p.evaluate(() => window.jimakuApp.showLine(0, '表示モードのテストです', '', true));
+await p.waitForTimeout(500); await p.screenshot({ path: '../../.output/display_mode.png' });
+await p.reload(); await p.waitForTimeout(1500); const still = await p.evaluate(() => document.body.classList.contains('display-mode'));
+await p.keyboard.press('Escape'); await p.waitForTimeout(300); const back = await p.evaluate(() => !document.body.classList.contains('display-mode'));
+console.log({ still, back, errs });
+await b.close();

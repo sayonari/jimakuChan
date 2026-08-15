@@ -395,6 +395,20 @@
   }
 
   // ======================================================================
+  // 表示モード（設定を隠して字幕だけ．同じ URL で v1 のように運用できる）
+  // ======================================================================
+  let hintTimer = null;
+  function setDisplayMode(on, save = true) {
+    document.body.classList.toggle('display-mode', on);
+    sendLocal({ type: 'previewMode', mode: on ? 'color' : 'auto' });   // 表示モードでは背景色（クロマキー用）
+    if (save) ui.save({ displayMode: on });
+    if (on) { showHint(); }
+    else { document.body.classList.remove('show-hint'); }
+  }
+  function showHint() { document.body.classList.add('show-hint'); clearTimeout(hintTimer); hintTimer = setTimeout(() => document.body.classList.remove('show-hint'), 2500); }
+  function toggleDisplayMode() { setDisplayMode(!document.body.classList.contains('display-mode')); }
+
+  // ======================================================================
   // 設定 ⇄ DOM
   // ======================================================================
   function saveSettings() { store.update(S); }
@@ -630,6 +644,11 @@
     $('#btnStart').addEventListener('click', startEngine);
     $('#btnStop').addEventListener('click', () => stopEngine(false));
     $('#btnPopup').addEventListener('click', openPopup); $('#btnPopup2').addEventListener('click', openPopup);
+    $('#btnDisplayMode').addEventListener('click', () => setDisplayMode(true)); $('#btnDisplayMode2').addEventListener('click', () => setDisplayMode(true));
+    window.addEventListener('message', e => { if (e.data && e.data.jimakuChanEvent === 'click' && document.body.classList.contains('display-mode')) setDisplayMode(false); });
+    window.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('display-mode')) setDisplayMode(false); });
+    window.addEventListener('mousemove', () => { if (document.body.classList.contains('display-mode')) showHint(); });
+    if (uiState.displayMode) setDisplayMode(true, false);      // 前回表示モードで終わっていれば同じ URL で表示モードから始まる
     $('#presetSelect').addEventListener('change', e => selectPreset(e.target.value));
     $('#btnPresetSave').addEventListener('click', () => { saveSettings(); toast(t('msgSaved'), 'ok'); });
     $('#btnPresetReset').addEventListener('click', () => { S = store.reset(); renderAll(); afterSettingsReplaced(); toast(t('msgReset')); });

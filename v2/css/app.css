@@ -260,3 +260,15 @@ details.adv summary { cursor: pointer; color: var(--fg2); font-weight: 700; font
 .wrap > * { animation: fadein .35s ease-out both; }
 .wrap > *:nth-child(2) { animation-delay: .05s; }
 .wrap > *:nth-child(3) { animation-delay: .1s; }
+
+/* ---- 表示モード（設定を隠して字幕だけ．v1 の「iframe クリックで設定を閉じる」相当） ---- */
+body.display-mode { overflow: hidden; background: #000; }
+body.display-mode::before { display: none; }
+body.display-mode .topbar, body.display-mode .tabs, body.display-mode .tabpane, body.display-mode .foot, body.display-mode .preview .bar, body.display-mode .preview .frame .hud { display: none !important; }
+body.display-mode .wrap { max-width: none; padding: 0; margin: 0; }
+body.display-mode .preview { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+body.display-mode .preview iframe { height: 100vh !important; }
+body.display-mode .wrap > * { animation: none; }
+#displayHint { position: fixed; right: 12px; top: 12px; z-index: 50; background: rgba(0,0,0,.55); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 12px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+body.display-mode.show-hint #displayHint { opacity: 1; }
+body.display-mode .toast { display: none; }

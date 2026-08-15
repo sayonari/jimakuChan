@@ -114,13 +114,14 @@
 
 <body>
 
-<!-- v2 β版 のお知らせ（2026-08） -->
-<div id="v2Banner" style="background:linear-gradient(90deg,#ff6b9d,#ff8f6b);color:#fff;padding:6px 12px;font-size:14px;display:flex;align-items:center;gap:10px;font-family:'Hiragino Sans','Yu Gothic UI',Meiryo,sans-serif;">
+<!-- v2 β版 のお知らせ（2026-08）：「このまま v1 を使う」を押すと次回以降は表示しない -->
+<div id="v2Banner" style="display:none;background:linear-gradient(90deg,#ff6b9d,#ff8f6b);color:#fff;padding:6px 12px;font-size:14px;align-items:center;gap:10px;font-family:'Hiragino Sans','Yu Gothic UI',Meiryo,sans-serif;">
   <span style="font-weight:bold;">✨ 新バージョン（v2 β）を公開しました：</span>
   <span>OBS へワンクリック追加・見た目テーマ・伏字の改善・次の文の頭が切れない連続認識．設定は自動で引き継がれます．</span>
   <a href="./v2/" style="color:#fff;font-weight:bold;background:rgba(0,0,0,.25);padding:3px 12px;border-radius:999px;text-decoration:none;white-space:nowrap;">v2 β を試す →</a>
-  <span style="margin-left:auto;font-size:12px;opacity:.9;">（従来版はこのまま使えます）</span>
+  <button onclick="localStorage.setItem('jimakuChan_hideV2Banner','1');document.getElementById('v2Banner').style.display='none';" style="margin-left:auto;background:rgba(255,255,255,.9);color:#c2185b;border:0;border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer;white-space:nowrap;">このまま v1 を使う（次回から表示しない）</button>
 </div>
+<script>try{ if(!localStorage.getItem('jimakuChan_hideV2Banner')) document.getElementById('v2Banner').style.display='flex'; }catch(e){}</script>
 
 
 <!-- # 注意事項 ######################### -->

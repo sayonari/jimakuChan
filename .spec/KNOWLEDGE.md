@@ -29,3 +29,8 @@
 - 2 文目の頭が切れる → `continuous=true` の 1 セッションを回す「連続モード」を既定に（recognizer.js mode='continuous'）．shortPause 経過で仮確定（soft）して字幕・翻訳を先出し，Chrome の本確定で差分だけ追加／訂正．従来方式は「文ごとに再起動」として残す
 - PC 内フォント → `window.queryLocalFonts()`（Chrome 103+，初回に許可ダイアログ）で一覧をプルダウンに追加．option に font-family を付けてプレビュー
 - OBS で表示されない → 原因の本命は OBS(CEF) が自己署名 https://localhost を拒否すること．run_server.py に http:4444 を併設し，localhost 時はそちらを登録．file:// 時は is_local_file で登録．テスト送信は vendor request の成否を表示，overlay は OBS 内で受信するまで「接続待ち」バッジを表示
+
+## 2026-08-16 3 回目フィードバック
+- v1 バナーに「このまま v1 を使う（次回から表示しない）」（localStorage jimakuChan_hideV2Banner）
+- 表示モード：設定を隠して字幕だけ（body.display-mode，ui.displayMode に記憶．iframe 内クリック→postMessage / Esc で戻る）．別窓は残すが補助扱い
+- 縁取り：-webkit-text-stroke の miter トゲ → 円周状 text-shadow の膨張（strokeMode round/sharp）
