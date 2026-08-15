@@ -2,9 +2,10 @@
 
 ## 優先度：高
 - [ ] 西村による実機テスト（Chrome 実機でマイク認識・Chrome 翻訳・OBS 31 でブラウザソース追加・クロマキー窓）
-- [ ] テスト OK 後に v2-rebuild ブランチをコミット → main へマージ → GitHub Pages 反映
+- [x] v2 を v2/ に配置して main にマージ・push（2026-08-16 β公開 https://sayonari.github.io/jimakuChan/v2/）
 - [ ] goodBadWordlist の 2 コミット（ローカル main）を push（v1 にも即反映されるので注意：v1 は部分一致のまま）
-- [ ] 紹介動画（tools/promo_video/build/jimakuChan_v2_intro.mp4）を確認して Twitter 投稿
+- [ ] 紹介動画・OBS ガイド動画（.output/*.mp4）を確認して Twitter 投稿
+- [ ] 将来：メイン URL を v2 に切替（ルートを v2 に置き換え，旧版は v1/ へ）
 
 ## 優先度：中
 - [ ] OBS 30 以前（CEF 103）で overlay.html の描画確認（擬似要素方式なので動く想定）
