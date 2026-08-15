@@ -140,6 +140,15 @@
     </div>
     <div class="chips" id="chips"><span class="chip on">縁取り</span><span class="chip">ボックス</span><span class="chip">ネオン</span><span class="chip">シャドウ</span></div>
     <div class="langs" style="top:596px"><span class="lang" id="swlabel">縁取り 6pt</span></div>
+    <div id="fontpanel" style="position:absolute;right:120px;top:170px;width:360px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 50px rgba(30,40,80,.25);padding:10px 0;opacity:0">
+      <div style="padding:6px 16px;font-size:14px;color:var(--fg2);font-weight:800;border-bottom:1px solid var(--line)">PC内フォント（ボタンひとつで一覧）</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'Hiragino Sans'">ヒラギノ角ゴシック</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'Hiragino Mincho ProN'">ヒラギノ明朝</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'Klee'">クレー</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'Tsukushi A Round Gothic'">筑紫A丸ゴシック</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'YuKyokasho'">游教科書体</div>
+      <div style="padding:8px 16px;font-size:24px;font-family:'Toppan Bunkyu Midashi Gothic'">凸版文久見出しゴシック</div>
+    </div>
   </div>
 
   <!-- S5 OBS -->
@@ -157,6 +166,11 @@
         <div class="sub" id="sub3" data-theme="outline" style="bottom:12px"><div class="line" style="--fs:24px"><span class="txt" data-text="字幕がそのまま OBS に出ます">字幕がそのまま OBS に出ます</span></div><div class="line" style="--fs:18px;--c:#ffe066"><span class="txt" data-text="Subtitles appear right in OBS">Subtitles appear right in OBS</span></div></div>
       </div>
       <div class="foot"><div>シーン<br><span class="src">シーン 1</span></div><div>ソース<br><span class="src" id="obssrc">🌐 jimakuChan 字幕</span> <span class="src">🎮 ゲームキャプチャ</span></div><div>音声ミキサー<br><span class="src">🎤 マイク</span></div></div>
+    </div>
+    <div id="dispmode" style="position:absolute;left:660px;top:130px;width:560px;height:400px;border-radius:14px;overflow:hidden;box-shadow:0 30px 70px rgba(30,40,80,.3), 0 0 0 1px var(--line);background:#0f0;opacity:0">
+      <div style="height:30px;background:#e8e8e8;display:flex;align-items:center;gap:6px;padding:0 10px;color:#333;font-size:12px;font-weight:700"><i style="width:11px;height:11px;border-radius:50%;background:#ff5f56;display:inline-block"></i><i style="width:11px;height:11px;border-radius:50%;background:#ffbd2e;display:inline-block"></i><i style="width:11px;height:11px;border-radius:50%;background:#27c93f;display:inline-block"></i>&nbsp; sayonari.github.io/jimakuChan/v2/ — 表示モード</div>
+      <div style="position:absolute;right:12px;top:42px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:4px 10px;border-radius:999px">クリック／Esc で設定に戻る</div>
+      <div class="sub" id="sub6" data-theme="outline" style="bottom:20px"><div class="line" style="--fs:26px"><span class="txt" data-text="「表示モード」＝ v1 と同じ全画面字幕">「表示モード」＝ v1 と同じ全画面字幕</span></div><div class="line" style="--fs:20px;--c:#ffe066"><span class="txt" data-text="ウィンドウキャプチャ＋クロマキーで OK">ウィンドウキャプチャ＋クロマキーで OK</span></div></div>
     </div>
   </div>
 
@@ -228,7 +242,7 @@ const DEMO = ['Good evening! Let\'s start today\'s stream.', '晚上好！今天
 function subShadow(r, color){ const out=[]; const step=Math.max(1.4,r/6); for(let rr=r; rr>0.4; rr-=step){ const n=Math.min(36,Math.max(8,Math.round(2*Math.PI*rr/1.5))); for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push(`${(rr*Math.cos(a)).toFixed(2)}px ${(rr*Math.sin(a)).toFixed(2)}px 0 ${color}`);} } return out.join(','); }
 function applySub(el, r, color, theme){ let sh = subShadow(r, color); if (theme==='glow') sh += `,0 0 ${(r*2+6)}px ${color},0 0 ${(r*4+14)}px ${color}`; if (theme==='shadow') sh += `,0 ${(r*.8+3)}px ${(r*1.5+8)}px rgba(0,0,0,.6)`; el.style.setProperty('--sub-sh', sh); }
 // 静的な字幕行に既定の縁を設定
-document.querySelectorAll('#sub1 .line, #sub3 .line').forEach(el => applySub(el, 7, '#000', 'outline'));
+document.querySelectorAll('#sub1 .line, #sub3 .line, #sub6 .line').forEach(el => applySub(el, 7, '#000', 'outline'));
 window.seek = function (t) {
   const scenes = TL.scenes;
   // 背景ブロブの漂い
@@ -298,7 +312,8 @@ function renderScene(i, sc, lt) {
     case 's_themes': {
       pop($('#game2'), seg(lt, .1, .8), .95);
       const themes = ['outline', 'box', 'glow', 'shadow'];
-      const idx = Math.min(3, Math.floor(seg(lt, .8, sc.dur - 2.4) * 4));
+      const tEnd = sc.dur * 0.58;                                   // ここまでテーマ切替
+      const idx = Math.min(3, Math.floor(seg(lt, .8, tEnd) * 4));
       const sub = $('#sub2'); sub.dataset.theme = themes[idx];
       document.querySelectorAll('#chips .chip').forEach((c, k) => c.classList.toggle('on', k === idx));
       setTxt($('#t0 .txt'), 'テーマを選ぶだけで，かわいくも，かっこよくも'); setTxt($('#t1 .txt'), 'Pick a theme: cute or cool, your call');
@@ -306,7 +321,8 @@ function renderScene(i, sc, lt) {
       const fs = ['\'M PLUS Rounded 1c\'', '\'Zen Kaku Gothic New\'', '\'Hachi Maru Pop\'', '\'Dela Gothic One\''];
       const cols = ['#fff', '#fff', '#fff', '#ffe066'];
       // 最後の 2.4 秒：縁取りが外側に伸びるデモ
-      const grow = seg(lt, sc.dur - 2.3, sc.dur - .4);
+      const grow = seg(lt, tEnd + .2, sc.dur * 0.76);
+      const fp = seg(lt, sc.dur * 0.78, sc.dur * 0.78 + .5); const fpEl = $('#fontpanel'); fpEl.style.opacity = fp; fpEl.style.transform = `translateY(${(1 - easeOut(fp)) * 16}px)`;
       const sw = idx === 3 && grow > 0 ? lerp(2, 16, easeInOut(grow)) : (idx === 2 ? 5 : 7);
       ['#t0', '#t1'].forEach(s => { const l = $(s); l.style.setProperty('--sw', sw + 'px'); l.style.setProperty('--sc', strokeColors[idx]); l.style.setProperty('--font', fs[idx]); applySub(l, sw, strokeColors[idx], themes[idx]); });
       $('#t0').style.setProperty('--c', cols[idx]);
@@ -324,6 +340,10 @@ function renderScene(i, sc, lt) {
       ringTo(ring, sh, M.ui_obs, which, 560, 1280);
       ring.style.opacity = (lt > 1.6 && toWin < .5) ? (0.6 + 0.4 * Math.sin(lt * 8)) : 0;
       $('#obssrc').style.background = toWin > .5 ? 'rgba(255,107,157,.5)' : '';
+      // 終盤：表示モード（全画面字幕）の説明
+      const toDisp = seg(lt, sc.dur * 0.70, sc.dur * 0.70 + .6);
+      win.style.opacity = toWin * (1 - toDisp);
+      const dm = $('#dispmode'); dm.style.opacity = toDisp; dm.style.transform = `scale(${lerp(.95, 1, easeOut(toDisp))})`;
       break;
     }
     case 's_filter': {
