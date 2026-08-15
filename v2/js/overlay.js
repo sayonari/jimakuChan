@@ -58,6 +58,7 @@
     stage.classList.toggle('keep-height', !!cfg.keepHeight);
     stage.style.setProperty('--box', cfg.boxColor);
     stage.style.setProperty('--radius', cfg.boxRadius + 'px');
+    stage.style.setProperty('--interim-opacity', String(Math.max(0, Math.min(100, Number(cfg.interimOpacity ?? 100))) / 100));
     cfg.lines.forEach((l, i) => {
       const el = lines[i];
       el.dataset.stroke = cfg.strokeMode === 'sharp' ? 'sharp' : 'round';

@@ -85,7 +85,7 @@
     return {
       bgcolor: S.bgcolor, bgTransparent: S.bgTransparent, textAlign: S.textAlign, vAlign: S.vAlign, whiteSpace: S.whiteSpace,
       theme: S.theme, anim: S.anim, boxColor: S.boxColor, boxRadius: S.boxRadius, strokeMode: S.strokeMode || 'round',
-      lines: S.lines, lineSpacing: S.lineSpacing, interimLeft: S.interimLeft, interimRight: S.interimRight,
+      lines: S.lines, lineSpacing: S.lineSpacing, interimLeft: S.interimLeft, interimRight: S.interimRight, interimOpacity: S.interimOpacity,
     };
   }
 
@@ -473,7 +473,7 @@
     syncNums();
     saveSettingsDebounced();
     // 表示に関わるもの → overlay へ
-    if (/^(theme|anim|boxColor|boxRadius|strokeMode|lines|bgcolor|bgTransparent|textAlign|vAlign|whiteSpace|lineSpacing|interimLeft|interimRight)/.test(path)) pushConfig();
+    if (/^(theme|anim|boxColor|boxRadius|strokeMode|lines|bgcolor|bgTransparent|textAlign|vAlign|whiteSpace|lineSpacing|interim)/.test(path)) pushConfig();
     if (path === 'theme') syncChips('theme');
     if (/^(recog|shortPause|recogModel|recogMode|wordBoost)/.test(path)) {
       if (el && el.dataset && el.dataset.restart) restartEngine(); else if (path === 'recogModel' || path === 'recogMode') restartEngine();

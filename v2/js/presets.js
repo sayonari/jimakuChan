@@ -27,7 +27,7 @@
     theme: 'outline', anim: 'rise', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12, strokeMode: 'round',
     lines: [line(), line(), line(), line()],
     bgcolor: '#00ff00', bgTransparent: true, textAlign: 'center', vAlign: 'bottom', whiteSpace: 'normal',
-    lineSpacing: [0, 0, 0], interimLeft: ' << ', interimRight: ' >>',
+    lineSpacing: [0, 0, 0], interimLeft: ' << ', interimRight: ' >>', interimOpacity: 100,
     // フィルタ・辞書
     filterOn: true, extraBad: '', extraGood: '', wordReplace: '',
     // OBS
