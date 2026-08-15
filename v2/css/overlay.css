@@ -32,7 +32,7 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
   white-space: pre-wrap;
   min-height: 0;
 }
-.line:empty, .line.is-empty { display: none; }
+.line:empty, .line.is-empty, .line.is-hidden { display: none; }
 .stage.keep-height .line.is-empty { display: block; visibility: hidden; }
 
 /*

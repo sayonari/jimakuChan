@@ -61,6 +61,7 @@
     cfg.lines.forEach((l, i) => {
       const el = lines[i];
       el.dataset.stroke = cfg.strokeMode === 'sharp' ? 'sharp' : 'round';
+      el.classList.toggle('is-hidden', !(Number(l.size) > 0));   // サイズ 0 = その行を表示しない（翻訳だけ出したい等）
       const px = (Number(l.strokeWidth) || 0) * 4 / 3;               // pt → px
       const extra = themeShadows(cfg.theme, px, l.strokeColor);
       if (cfg.strokeMode === 'sharp') { el.style.setProperty('--extra-shadow', extra || 'none'); el.style.setProperty('--stroke-shadow', 'none'); }

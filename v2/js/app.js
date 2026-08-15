@@ -521,7 +521,7 @@
         <td><div class="row" style="margin:0;flex-wrap:nowrap"><select data-font="${i}">${fontOptionsHtml(l.font)}</select><input type="text" data-fontdirect="${i}" value="${known ? '' : (l.font || '')}" placeholder="${t('fontDirectPh')}" style="width:9em"${known ? ' hidden' : ''}></div></td>
         <td><input type="color" data-line="${i}.color" value="${l.color}"></td>
         <td><input type="color" data-line="${i}.strokeColor" value="${l.strokeColor}"></td>
-        <td><div class="rangecell"><input type="range" data-line="${i}.size" min="6" max="80" step="0.5" value="${l.size}"><span class="num">${l.size}</span><span class="unit">pt</span></div></td>
+        <td><div class="rangecell"><input type="range" data-line="${i}.size" min="0" max="80" step="0.5" value="${l.size}" title="0 = この行を表示しない"><span class="num">${l.size}</span><span class="unit">pt</span></div></td>
         <td><div class="rangecell"><input type="range" data-line="${i}.weight" min="100" max="900" step="100" value="${l.weight}"><span class="num">${l.weight}</span></div></td>
         <td><div class="rangecell"><input type="range" data-line="${i}.strokeWidth" min="0" max="20" step="0.5" value="${l.strokeWidth}"><span class="num">${l.strokeWidth}</span><span class="unit">pt</span></div></td>`;
       tb.appendChild(tr);
