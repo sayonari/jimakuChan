@@ -23,6 +23,8 @@ Claude Code (Fable 5) ＋ Codex CLI (GPT-5.6 Sol, 旧版監査) ＋ Playwright�
 
 ## 2026-08-16 深夜2：2 回目フィードバック対応→ v2/ に配置し main へ push（β公開済）．なめらか縁取り（膨張影），ライト UI 既定，自動開始，PC 内フォント一覧，Google Fonts 指定修正，動画 2 本（edge-tts Nanami）
 
+## 2026-08-16 03:15：β公開・Twitter 投稿済み．次はユーザーからの反応・不具合報告への対応，将来のメイン URL 切替
+
 ## 注意点・ブロッカー
 - goodBadWordlist の変更は push すると v1（部分一致）にも即反映される．v1 に影響しそうな短い語は入れていないつもりだが要注意
 - overlay.html を OBS で使うには GitHub Pages 反映後の URL が必要（file:// は OBS 側では読めない場合がある）

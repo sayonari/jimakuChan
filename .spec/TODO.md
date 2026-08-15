@@ -4,7 +4,7 @@
 - [ ] 西村による実機テスト（Chrome 実機でマイク認識・Chrome 翻訳・OBS 31 でブラウザソース追加・クロマキー窓）
 - [x] v2 を v2/ に配置して main にマージ・push（2026-08-16 β公開 https://sayonari.github.io/jimakuChan/v2/）
 - [ ] goodBadWordlist の 2 コミット（ローカル main）を push（v1 にも即反映されるので注意：v1 は部分一致のまま）
-- [ ] 紹介動画・OBS ガイド動画（.output/*.mp4）を確認して Twitter 投稿
+- [x] 紹介動画・OBS ガイド動画を Twitter 投稿（2026-08-16）
 - [ ] 将来：メイン URL を v2 に切替（ルートを v2 に置き換え，旧版は v1/ へ）
 
 ## 優先度：中
