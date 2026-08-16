@@ -15,7 +15,7 @@
   const KEY = 'jimakuChan_v2_presets';
   const KEY_UI = 'jimakuChan_v2_ui';
 
-  const line = (o = {}) => Object.assign({ font: 'M PLUS Rounded 1c', size: 25, weight: 900, color: '#ffffff', strokeColor: '#000000', strokeWidth: 6 }, o);
+  const line = (o = {}) => Object.assign({ font: 'M PLUS Rounded 1c', size: 25, weight: 900, color: '#ffffff', strokeColor: '#000000', strokeWidth: 6, nowrap: false }, o);   // nowrap: 1 行ティッカー（折り返さず，最新を右端に・過去は左へ）
 
   const DEFAULTS = {
     // 認識
@@ -106,8 +106,8 @@
       filterOn: !(s.anti_sexual === true || s.anti_sexual === 'true'),   // v1: チェックON=やめる
       wordReplace: s.word_replace_rules || '',
     };
-    // v1 の "\\ " エスケープ済み Google フォント名の残りを掃除
-    out.lines.forEach(l => { l.font = String(l.font).replace(/\\+ /g, ' '); });
+    // v1 の "\\ " エスケープ済み Google フォント名の残りを掃除／全体の折り返し設定を行ごとへ
+    out.lines.forEach(l => { l.font = String(l.font).replace(/\\+ /g, ' '); l.nowrap = out.whiteSpace === 'nowrap'; });
     return out;
   }
 
@@ -158,7 +158,11 @@
     get(id) {
       const p = this.data.presets[id] || this.data.presets.default;
       const base = deepMerge(DEFAULTS, (BUILTIN[id] && BUILTIN[id].settings) || {});
-      return deepMerge(base, p.settings || {});
+      const out = deepMerge(base, p.settings || {});
+      // 互換：行ごとの nowrap が無い古い保存値は，全体設定 whiteSpace=nowrap を各行へ引き継ぐ
+      const ls = (p.settings && p.settings.lines) || [];
+      if (p.settings && p.settings.whiteSpace === 'nowrap' && !ls.some(l => l && typeof l.nowrap === 'boolean')) out.lines.forEach(l => { l.nowrap = true; });
+      return out;
     }
     select(id) { if (this.data.presets[id]) { this.data.current = id; this.save(); } return this.get(this.data.current); }
     /** 現在のプリセットに設定を保存 */

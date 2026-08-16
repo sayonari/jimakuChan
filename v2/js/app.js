@@ -25,7 +25,7 @@
     recognizer: null, translator: new window.JimakuTranslator(), obs: new window.ObsClient(),
     filterRecog: null, filterTrans: [null, null, null], replaceRules: [],
     running: false,
-    lastFinal: '', interim: '',
+    lastFinal: '', interim: '', welcome: false,   // welcome: 起動時のタイトル表示中（喋るまで消さない）
     speechTimer: null, transTimer: null, speechTimerStart: 0, transTimerStart: 0, barRAF: null,
     popup: null, bc: null,
     interimThrottle: 0,
@@ -109,8 +109,8 @@
   }, 120);
 
   // ---- 行の表示 ---------------------------------------------------------
-  function showLine(slot, text, interim = '', animate = false) {
-    const msg = { type: 'text', slot, text, interim, animate };
+  function showLine(slot, text, interim = '', animate = false, replace = false) {
+    const msg = { type: 'text', slot, text, interim, animate, replace };   // replace: 1 行ティッカーでも蓄積せず置き換える（再送・タイトル用）
     sendLocal(msg);
     // OBS: 途中結果は間引く
     const now = Date.now();
@@ -120,6 +120,23 @@
     // テキストソース（任意）
     const name = S.obs.textSources && S.obs.textSources[slot];
     if (name && engine.obs.connected && !interim) engine.obs.setText(name, text).catch(() => {});
+  }
+  // 起動時のタイトル表示（v1 と同じく，喋るまで出しっぱなし）
+  function welcomeLines() { return ['[' + t('appName') + ' v2 (Ver:' + VERSION + ')]', '[' + t('devs') + ']']; }
+  function showWelcome() {
+    engine.welcome = true;
+    const w = welcomeLines();
+    showLine(0, w[0], '', true, true); showLine(1, w[1], '', true, true);
+  }
+  function endWelcome() {
+    if (!engine.welcome) return;
+    engine.welcome = false;
+    broadcast({ type: 'clear', slots: [0, 1, 2, 3], soft: false });   // 1 行ティッカーの蓄積にタイトルを残さないよう全消し
+  }
+  /** 新しく現れた表示先（プレビュー再読込・表示ウィンドウ・OBS 接続）へ現在の表示内容を送り直す */
+  function resendState(send) {
+    if (engine.welcome) { const w = welcomeLines(); send({ type: 'text', slot: 0, text: w[0], replace: true }); send({ type: 'text', slot: 1, text: w[1], replace: true }); }
+    else if (engine.lastFinal) send({ type: 'text', slot: 0, text: engine.lastFinal, replace: true });
   }
   function clearLines(slots, soft = true) {
     broadcast({ type: 'clear', slots, soft });
@@ -227,12 +244,14 @@
     const shown = filt(engine.filterRecog, applyReplace(tidy(text)));
     engine.interim = shown;
     if (!shown) return;
+    endWelcome();
     if (engine.speechTimer) stopSpeechTimer();      // 話している間は消さない
     showLine(0, '', shown, false);                    // 途中結果だけを表示（前の文は消す）
   }
   async function onFinal(text) {
     const replaced = applyReplace(tidy(text));
     const shown = filt(engine.filterRecog, replaced);
+    endWelcome();
     engine.lastFinal = shown; engine.interim = '';
     showLine(0, shown, '', true);
     startSpeechTimer();
@@ -269,7 +288,7 @@
     if (engine.running) return;
     setRunning(true);
     engine.lastFinal = ''; engine.interim = '';
-    clearLines([0, 1, 2, 3], false);
+    if (!engine.welcome) clearLines([0, 1, 2, 3], false);
     const R = buildRecognizer();
     // 伏字リストの読込を待ってから開始（最大 4 秒）
     await Promise.race([filtersReady, new Promise(r => setTimeout(r, 4000))]);
@@ -357,7 +376,7 @@
       if (!auto) toast(t('msgObsConnected'), 'ok');
       // 接続直後に表示設定を送る（既にシーンにある場合のため）
       sendObs({ type: 'config', config: displayConfig() });
-      if (engine.lastFinal) sendObs({ type: 'text', slot: 0, text: engine.lastFinal });
+      resendState(sendObs);
     } catch (e) {
       if (!auto) toast(t('msgObsFailed'), 'err');
     }
@@ -391,16 +410,18 @@
     const w = window.open(url, 'jimakuChanDisplay', 'popup=yes,width=1280,height=240,left=100,top=100');
     if (!w) { toast(t('popupBlocked'), 'err'); return; }
     engine.popup = w;
-    setTimeout(() => { sendLocal({ type: 'config', config: displayConfig() }); if (engine.lastFinal) sendLocal({ type: 'text', slot: 0, text: engine.lastFinal }); }, 700);
+    setTimeout(() => { sendLocal({ type: 'config', config: displayConfig() }); resendState(sendLocal); }, 700);
   }
 
   // ======================================================================
   // 表示モード（設定を隠して字幕だけ．同じ URL で v1 のように運用できる）
   // ======================================================================
   let hintTimer = null;
+  let previewBgMode = 'auto';                       // プレビュー背景（auto/color/checker/black）．表示モード中は常に color（クロマキー用）
+  function sendPreviewMode() { sendLocal({ type: 'previewMode', mode: document.body.classList.contains('display-mode') ? 'color' : previewBgMode }); }
   function setDisplayMode(on, save = true) {
     document.body.classList.toggle('display-mode', on);
-    sendLocal({ type: 'previewMode', mode: on ? 'color' : 'auto' });   // 表示モードでは背景色（クロマキー用）
+    sendPreviewMode();                              // 表示モードでは背景色（クロマキー用）．iframe 未読込時は load / hello で再送される
     if (save) ui.save({ displayMode: on });
     if (on) { showHint(); }
     else { document.body.classList.remove('show-hint'); }
@@ -523,12 +544,13 @@
         <td><input type="color" data-line="${i}.strokeColor" value="${l.strokeColor}"></td>
         <td><div class="rangecell"><input type="range" data-line="${i}.size" min="0" max="80" step="0.5" value="${l.size}" title="0 = この行を表示しない"><span class="num">${l.size}</span><span class="unit">pt</span></div></td>
         <td><div class="rangecell"><input type="range" data-line="${i}.weight" min="100" max="900" step="100" value="${l.weight}"><span class="num">${l.weight}</span></div></td>
-        <td><div class="rangecell"><input type="range" data-line="${i}.strokeWidth" min="0" max="20" step="0.5" value="${l.strokeWidth}"><span class="num">${l.strokeWidth}</span><span class="unit">pt</span></div></td>`;
+        <td><div class="rangecell"><input type="range" data-line="${i}.strokeWidth" min="0" max="20" step="0.5" value="${l.strokeWidth}"><span class="num">${l.strokeWidth}</span><span class="unit">pt</span></div></td>
+        <td style="text-align:center"><input type="checkbox" data-line="${i}.nowrap"${l.nowrap ? ' checked' : ''} title="${t('thNowrapTip')}"></td>`;
       tb.appendChild(tr);
     });
     tb.querySelectorAll('[data-line]').forEach(el => {
       const [i, k] = el.dataset.line.split('.');
-      const h = () => { S.lines[i][k] = (el.type === 'range') ? Number(el.value) : el.value; const n = el.parentElement.querySelector('.num'); if (n) n.textContent = el.value; onSettingChanged('lines', el); };
+      const h = () => { S.lines[i][k] = (el.type === 'range') ? Number(el.value) : (el.type === 'checkbox' ? el.checked : el.value); const n = el.parentElement.querySelector('.num'); if (n) n.textContent = el.value; onSettingChanged('lines', el); };
       el.addEventListener('input', h); el.addEventListener('change', h);
     });
     tb.querySelectorAll('[data-font]').forEach(sel => {
@@ -624,10 +646,10 @@
     let idx = 0;
     const btn = $('#btnPreviewBg');
     const label = () => { const m = modes[idx]; btn.textContent = m === 'checker' ? t('previewBgChecker') : m === 'black' ? t('previewBgBlack') : (m === 'color' ? t('previewBg') : t('previewBg') + ' (auto)'); };
-    btn.addEventListener('click', () => { idx = (idx + 1) % modes.length; sendLocal({ type: 'previewMode', mode: modes[idx] }); label(); });
+    btn.addEventListener('click', () => { idx = (idx + 1) % modes.length; previewBgMode = modes[idx]; sendPreviewMode(); label(); });
     label();
     $('#btnPreviewTall').addEventListener('click', () => { const c = $('#previewCard'); c.classList.toggle('tall'); $('#btnPreviewTall').textContent = c.classList.contains('tall') ? t('previewSmall') : t('previewTall'); });
-    $('#previewFrame').addEventListener('load', () => { sendLocal({ type: 'config', config: displayConfig() }); });
+    $('#previewFrame').addEventListener('load', () => { sendLocal({ type: 'config', config: displayConfig() }); sendPreviewMode(); resendState(sendLocal); });
   }
 
   function init() {
@@ -671,7 +693,8 @@
     if (store.data.migratedFromV1 && !uiState.migrateNoticeShown) { toast(t('migrated'), 'ok'); ui.save({ migrateNoticeShown: true }); }
 
     // プレビューへ初期設定（iframe の load を取り逃した場合の保険）
-    setTimeout(() => sendLocal({ type: 'config', config: displayConfig() }), 900);
+    showWelcome();
+    setTimeout(() => { sendLocal({ type: 'config', config: displayConfig() }); sendPreviewMode(); resendState(sendLocal); }, 900);
 
     // テーマ（既定ライト）
     const applyTheme = (th) => { document.documentElement.dataset.theme = th; $('#themeToggle').textContent = th === 'dark' ? '☀️' : '🌙'; ui.save({ theme: th }); };
@@ -687,7 +710,7 @@
     if (S.obs.auto) setTimeout(() => obsConnect(true), 500);
 
     // BroadcastChannel: 表示側からの hello に設定を返す
-    if (engine.bc) engine.bc.onmessage = (e) => { if (e.data && e.data.type === 'hello') { sendLocal({ type: 'config', config: displayConfig() }); if (engine.lastFinal) sendLocal({ type: 'text', slot: 0, text: engine.lastFinal }); } };
+    if (engine.bc) engine.bc.onmessage = (e) => { if (e.data && e.data.type === 'hello') { sendLocal({ type: 'config', config: displayConfig() }); sendPreviewMode(); resendState(sendLocal); } };
 
     // 翻訳ステータス
     engine.translator.onStatus = (text, level) => { /* pill 側で表示 */ };

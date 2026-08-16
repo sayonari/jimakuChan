@@ -18,7 +18,13 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
 .stage[data-valign="middle"] { justify-content: center; }
 .stage[data-align="left"]    { text-align: left; }
 .stage[data-align="right"]   { text-align: right; }
-.stage[data-wrap="nowrap"] .line { white-space: nowrap; }
+/*
+ * 折り返さない（1 行ティッカー）モード：
+ *   行を rtl にして，はみ出しを「左側」へ逃がす（右端に最新が常に見える）．短いうちは textAlign どおりに並ぶ．
+ *   中身 .txt は ltr に戻すので文字順は変わらない．過去の確定結果は overlay.js が同じ行に蓄積する
+ */
+.line[data-wrap="nowrap"]      { white-space: nowrap; direction: rtl; }
+.line[data-wrap="nowrap"] .txt { direction: ltr; unicode-bidi: isolate; max-width: none; }
 
 /* ---- 1 行 = 1 スロット（認識 / 翻訳1 / 翻訳2 / 翻訳3） ---- */
 .line {

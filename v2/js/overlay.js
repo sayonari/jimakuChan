@@ -45,14 +45,15 @@
 
   // ---- 設定の適用 -------------------------------------------------------
   function applyConfig(c) {
+    const wasTicker = [0, 1, 2, 3].map(i => cfg.lines && cfg.lines[i] ? isTicker(i) : false);
     cfg = Object.assign({}, DEFAULT, c || {});
     cfg.lines = (c && c.lines ? c.lines : []).map((l, i) => Object.assign({}, DEFAULT.lines[i], l || {}));
     while (cfg.lines.length < 4) cfg.lines.push(Object.assign({}, DEFAULT.lines[cfg.lines.length]));
+    state.forEach((s, i) => { if (wasTicker[i] !== isTicker(i)) { s.text = ''; s.interim = ''; } });   // モード切替時は蓄積を捨てる
 
     applyBackground();
     stage.dataset.valign = cfg.vAlign;
     stage.dataset.align = cfg.textAlign;
-    stage.dataset.wrap = cfg.whiteSpace === 'nowrap' ? 'nowrap' : 'wrap';
     stage.dataset.theme = cfg.theme;
     stage.dataset.anim = cfg.anim;
     stage.classList.toggle('keep-height', !!cfg.keepHeight);
@@ -62,6 +63,7 @@
     cfg.lines.forEach((l, i) => {
       const el = lines[i];
       el.dataset.stroke = cfg.strokeMode === 'sharp' ? 'sharp' : 'round';
+      el.dataset.wrap = isTicker(i) ? 'nowrap' : 'wrap';
       el.classList.toggle('is-hidden', !(Number(l.size) > 0));   // サイズ 0 = その行を表示しない（翻訳だけ出したい等）
       const px = (Number(l.strokeWidth) || 0) * 4 / 3;               // pt → px
       const extra = themeShadows(cfg.theme, px, l.strokeColor);
@@ -122,6 +124,16 @@
 
   // ---- テキスト描画 -----------------------------------------------------
   const state = [0, 1, 2, 3].map(() => ({ text: '', interim: '' }));
+  // 折り返さない（1 行ティッカー）モードでは確定結果を同じ行に蓄積する（右端が最新，古いものは左へはみ出す）
+  const TICKER_MAX = 200;                       // 蓄積する最大文字数（画面外まで無限に増やさない：縁取り影の描画コスト対策）
+  // 行ごとの nowrap（未指定なら旧来の全体設定 whiteSpace に従う）
+  const isTicker = i => { const l = cfg.lines[i] || {}; return typeof l.nowrap === 'boolean' ? l.nowrap : cfg.whiteSpace === 'nowrap'; };
+  function appendHistory(i, text) {
+    if (!text) return;
+    let s = state[i].text ? state[i].text + ' ' + text : text;
+    if (s.length > TICKER_MAX) { s = s.slice(-TICKER_MAX); const sp = s.indexOf(' '); if (sp > 0 && sp < 40) s = s.slice(sp + 1); }
+    state[i].text = s;
+  }
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -150,9 +162,17 @@
       case 'config': applyConfig(msg.config); break;
       case 'text': {
         const i = msg.slot | 0; if (i < 0 || i > 3) return;
-        state[i].text = msg.text || '';
-        state[i].interim = msg.interim || '';
-        render(i, !!msg.animate);
+        if (isTicker(i)) {
+          // 確定 → 蓄積，途中結果 → 蓄積の末尾に付ける（text が空でも過去の文は消さない）．replace は再送・タイトル用（蓄積しない）
+          if (msg.replace) { if (msg.text && !state[i].text) state[i].text = msg.text; }   // 既に蓄積があるなら再送は無視（ログを壊さない）
+          else if (msg.text) appendHistory(i, msg.text);
+          state[i].interim = msg.interim || '';
+          render(i, false);                       // 出現アニメは行全体が動いて見づらいので使わない
+        } else {
+          state[i].text = msg.text || '';
+          state[i].interim = msg.interim || '';
+          render(i, !!msg.animate);
+        }
         break;
       }
       case 'clear': {
@@ -205,7 +225,7 @@
   }
   function gotAny() { if (waitEl) { waitEl.remove(); waitEl = null; } }
   // 初期表示（何も受信していない間）
-  if (params.get('demo') === '1' || isPreview) {
+  if (params.get('demo') === '1') {
     state[0].text = params.get('t0') || '音声認識字幕ちゃん v2';
     render(0, true);
   }

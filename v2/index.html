@@ -187,10 +187,10 @@
     </div>
 
     <div class="card">
-      <h3><span class="em">🔤</span><span data-i18n="hText">文字</span><small data-i18n="textHelp">認識・翻訳1・2・3 それぞれに設定できます</small></h3>
+      <h3><span class="em">🔤</span><span data-i18n="hText">文字</span><small data-i18n="textHelp">認識・翻訳1・2・3 それぞれに設定できます（サイズ 0 でその行を非表示／「1行表示」= 折り返さず最新を右端に，過去は左へ流す）</small></h3>
       <div class="tblwrap">
       <table class="styletbl">
-        <thead><tr><th></th><th data-i18n="thFont">フォント</th><th data-i18n="thColor">文字色</th><th data-i18n="thStrokeColor">フチ色</th><th data-i18n="thSize">サイズ</th><th data-i18n="thWeight">太さ</th><th data-i18n="thStroke">縁取り</th></tr></thead>
+        <thead><tr><th></th><th data-i18n="thFont">フォント</th><th data-i18n="thColor">文字色</th><th data-i18n="thStrokeColor">フチ色</th><th data-i18n="thSize">サイズ</th><th data-i18n="thWeight">太さ</th><th data-i18n="thStroke">縁取り</th><th data-i18n="thNowrap" title="折り返さず 1 行で表示．最新の結果が右端に見え，過去の結果は左へはみ出していきます">1行表示</th></tr></thead>
         <tbody id="styleRows"></tbody>
       </table>
       </div>
@@ -213,8 +213,6 @@
         <div class="seg" data-seg="textAlign"><button data-val="left" data-i18n="alLeft">左</button><button data-val="center" data-i18n="alCenter">中央</button><button data-val="right" data-i18n="alRight">右</button></div>
         <label data-i18n="lVAlign">上下</label>
         <div class="seg" data-seg="vAlign"><button data-val="top" data-i18n="vaTop">上</button><button data-val="middle" data-i18n="vaMiddle">中央</button><button data-val="bottom" data-i18n="vaBottom">下</button></div>
-        <label data-i18n="lWrap">改行</label>
-        <div class="seg" data-seg="whiteSpace"><button data-val="normal" data-i18n="wrapOn">画面端で折り返す</button><button data-val="nowrap" data-i18n="wrapOff">折り返さない</button></div>
         <label data-i18n="lGap">行間</label>
         <div class="row" style="margin:0">
           <span class="hint" data-i18n="gap1">認識→翻訳1</span><input type="range" data-bind="lineSpacing.0" min="0" max="60" style="width:80px"><span class="num" data-num="lineSpacing.0"></span>
@@ -345,7 +343,7 @@
         <a target="_blank" href="https://www.sayonari.com/trans_asr/index_asr.html" data-i18n="linkGuide">使い方ガイド</a> ·
         <a target="_blank" href="https://github.com/sayonari/jimakuChan">GitHub</a> ·
         <a target="_blank" href="https://github.com/sayonari/goodBadWordlist" data-i18n="linkWords">伏字リスト</a> ·
-        <span data-i18n="devs">開発者：さぁたん（構想，助言）／ さよなりω．西村良太（実装）</span>
+        <span data-i18n="devs">開発者：さぁたん ＆ さよなりω/(大学教員)西村良太</span>
       </p>
     </div>
   </section>
