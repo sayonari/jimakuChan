@@ -42,14 +42,19 @@
     keepHeight: false,
   };
   let cfg = JSON.parse(JSON.stringify(DEFAULT));
+  let lastCfgKey = null;                    // 直前に適用した設定（ts を除く JSON）．同一なら再適用しない（fade-out 中の再描画を避ける）
+  const STORE_KEY = 'jimakuChan_v2_overlayConfig';
+  const cfgKey = c => { try { return JSON.stringify(Object.assign({}, c || {}, { ts: 0 })); } catch (e) { return String(Math.random()); } };
 
   // ---- 設定の適用 -------------------------------------------------------
-  function applyConfig(c) {
-    const wasTicker = [0, 1, 2, 3].map(i => cfg.lines && cfg.lines[i] ? isTicker(i) : false);
+  function applyConfig(c, { persist = false } = {}) {
+    const key = cfgKey(c);
+    if (key === lastCfgKey) return;         // 変更なし（ハートビート等）
+    lastCfgKey = key;
+    if (persist && c && !isPreview) { try { localStorage.setItem(STORE_KEY, JSON.stringify(c)); } catch (e) {} }   // 再読み込み後も最新設定で起動できるように
     cfg = Object.assign({}, DEFAULT, c || {});
     cfg.lines = (c && c.lines ? c.lines : []).map((l, i) => Object.assign({}, DEFAULT.lines[i], l || {}));
     while (cfg.lines.length < 4) cfg.lines.push(Object.assign({}, DEFAULT.lines[cfg.lines.length]));
-    state.forEach((s, i) => { if (wasTicker[i] !== isTicker(i)) { s.text = ''; s.interim = ''; } });   // モード切替時は蓄積を捨てる
 
     applyBackground();
     stage.dataset.valign = cfg.vAlign;
@@ -78,8 +83,8 @@
       el.style.setProperty('--gap', (i < 3 ? (cfg.lineSpacing[i] || 0) : 0) + 'px');
       el.style.setProperty('--glow', l.strokeColor);
     });
-    // 保持しているテキストを再描画（マーカー変更などを反映）
-    state.forEach((s, i) => render(i, false));
+    // 保持しているテキストを再描画（マーカー変更などを反映）．フェード消去中の行は消去を中断しない
+    state.forEach((s, i) => { const fading = lines[i].classList.contains('fade-out'); render(i, false); if (fading) lines[i].classList.add('fade-out'); });
   }
   function applyBackground() {
     let bg = cfg.bgcolor, checker = false;
@@ -124,16 +129,9 @@
 
   // ---- テキスト描画 -----------------------------------------------------
   const state = [0, 1, 2, 3].map(() => ({ text: '', interim: '' }));
-  // 折り返さない（1 行ティッカー）モードでは確定結果を同じ行に蓄積する（右端が最新，古いものは左へはみ出す）
-  const TICKER_MAX = 200;                       // 蓄積する最大文字数（画面外まで無限に増やさない：縁取り影の描画コスト対策）
-  // 行ごとの nowrap（未指定なら旧来の全体設定 whiteSpace に従う）
+  // 「1行表示」（行ごとの nowrap；未指定なら旧来の全体設定 whiteSpace に従う）：折り返さず 1 行で表示し，最新（右端）が常に見える．
+  // 表示内容の更新・消え方は通常表示と同じ（新しい文で置き換え，タイマーで消える）．蓄積はしない（2026-08-17 西村指示）
   const isTicker = i => { const l = cfg.lines[i] || {}; return typeof l.nowrap === 'boolean' ? l.nowrap : cfg.whiteSpace === 'nowrap'; };
-  function appendHistory(i, text) {
-    if (!text) return;
-    let s = state[i].text ? state[i].text + ' ' + text : text;
-    if (s.length > TICKER_MAX) { s = s.slice(-TICKER_MAX); const sp = s.indexOf(' '); if (sp > 0 && sp < 40) s = s.slice(sp + 1); }
-    state[i].text = s;
-  }
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -142,6 +140,8 @@
     const hasInterim = s.interim && s.interim.length > 0;
     const plain = (s.text || '') + (hasInterim ? cfg.interimLeft + s.interim + cfg.interimRight : '');
     const line = lines[i], txt = txts[i];
+    // 内容が同じなら DOM を触らない（OBS 定期同期の再送で再描画・アニメが起きないように）．フェード中は消去を中断して再表示する
+    if (!animate && plain === (txt.dataset.text || '') && line.classList.contains('is-empty') === !plain && !line.classList.contains('fade-out')) return;
     line.classList.remove('fade-out');
     if (!plain) {
       txt.innerHTML = ''; txt.dataset.text = '';
@@ -158,25 +158,22 @@
 
   function handle(msg) {
     if (!msg || typeof msg !== 'object') return;
+    // OBS 経由（obs_data）では数値配列が失われるため，同梱された JSON 文字列を優先する
+    if (typeof msg.json === 'string') { try { msg = JSON.parse(msg.json); } catch (e) {} }
     switch (msg.type) {
-      case 'config': applyConfig(msg.config); break;
+      case 'config': applyConfig(msg.config, { persist: true }); break;
       case 'text': {
         const i = msg.slot | 0; if (i < 0 || i > 3) return;
-        if (isTicker(i)) {
-          // 確定 → 蓄積，途中結果 → 蓄積の末尾に付ける（text が空でも過去の文は消さない）．replace は再送・タイトル用（蓄積しない）
-          if (msg.replace) { if (msg.text && !state[i].text) state[i].text = msg.text; }   // 既に蓄積があるなら再送は無視（ログを壊さない）
-          else if (msg.text) appendHistory(i, msg.text);
-          state[i].interim = msg.interim || '';
-          render(i, false);                       // 出現アニメは行全体が動いて見づらいので使わない
-        } else {
-          state[i].text = msg.text || '';
-          state[i].interim = msg.interim || '';
-          render(i, !!msg.animate);
-        }
+        state[i].text = msg.text || '';
+        state[i].interim = msg.interim || '';
+        render(i, isTicker(i) ? false : !!msg.animate);   // 1行表示では出現アニメは行全体が動いて見づらいので使わない
         break;
       }
       case 'clear': {
-        const slots = msg.slots || [0, 1, 2, 3];
+        // slots が空配列（旧経路で数値配列が落ちた場合）や未指定なら全行
+        let slots = Array.isArray(msg.slots) ? msg.slots.map(Number).filter(i => i >= 0 && i <= 3) : [];
+        if (typeof msg.slotList === 'string') slots = msg.slotList.split(',').map(Number).filter(i => i >= 0 && i <= 3);
+        if (!slots.length) slots = [0, 1, 2, 3];
         slots.forEach(i => {
           if (msg.soft) {
             lines[i].classList.add('fade-out');
@@ -204,15 +201,17 @@
   });
 
   // URL の cfg（base64url JSON）で初期スタイル
+  // URL の cfg（ソース追加時点のスナップショット）と，最後に受信して保存した設定のうち新しい方を使う
+  // （OBS でブラウザソースを再読み込みしても最新の設定で表示されるように）
   const cfgParam = params.get('cfg');
+  let urlCfg = null, savedCfg = null;
   if (cfgParam) {
-    try { applyConfig(JSON.parse(decodeURIComponent(escape(atob(cfgParam.replace(/-/g, '+').replace(/_/g, '/')))))); }
-    catch (e) { console.warn('cfg parse error', e); applyConfig(null); }
-  } else {
-    // 同一ブラウザ内なら最後に保存された表示設定を復元
-    try { const saved = localStorage.getItem('jimakuChan_v2_overlayConfig'); applyConfig(saved ? JSON.parse(saved) : null); }
-    catch (e) { applyConfig(null); }
+    try { urlCfg = JSON.parse(decodeURIComponent(escape(atob(cfgParam.replace(/-/g, '+').replace(/_/g, '/'))))); }
+    catch (e) { console.warn('cfg parse error', e); }
   }
+  try { const saved = localStorage.getItem(STORE_KEY); savedCfg = saved ? JSON.parse(saved) : null; } catch (e) {}
+  if (urlCfg && savedCfg) applyConfig((Number(savedCfg.ts) || 0) > (Number(urlCfg.ts) || 0) ? savedCfg : urlCfg);
+  else applyConfig(urlCfg || savedCfg || null);
 
   // OBS 内で何も受信していない間は小さく待機表示（ページが読めているかの確認用）．最初のメッセージで消える
   let waitEl = null;

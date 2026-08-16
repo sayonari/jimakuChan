@@ -28,7 +28,8 @@
     lastFinal: '', interim: '', welcome: false,   // welcome: 起動時のタイトル表示中（喋るまで消さない）
     speechTimer: null, transTimer: null, speechTimerStart: 0, transTimerStart: 0, barRAF: null,
     popup: null, bc: null,
-    interimThrottle: 0,
+    interimThrottle: 0, interimTrail: null,
+    shown: [0, 1, 2, 3].map(() => ({ text: '', interim: '' })),   // 各行の現在の表示内容（再送・OBS 同期用）
   };
   try { engine.bc = new BroadcastChannel('jimakuChan'); } catch (e) {}
 
@@ -39,7 +40,28 @@
     'Mamelon', 'YasashisaB', 'HuiFont29', 'MkPOP', 'bananaslipplus', 'katyou', 'TanukiMagic', 'hakidame', 'umeboshi', 'Jiyucho', 'HitmoR', 'nishikiteki', 'Nikumaru', 'KTEGAKI', 'JKGL', 'OhisamaFont', 'nukamiso', 'genkai', 'CP',
   ];
   const FONT_LABEL = { Mamelon: 'マメロン', YasashisaB: 'やさしさB', HuiFont29: 'ふい字', MkPOP: '851マカポップ', bananaslipplus: 'バナナスリップplus', katyou: '花鳥風月', TanukiMagic: 'たぬき油性マジック', hakidame: '吐き溜', umeboshi: '梅干し', Jiyucho: 'じゆうちょう', HitmoR: 'Hitmo', nishikiteki: 'にしき的', Nikumaru: 'にくまる', KTEGAKI: 'kawaii手書き', JKGL: 'JK Gothic L', OhisamaFont: 'おひさま', nukamiso: 'ぬかみそ', genkai: '源界明朝', CP: 'チェックポイント', 'Nico Moji': 'ニコモジ' };
-  const TRANS_LANGS = [['none', '— なし / none —'], ['ja', '日本語'], ['en', 'English'], ['ko', '한국어'], ['zh-CN', '中文(简体)'], ['zh-TW', '中文(繁體)'], ['zh-HK', '中文(香港)'], ['fr', 'Français'], ['it', 'Italiano'], ['de', 'Deutsch'], ['es', 'Español'], ['pt', 'Português'], ['ru', 'Русский'], ['uk', 'Українська'], ['pl', 'Polski'], ['nl', 'Nederlands'], ['sv', 'Svenska'], ['tr', 'Türkçe'], ['id', 'Bahasa Indonesia'], ['vi', 'Tiếng Việt'], ['th', 'ไทย'], ['ar', 'العربية'], ['hi', 'हिन्दी'], ['el', 'Ελληνικά'], ['so', 'Soomaali']];
+  // 言語一覧：[コード, 現地表記, 日本語名, 英語名]．UI 言語に応じて「日本語名 (現地表記)」／「English name (現地表記)」で表示する
+  const LANG_NAMES = [
+    ['ja', '日本語', '日本語', 'Japanese'], ['en', 'English', '英語', 'English'], ['ko', '한국어', '韓国語', 'Korean'],
+    ['zh-CN', '中文(简体)', '中国語（簡体字）', 'Chinese (Simplified)'], ['zh-TW', '中文(繁體)', '中国語（繁体字・台湾）', 'Chinese (Traditional, Taiwan)'], ['zh-HK', '中文(香港)', '中国語（繁体字・香港）', 'Chinese (Traditional, Hong Kong)'],
+    ['fr', 'Français', 'フランス語', 'French'], ['it', 'Italiano', 'イタリア語', 'Italian'], ['de', 'Deutsch', 'ドイツ語', 'German'], ['es', 'Español', 'スペイン語', 'Spanish'],
+    ['pt', 'Português', 'ポルトガル語', 'Portuguese'], ['ru', 'Русский', 'ロシア語', 'Russian'], ['uk', 'Українська', 'ウクライナ語', 'Ukrainian'], ['pl', 'Polski', 'ポーランド語', 'Polish'],
+    ['nl', 'Nederlands', 'オランダ語', 'Dutch'], ['sv', 'Svenska', 'スウェーデン語', 'Swedish'], ['tr', 'Türkçe', 'トルコ語', 'Turkish'], ['id', 'Bahasa Indonesia', 'インドネシア語', 'Indonesian'],
+    ['vi', 'Tiếng Việt', 'ベトナム語', 'Vietnamese'], ['th', 'ไทย', 'タイ語', 'Thai'], ['ar', 'العربية', 'アラビア語', 'Arabic'], ['hi', 'हिन्दी', 'ヒンディー語', 'Hindi'],
+    ['el', 'Ελληνικά', 'ギリシャ語', 'Greek'], ['so', 'Soomaali', 'ソマリ語', 'Somali'],
+  ];
+  const langLabel = (code, native, ja, en, extra = '') => {
+    const name = (window.i18n && window.i18n.lang === 'en') ? en : ja;
+    const ex = extra ? extra.replace(/^\(|\)$/g, '') : '';           // '(US)' → 'US'
+    if (name === native) return ex ? name + ' (' + ex + ')' : name;    // 例: English (US)
+    return name + ' (' + native + (ex ? ', ' + ex : '') + ')';         // 例: 英語 (English, US)
+  };
+  const TRANS_LANGS = () => [['none', '— なし / none —']].concat(LANG_NAMES.map(([c, n, ja, en]) => [c, langLabel(c, n, ja, en)]));
+  // 認識言語（Web Speech API のロケール）：[コード, LANG_NAMES のキー, 補足]
+  const RECOG_LANGS = [['ja', 'ja'], ['en-US', 'en', '(US)'], ['en-GB', 'en', '(UK)'], ['ko', 'ko'], ['zh-CN', 'zh-CN'], ['zh-TW', 'zh-TW'], ['zh-HK', 'zh-HK'],
+    ['fr-FR', 'fr'], ['it-IT', 'it'], ['de-DE', 'de'], ['es-ES', 'es'], ['pt-BR', 'pt', '(BR)'], ['pt-PT', 'pt', '(PT)'], ['ru-RU', 'ru'], ['uk-UA', 'uk'], ['pl-PL', 'pl'],
+    ['nl-NL', 'nl'], ['sv-SE', 'sv'], ['tr-TR', 'tr'], ['id-ID', 'id'], ['vi-VN', 'vi'], ['th-TH', 'th'], ['ar-SA', 'ar'], ['el-GR', 'el'], ['hi-IN', 'hi']];
+  const recogLangOptions = () => RECOG_LANGS.map(([code, key, extra]) => { const l = LANG_NAMES.find(x => x[0] === key); return [code, langLabel(code, l[1], l[2], l[3], extra || '')]; });
 
   // ======================================================================
   // ユーティリティ
@@ -86,6 +108,7 @@
       bgcolor: S.bgcolor, bgTransparent: S.bgTransparent, textAlign: S.textAlign, vAlign: S.vAlign, whiteSpace: S.whiteSpace,
       theme: S.theme, anim: S.anim, boxColor: S.boxColor, boxRadius: S.boxRadius, strokeMode: S.strokeMode || 'round',
       lines: S.lines, lineSpacing: S.lineSpacing, interimLeft: S.interimLeft, interimRight: S.interimRight, interimOpacity: S.interimOpacity,
+      ts: Date.now(),   // 新旧判定用（overlay は URL の cfg と保存済み設定のうち新しい方を使う）
     };
   }
 
@@ -98,8 +121,16 @@
   }
   function sendObs(msg) {
     if (!engine.obs.connected) return;
-    engine.obs.emitBrowserEvent('jimakuChan', msg);
+    // obs-websocket の emit_event は libobs の obs_data を経由し，数値・文字列だけの配列（slots / lineSpacing 等）を空配列に落とす．
+    // そのため overlay 側で優先的に読む JSON 文字列を同梱する（旧 overlay は json を無視して従来通り動く）
+    engine.obs.emitBrowserEvent('jimakuChan', Object.assign({}, msg, { json: JSON.stringify(msg) }));
   }
+  // OBS 接続中は表示設定を定期的に送り直す（ブラウザソースの再読み込み・キャッシュ後も最新設定に追従させる）
+  function startObsHeartbeat() {
+    stopObsHeartbeat();
+    engine.obsHeartbeat = setInterval(() => { if (engine.obs.connected) { sendObs({ type: 'config', config: displayConfig() }); resendState(sendObs, true); } }, 10000);
+  }
+  function stopObsHeartbeat() { clearInterval(engine.obsHeartbeat); engine.obsHeartbeat = null; }
   function broadcast(msg) { sendLocal(msg); sendObs(msg); }
   const pushConfig = debounce(() => {
     const cfg = displayConfig();
@@ -110,11 +141,16 @@
 
   // ---- 行の表示 ---------------------------------------------------------
   function showLine(slot, text, interim = '', animate = false, replace = false) {
-    const msg = { type: 'text', slot, text, interim, animate, replace };   // replace: 1 行ティッカーでも蓄積せず置き換える（再送・タイトル用）
+    const msg = { type: 'text', slot, text, interim, animate, replace };   // replace: 再送・タイトル用の目印（表示側では通常の置き換えと同じ）
+    engine.shown[slot] = { text, interim };
     sendLocal(msg);
-    // OBS: 途中結果は間引く
+    // OBS: 途中結果は間引く（ただし最後の状態は必ず届くよう，間引いた分は少し後に送り直す）
     const now = Date.now();
-    if (interim && now - engine.interimThrottle < 120) return;
+    clearTimeout(engine.interimTrail); engine.interimTrail = null;
+    if (interim && now - engine.interimThrottle < 120) {
+      engine.interimTrail = setTimeout(() => { engine.interimTrail = null; const cur = engine.shown[slot]; engine.interimThrottle = Date.now(); sendObs({ type: 'text', slot, text: cur.text, interim: cur.interim, animate: false, replace: true }); }, 130);
+      return;
+    }
     engine.interimThrottle = now;
     sendObs(msg);
     // テキストソース（任意）
@@ -131,14 +167,15 @@
   function endWelcome() {
     if (!engine.welcome) return;
     engine.welcome = false;
-    broadcast({ type: 'clear', slots: [0, 1, 2, 3], soft: false });   // 1 行ティッカーの蓄積にタイトルを残さないよう全消し
+    clearLines([0, 1, 2, 3], false);   // タイトルを全行から消す
   }
-  /** 新しく現れた表示先（プレビュー再読込・表示ウィンドウ・OBS 接続）へ現在の表示内容を送り直す */
-  function resendState(send) {
-    if (engine.welcome) { const w = welcomeLines(); send({ type: 'text', slot: 0, text: w[0], replace: true }); send({ type: 'text', slot: 1, text: w[1], replace: true }); }
-    else if (engine.lastFinal) send({ type: 'text', slot: 0, text: engine.lastFinal, replace: true });
+  /** 新しく現れた表示先（プレビュー再読込・表示ウィンドウ・OBS 接続）へ現在の表示内容を送り直す．
+   *  all=true なら空の行も送る（OBS 定期同期：取りこぼした消去・確定を修復する．表示側は内容が同じなら再描画しない） */
+  function resendState(send, all = false) {
+    engine.shown.forEach((c, slot) => { if (all || c.text || c.interim) send({ type: 'text', slot, text: c.text, interim: c.interim, animate: false, replace: true }); });
   }
   function clearLines(slots, soft = true) {
+    slots.forEach(i => { engine.shown[i] = { text: '', interim: '' }; });
     broadcast({ type: 'clear', slots, soft });
     if (engine.obs.connected) slots.forEach(i => { const n = S.obs.textSources && S.obs.textSources[i]; if (n) engine.obs.setText(n, '').catch(() => {}); });
   }
@@ -374,9 +411,7 @@
     try {
       await engine.obs.connect(S.obs.url || 'ws://localhost:4455', S.obs.password || '', { autoReconnect: true });
       if (!auto) toast(t('msgObsConnected'), 'ok');
-      // 接続直後に表示設定を送る（既にシーンにある場合のため）
-      sendObs({ type: 'config', config: displayConfig() });
-      resendState(sendObs);
+      // 表示設定・現在の表示内容の送信は onStatus('connected') 側で行う（自動再接続時も同じ経路）
     } catch (e) {
       if (!auto) toast(t('msgObsFailed'), 'err');
     }
@@ -584,7 +619,10 @@
 
   // ---- 翻訳言語セレクト -------------------------------------------------
   function fillTransSelects() {
-    $$('.trans-select').forEach(sel => { sel.innerHTML = TRANS_LANGS.map(([v, l]) => `<option value="${v}">${l}</option>`).join(''); });
+    const opt = ([v, l]) => `<option value="${v}">${l}</option>`;
+    $$('.trans-select').forEach((sel, k) => { sel.innerHTML = TRANS_LANGS().map(opt).join(''); if (S && S.trans) sel.value = S.trans[k] || 'none'; });
+    const rs = $('select[data-bind="recog"]');
+    if (rs) { rs.innerHTML = recogLangOptions().map(opt).join(''); if (S && S.recog) rs.value = S.recog; }
   }
 
   // ---- 保存・読込・起動ファイル -----------------------------------------
@@ -632,7 +670,7 @@
       window.i18n.setLanguage(l);
       $('#langJa').classList.toggle('on', l === 'ja'); $('#langEn').classList.toggle('on', l === 'en');
       ui.save({ lang: l });
-      renderStyleRows(); renderPresetSelect(); setMicPill({ running: engine.running, listening: engine.recognizer && engine.recognizer.listening });
+      fillTransSelects(); renderStyleRows(); renderPresetSelect(); setMicPill({ running: engine.running, listening: engine.recognizer && engine.recognizer.listening });
       setObsUI(engine.obs.connected ? 'connected' : 'disconnected', '');
       $$('#tabs button').forEach(() => {});
       refreshTranslatorUI(); refreshLocalModelUI(); rebuildFilters();
@@ -705,7 +743,15 @@
     if (S.autoStart !== false) setTimeout(() => startEngine(), 400);
 
     // OBS
-    engine.obs.onStatus = (state, detail) => setObsUI(state, detail);
+    engine.obs.onStatus = (state, detail) => {
+      setObsUI(state, detail);
+      if (state === 'connected') {
+        // 接続（再接続）直後：表示設定と現在の表示内容を送り，以後は定期送信
+        sendObs({ type: 'config', config: displayConfig() });
+        resendState(sendObs);
+        startObsHeartbeat();
+      } else if (state === 'disconnected' || state === 'error') stopObsHeartbeat();
+    };
     setObsUI('disconnected', '');
     if (S.obs.auto) setTimeout(() => obsConnect(true), 500);
 

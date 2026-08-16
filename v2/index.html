@@ -84,33 +84,7 @@
         <h3><span class="em">🎤</span><span data-i18n="hRecog">音声認識</span></h3>
         <div class="kv">
           <label data-i18n="lRecogLang">認識する言語</label>
-          <select data-bind="recog" data-restart="1">
-            <option value="ja">日本語 (Japanese)</option>
-            <option value="en-US">English (US)</option>
-            <option value="en-GB">English (UK)</option>
-            <option value="ko">한국어 (Korean)</option>
-            <option value="zh-CN">中文 简体 (zh-CN)</option>
-            <option value="zh-TW">中文 繁體 台灣 (zh-TW)</option>
-            <option value="zh-HK">中文 繁體 香港 (zh-HK)</option>
-            <option value="fr-FR">Français</option>
-            <option value="it-IT">Italiano</option>
-            <option value="de-DE">Deutsch</option>
-            <option value="es-ES">Español</option>
-            <option value="pt-BR">Português (BR)</option>
-            <option value="pt-PT">Português (PT)</option>
-            <option value="ru-RU">Русский</option>
-            <option value="uk-UA">Українська</option>
-            <option value="pl-PL">Polski</option>
-            <option value="nl-NL">Nederlands</option>
-            <option value="sv-SE">Svenska</option>
-            <option value="tr-TR">Türkçe</option>
-            <option value="id-ID">Bahasa Indonesia</option>
-            <option value="vi-VN">Tiếng Việt</option>
-            <option value="th-TH">ไทย</option>
-            <option value="ar-SA">العربية</option>
-            <option value="el-GR">Ελληνικά</option>
-            <option value="hi-IN">हिन्दी</option>
-          </select>
+          <select data-bind="recog" data-restart="1"><!-- 選択肢は app.js（RECOG_LANGS）で生成 --></select>
           <label data-i18n="lShortPause">文の区切り</label>
           <div class="row" style="margin:0"><input type="number" class="sm" data-bind="shortPause" min="0" step="50" data-restart="1"> <span class="hint" data-i18n="msShortPause">ミリ秒 黙ったら確定（500:すぐ / 750:普通 / 1000:つなぐ，0=自動）</span></div>
           <label data-i18n="lTimer">消すまで</label>

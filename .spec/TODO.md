@@ -1,6 +1,7 @@
 # TODO - タスクリスト
 
 ## 優先度：高
+- [ ] 2026-08-17 OBS 側の不具合修正（消えない／再読み込みで戻る／言語表記／v1 の v2 リンク）を西村が OBS 実機でテスト → コミット・push
 - [ ] 西村による実機テスト（Chrome 実機でマイク認識・Chrome 翻訳・OBS 31 でブラウザソース追加・クロマキー窓）
 - [x] v2 を v2/ に配置して main にマージ・push（2026-08-16 β公開 https://sayonari.github.io/jimakuChan/v2/）
 - [x] goodBadWordlist の 2 コミット（ローカル main）を push（2026-08-16 確認：origin/main と同期済み）

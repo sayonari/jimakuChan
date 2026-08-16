@@ -14,3 +14,6 @@
 - Playwright は tools/promo_video/node_modules にインストール済（テスト・動画生成に使用）
 - fake_sr.js（tools/promo_video）で Web Speech API をモックして E2E テストできる
 - バージョン表記は `v2/js/presets.js` の VERSION（`YYYY.MM.DD HH:MM`，時刻まで含める・西村指示 2026-08-17）．push のたびに書き換える．画面バッジ・フッター・起動時タイトル・エクスポート JSON に反映される
+- **obs-websocket emit_event の落とし穴**：event_data は libobs obs_data を通るため，数値・文字列だけの配列は空配列になる（オブジェクト配列は残る）．OBS 向けメッセージは必ず `json` 文字列を同梱する（sendObs が自動で付ける）．新しいメッセージ型を足すときもこの経路で配列を送らないこと
+- OBS 側の即時反映を確認するときは「ブラウザソースの再読み込み」も試す（URL の cfg は追加時点のスナップショット．overlay の localStorage 復元＋10 秒ハートビートで追従）
+- 開発用証明書 localhost.pem は mkcert 製（有効期限あり，git 管理外）．期限切れになると Chrome がマイク許可を記憶せず「文ごとに再起動」のたびに許可ポップアップが出る．`mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1 ::1` で再発行（2026-08-17 再発行，期限 2028-11-17）
