@@ -56,7 +56,7 @@
       hReplace: '語句置換', replaceHelp: '認識結果の文字列を置き換えます（表示・翻訳・OBS すべてに反映）．1 行に 1 つ「置換前→置換後」．', phReplace: 'にしむら→西村\nじまく→字幕',
       hSave: '設定ファイル', saveHelp: '全プリセット（GAS キー・OBS 設定を含む）を 1 つの JSON ファイルに保存／読込します．別 PC や起動ファイル用プロファイルへの引っ越しに．',
       btnExport: 'ファイルに保存', btnImport: 'ファイルから読込', btnMigrate: '旧バージョンの設定を取り込む',
-      hLaunch: '起動ファイル（全画面ゲーム中も止まらない）', launchHelp: 'Chrome の省電力で認識が止まるのを防ぐ起動ファイルを作ります．専用プロファイルで開くので，初回はそちらで「ファイルから読込」してください．', launchVideo: '解説動画はこちら', launchVideoSub: '起動ファイルの作り方・使い方（YouTube）',
+      hLaunch: '起動ファイル（全画面ゲーム中も止まらない）', launchHelp: 'Chrome の省電力で認識が止まるのを防ぐ起動ファイルを作ります．専用プロファイルで開くので，初回はそちらで「ファイルから読込」してください．', launchVideo: '解説動画', launchVideoSub: '起動ファイルの作り方・使い方（YouTube）',
       hAbout: 'このアプリについて', aboutText: '音声認識字幕ちゃんは，ブラウザだけで動くリアルタイム字幕ツールです．インストール不要・超軽量．音声認識は Chrome（Google）で行われます．',
       linkGuide: '使い方ガイド', linkWords: '伏字リスト', devs: '開発者：さぁたん ＆ さよなりω/(大学教員)西村良太',
       // 動的メッセージ
@@ -123,7 +123,7 @@
       hReplace: 'Word replacement', replaceHelp: 'Rewrites recognized text (display, translation and OBS). One rule per line: before→after.', phReplace: 'nishimura→Nishimura',
       hSave: 'Settings file', saveHelp: 'Save / load all presets (incl. GAS key and OBS settings) as one JSON file.',
       btnExport: 'Save to file', btnImport: 'Load from file', btnMigrate: 'Import settings from v1',
-      hLaunch: 'Launcher (keeps running during full-screen games)', launchHelp: 'Creates a launcher that prevents Chrome power-saving from pausing recognition. It uses a dedicated profile, so load your settings file there once.', launchVideo: 'Watch the how-to video', launchVideoSub: 'How to create & use the launcher (YouTube, Japanese)',
+      hLaunch: 'Launcher (keeps running during full-screen games)', launchHelp: 'Creates a launcher that prevents Chrome power-saving from pausing recognition. It uses a dedicated profile, so load your settings file there once.', launchVideo: 'How-to video', launchVideoSub: 'How to create & use the launcher (YouTube, Japanese)',
       hAbout: 'About', aboutText: 'jimakuChan is a real-time subtitle tool that runs entirely in the browser. No install, ultra light. Recognition is done by Chrome (Google).',
       linkGuide: 'Guide', linkWords: 'Word lists', devs: 'Dev: Saatan & Sayonari / Prof. Ryota Nishimura',
       msgStarted: 'Recognition started. Say something!', msgStopped: 'Recognition stopped', msgMicDenied: 'Microphone not allowed. Allow it from the address-bar mic icon',

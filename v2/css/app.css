@@ -273,13 +273,11 @@ body.display-mode .wrap > * { animation: none; }
 body.display-mode.show-hint #displayHint { opacity: 1; }
 body.display-mode .toast { display: none; }
 
-/* ---- 解説動画リンク（サムネイル付き） ---- */
-.vlink { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 6px 12px 6px 6px; border-radius: 12px; border: 1px solid var(--line2); background: var(--bg2); color: var(--fg); text-decoration: none; transition: background .15s ease, border-color .15s ease, transform .08s ease; }
-.vlink:hover { background: var(--bg3); border-color: var(--pink); }
-.vlink:active { transform: translateY(1px); }
-.vthumb { position: relative; width: 112px; height: 63px; border-radius: 8px; overflow: hidden; background: #111; flex: none; }
-.vthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.vplay { position: absolute; left: 50%; top: 50%; width: 34px; height: 24px; transform: translate(-50%, -50%); filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
-.vtext { display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
-.vtext b { font-size: 13px; }
-.vtext small { font-size: 11.5px; color: var(--fg2); }
+/* ---- 解説動画（見出し＋サムネイル） ---- */
+.vsec { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line2); }
+.vhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.vhead b { font-size: 13.5px; }
+.vhead span { font-size: 12px; color: var(--fg2); }
+.vlink { display: inline-block; border-radius: 12px; overflow: hidden; border: 1px solid var(--line2); box-shadow: 0 2px 10px rgba(0,0,0,.12); background: #111; line-height: 0; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+.vlink:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.2); border-color: var(--pink); }
+.vthumb { display: block; width: 280px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
