@@ -1,10 +1,11 @@
 /*
  * jimakuChan v2 – 音声認識エンジン（Web Speech API / デュアルインスタンス）
  *
- * mode 'continuous'（既定）: continuous=true の 1 セッションを回し続ける．文の区切りは Chrome の
+ * mode 'restart'（既定・v1 方式）: continuous=false を 2 インスタンスで交互に回し，確定のたびに次を先行起動．
+ *   文末の確定が速く，字幕がテンポよく出る（2026-08-17 に既定へ）．
+ * mode 'continuous'（オプション）: continuous=true の 1 セッションを回し続ける．文の区切りは Chrome の
  *   エンドポイント検出に任せつつ，shortPause ms 途中結果が止まったら「仮確定」して字幕・翻訳を先に出す．
- *   セッションが途切れないので次の文の頭が切れない．
- * mode 'restart'（v1 方式）: continuous=false を 2 インスタンスで交互に回し，確定のたびに次を先行起動．
+ *   セッションが途切れないので次の文の頭が切れないが，文末の確定は遅め．
  *
  * イベント（EventTarget）：
  *   'interim'  detail:{ text }                    途中結果（確定分は含まない）
@@ -25,7 +26,7 @@
       this.processLocally = !!opts.processLocally;
       this.phrases = opts.phrases || [];        // [{phrase, boost}]
       this.shortPause = opts.shortPause || 0;   // ms, 0=無効
-      this.mode = opts.mode || 'continuous';    // 'continuous' | 'restart'
+      this.mode = opts.mode || 'restart';       // 'restart'（既定）| 'continuous'
       this._soft = null;                         // 仮確定した文 {text}
       this._segBase = '';                        // continuous: 直前までに確定済みの結合テキスト（表示済み分）
       this.supported = !!SR;

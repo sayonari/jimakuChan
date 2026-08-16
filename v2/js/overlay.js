@@ -30,7 +30,7 @@
   const DEFAULT = {
     bgcolor: '#00ff00', bgTransparent: false, strokeMode: 'round',
     textAlign: 'center', vAlign: 'bottom', whiteSpace: 'normal',
-    theme: 'outline', anim: 'rise', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12,
+    theme: 'outline', anim: 'none', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12,
     lines: [
       { font: 'M PLUS Rounded 1c', size: 25, weight: 900, color: '#ffffff', strokeColor: '#000000', strokeWidth: 6 },
       { font: 'M PLUS Rounded 1c', size: 25, weight: 900, color: '#ffffff', strokeColor: '#000000', strokeWidth: 6 },

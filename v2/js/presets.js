@@ -19,12 +19,12 @@
 
   const DEFAULTS = {
     // 認識
-    recog: 'ja', recogModel: 'cloud', recogMode: 'continuous', shortPause: 750, timer: 7000, bouyomi: false, autoStart: true,
+    recog: 'ja', recogModel: 'cloud', recogMode: 'restart', shortPause: 750, timer: 7000, bouyomi: false, autoStart: true,
     wordBoost: '', wordBoostStrength: 5,
     // 翻訳
     trans: ['en', 'none', 'none'], translationMethod: 'chrome', gasKey: '',
     // 見た目
-    theme: 'outline', anim: 'rise', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12, strokeMode: 'round',
+    theme: 'outline', anim: 'none', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12, strokeMode: 'round',
     lines: [line(), line(), line(), line()],
     bgcolor: '#00ff00', bgTransparent: true, textAlign: 'center', vAlign: 'bottom', whiteSpace: 'normal',
     lineSpacing: [0, 0, 0], interimLeft: ' << ', interimRight: ' >>', interimOpacity: 100,
@@ -137,6 +137,18 @@
         if (!d.presets[id]) d.presets[id] = { name: b.name, settings: clone(b.settings), builtin: true, lastModified: null };
       }
       if (!d.presets[d.current]) d.current = 'default';
+      // 既定値の改訂（rev2, 2026-08-17）：β初期の保存値に残る旧既定を新既定へ寄せる．
+      // 連続認識は文末確定が遅く重く見える→「文ごとに再起動」へ／標準・カスタム系の「せり上がり」（旧既定）→「なし」
+      // （組み込みプリセット独自のアニメ指定はそのまま）
+      if (!(d.defaultsRev >= 2)) {
+        for (const [id, p] of Object.entries(d.presets)) {
+          const s = p && p.settings; if (!s) continue;
+          if (s.recogMode === 'continuous') s.recogMode = 'restart';
+          const bAnim = BUILTIN[id] && BUILTIN[id].settings.anim;
+          if (!bAnim && s.anim === 'rise') s.anim = 'none';
+        }
+        d.defaultsRev = 2;
+      }
       this.data = d;
       this.save();
     }

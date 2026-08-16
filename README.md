@@ -6,7 +6,7 @@
 ## ✨ v2 β（2026-08）
 
 全面再実装した v2 を **https://sayonari.github.io/jimakuChan/v2/** で β 公開中（従来版はこのまま利用できます）．  
-OBS へのワンクリック追加（obs-websocket）・見た目テーマ・伏字ルールの見直し・次の文の頭が切れない連続認識など．詳細は [v2/README.md](v2/README.md)．
+OBS へのワンクリック追加（obs-websocket）・見た目テーマ・伏字ルールの見直し・連続認識（オプション）など．詳細は [v2/README.md](v2/README.md)．
 
 ## 🚀 デモ・体験版
 

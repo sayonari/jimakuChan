@@ -226,7 +226,7 @@
   function buildRecognizer() {
     if (engine.recognizer) { engine.recognizer.stop(); }
     const R = new window.JimakuRecognizer({
-      lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'continuous',
+      lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'restart',
       phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
     });
     R.addEventListener('state', e => setMicPill(e.detail));

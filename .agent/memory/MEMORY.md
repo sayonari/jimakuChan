@@ -9,7 +9,7 @@
 - テスト前にコミットしない／サーバー起動はユーザーが行う（CLAUDE.md）
 - 句読点は「，．」（西村ルール）．UI 文言も同様
 - 西村ポリシー：導入簡単・機能を絞る・軽量・縁取りは外側にだけ伸びて改行がずれない
-- 伏字：ラテン系は単語境界，CJK は部分一致＋GoodList．goodBadWordlist は同階層の別リポジトリ（ローカル main に 2 コミット，未 push）
+- 伏字：ラテン系は単語境界，CJK は部分一致＋GoodList．goodBadWordlist は同階層の別リポジトリ（2026-08-16 push 済）
 - 外部 AI 監査：`codex exec --skip-git-repo-check -s read-only -m gpt-5.6-sol < prompt.txt`（30 分程度かかる）
 - Playwright は tools/promo_video/node_modules にインストール済（テスト・動画生成に使用）
 - fake_sr.js（tools/promo_video）で Web Speech API をモックして E2E テストできる
