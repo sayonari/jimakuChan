@@ -11,7 +11,7 @@
 (function (global) {
   'use strict';
 
-  const VERSION = '2026.08.16';
+  const VERSION = '2026.08.17 03:09';   // 更新時に日付＋時刻（JST）を書き換える
   const KEY = 'jimakuChan_v2_presets';
   const KEY_UI = 'jimakuChan_v2_ui';
 

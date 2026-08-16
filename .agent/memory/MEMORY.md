@@ -13,3 +13,4 @@
 - 外部 AI 監査：`codex exec --skip-git-repo-check -s read-only -m gpt-5.6-sol < prompt.txt`（30 分程度かかる）
 - Playwright は tools/promo_video/node_modules にインストール済（テスト・動画生成に使用）
 - fake_sr.js（tools/promo_video）で Web Speech API をモックして E2E テストできる
+- バージョン表記は `v2/js/presets.js` の VERSION（`YYYY.MM.DD HH:MM`，時刻まで含める・西村指示 2026-08-17）．push のたびに書き換える．画面バッジ・フッター・起動時タイトル・エクスポート JSON に反映される
