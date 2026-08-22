@@ -27,6 +27,11 @@ jimakuChan v2 (音声認識字幕ちゃん) — ブラウザだけで動く配�
 - 導入が簡単であることに全振り／機能は絞る／安定・超軽量／縁取りは外側にだけ伸び改行がずれない
 - 句読点は「，．」
 
+## Drive アーカイブ
+`.agent/scripts/sync_to_drive.sh` を作業の区切り（成果物完成・push・セッション終了）ごとに実行する．
+保存先：`マイドライブ/nishimura/webpage/字幕ちゃん/jimakuChan_v2/`（`01_受領書類・メール` ← `.references/`，`02_成果物` ← `.output/`，`03_記録` ← `.spec/` `.agent/`）．
+**ソースコードは GitHub（github.com/sayonari/jimakuChan）が正本のため同期しない．**
+
 ## Development Commands
 
 ### Local HTTPS Server

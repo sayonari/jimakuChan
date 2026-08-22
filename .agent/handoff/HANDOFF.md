@@ -1,51 +1,44 @@
-# HANDOFF - 2026-08-16 02:00
+# HANDOFF - 2026-08-22 17:55
 
 ## 使用ツール
-Claude Code (Fable 5) ＋ Codex CLI (GPT-5.6 Sol, 旧版監査) ＋ Playwright（headless 検証・動画生成）
+Claude Code (Opus 5, 1M) ＋ Playwright（headless 検証）
 
-## 現在のタスクと進捗
-- [x] 旧版精査（バグ監査 2 系統）
-- [x] v2 再実装（別フォルダ＝ここ，ブランチ v2-rebuild，**未コミット**）
-- [x] 伏字ルール見直し＋ goodBadWordlist 全言語更新（別リポジトリ，ローカル main にコミット済・未 push）
-- [x] 紹介動画の全自動生成ツール（tools/promo_video，`node build.mjs`）
-- [ ] 西村の実機テスト → コミット → GitHub Pages 反映
+## このセッションでやったこと
+X で受けた報告「スペイン語だけ認識されなくなった（他言語は問題なし）」への対応．
 
-## 試したこと・結果
-- headless Chromium で設定画面・overlay・疑似認識フロー・タイマー・プリセットは動作確認済（.output/*.png）
-- Chrome 実機（マイク・Chrome 翻訳・OBS 接続）は未検証（サーバー起動は西村が行うルールのため）
+### 調査
+- 報告者から送られた画面は **v2 β（英語 UI）**．右下の「6 translations」＝そのページで翻訳が 6 回成功しており，
+  **認識・翻訳の経路自体は動いていた**（おそらく他言語で）．Stop 表示＝稼働中，Auto start ON，プレビューは空，
+  認識言語 Spanish だけ赤枠（報告者の注釈）
+- コードを追跡：`app.js` の `es-ES`，言語切替時の再起動（`data-restart="1"`），`filter.js`（ラテン系は単語境界），
+  `chrome_translator.js` の `es` マップ ― いずれも正常．**スペイン語だけを止める処理は v2 に無い**
+- → Chrome の音声認識側が `es-ES` を返していない可能性が高い（オンデバイスモデル／地域バリアント）
+
+### 実装（コミット・push 済）
+- jimakuChan `48d8acd`（Ver 2026.08.22 17:41，GitHub Pages 反映確認済）
+  - 認識言語に **es-ES / es-MX / es-US / es-AR / es-CO** を追加
+  - `language-not-supported` をクラウド認識時に致命エラーとして通知・停止（従来は無言で再起動を繰り返す）
+  - 致命エラー文言を種類ごとに分岐（**従来は language-not-supported でも「マイクが許可されていません」と誤表示**），
+    トーストは消えるので `#engineStatus` にも残す
+  - i18n `msgLangUnsupported`（日英），翻訳マップに es バリアント
+- goodBadWordlist `2c6cdd3`（push 済）
+  - es/de/pt の GoodList の文字化け（Latin-1 二重変換）修正，pt の壊れた残骸行を削除
+  - **v1 は全言語で部分一致のまま**という構造問題を発見 → 巻き込まれる正当語を GoodList に補強
+    （es/pt/fr/id/nl/tr，活用形を含む）．pt の BadList から 2 文字語 `cu` を削除
+  - README に「従来版は部分一致」「3 文字以下を入れない」「活用形も書く」を明記
+
+### 検証
+- Playwright headless（file://）：選択肢 5 件・日英ラベル・翻訳マップ es-*→es・伏字の単語境界・コンソールエラー 0
+- 単語リストは v1（部分一致）/v2（単語境界）両アルゴリズムを再現して各言語の文例を確認
 
 ## 次のセッションで最初にやること
-1. AGENTS.md / MEMORY.md を読む
-2. 西村のテスト結果を聞き，不具合があれば修正 → コミット
-3. goodBadWordlist の push 可否を確認
-
-## 2026-08-16 深夜：初回テストの指摘 4 件に対応済（スペース除去／途中結果のみ／連続モード／PC内フォント／OBS http:4444）．再テスト待ち
-
-## 2026-08-16 深夜2：2 回目フィードバック対応→ v2/ に配置し main へ push（β公開済）．なめらか縁取り（膨張影），ライト UI 既定，自動開始，PC 内フォント一覧，Google Fonts 指定修正，動画 2 本（edge-tts Nanami）
-
-## 2026-08-16 03:15：β公開・Twitter 投稿済み．次はユーザーからの反応・不具合報告への対応，将来のメイン URL 切替
+1. **報告者（X）への返信**．文案は `.output/2026-08-22_スペイン語認識_調査.html` の 5 章（投稿は西村先生）
+2. 返信で得られた情報（Chrome バージョン・OS・コンソールのエラー）で原因を確定．
+   `language-not-supported` なら今回の修正でメッセージが出るようになっている
+3. **v1（従来版）の伏字が部分一致のままである件**の方針決定．
+   en `ass`／fr `cul`／id `tai` `asu`／nl `pik`／tr `oç` なども GoodList でしか守れていない．
+   根本対策は v1 の `applyContentFilter` を単語境界化することだが，2 万人利用のため西村先生の判断が必要
 
 ## 注意点・ブロッカー
-- goodBadWordlist の変更は push すると v1（部分一致）にも即反映される．v1 に影響しそうな短い語は入れていないつもりだが要注意
-- overlay.html を OBS で使うには GitHub Pages 反映後の URL が必要（file:// は OBS 側では読めない場合がある）
-- 動画の音声は macOS `say -v Kyoko`．別ボイスに変えるなら narration.mjs の buildNarration('Kyoko') を変更
-
-## 2026-08-16 昼：1行表示（ティッカー）・起動時タイトル表示・開発者表記修正を main へ push（f8b5308，GitHub Pages 反映待ち）
-
-## 2026-08-17：既定値変更（未コミット・西村テスト待ち）
-- 認識セッションの既定を「文ごとに再起動（従来）」へ（連続認識は文末確定が遅く重く見えるため．連続はオプションとして残す）
-- 出現アニメの既定（標準・カスタム）を「なし」へ（アニメ有りだと途中結果が一度消えて再表示され連続性が失われる）．組み込みプリセット独自の anim 指定は維持（西村指示）
-- presets.js に `defaultsRev=2` の一回限り移行：保存済み recogMode=continuous→restart，組み込み anim 指定の無いプリセットの anim=rise→none（β初期利用者向け）
-- 保存・起動タブの「解説動画」リンクを YouTube サムネイル＋再生バッジ付きカード（.vlink）に
-- headless（Playwright, file://）で移行と UI 初期状態は確認済．実機（マイク）での体感確認は西村
-
-## 2026-08-17 朝：OBS(websocket) 表示側の不具合報告 4 件に対応（未コミット・西村テスト待ち）
-- 根本原因：obs-websocket emit_event → libobs obs_data が数値配列を空にする → `clear{slots:[..]}` が OBS では無効（字幕が消えない／翻訳解除しても残る／起動タイトルが残る），`lineSpacing` も無視されていた
-- 対策：sendObs で `json: JSON.stringify(msg)` を同梱，overlay は json を優先．旧 overlay 互換（外側フィールドも従来通り送る）
-- OBS 再読み込みで設定が戻る：overlay が受信設定を localStorage 保存し，URL cfg と ts 比較で新しい方を使用．接続中は 10 秒ごと config 再送（applyConfig は内容同一なら何もしない）
-- 接続・自動再接続時に config＋現在表示を送る処理を onStatus('connected') に一本化
-- 言語セレクト：日本語名/英語名＋現地表記に（例「ロシア語 (Русский)」）．認識言語セレクトも app.js の RECOG_LANGS で生成
-- v1：バナーを閉じた後も v2 へ行けるよう，設定エリア（iframe 下の説明文の行）に v2 β リンクを常設（画面上部はキャプチャに映り込むため置かない）
-- headless（Playwright）で obs_data 模倣テスト・再読み込み復元・言語表記を確認．実機（OBS 実機で消去・再読み込み）は西村
-- 追加（同日 08:24）：「1行表示」の蓄積（過去の確定文を左へ流す）を廃止．表示内容の更新・消え方は通常行と同じに（西村指示）．ツールチップ・README も更新．開発用証明書（mkcert）が期限切れでマイク許可が毎回出ていた → 再発行済
-- 追加（同日 08:40）：OBS 側だけ途中結果マークが残った件 → OBS 経路の自己修復：①途中結果の間引きで落とした最後の状態を 130ms 後に再送（trailing send），②10 秒ハートビートで全 4 行の現在内容（engine.shown）も再送，③overlay.render は内容が同じなら DOM を触らない（再描画・アニメなし），overlay.html の行に初期 is-empty
+- goodBadWordlist の変更は push すると v1 にも即反映される
+- 今回はテスト前コミット禁止ルールについて西村先生から明示の許可を得てコミット・push した（通常は実機テスト後）
