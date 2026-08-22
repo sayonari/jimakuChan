@@ -59,7 +59,9 @@
   const TRANS_LANGS = () => [['none', '— なし / none —']].concat(LANG_NAMES.map(([c, n, ja, en]) => [c, langLabel(c, n, ja, en)]));
   // 認識言語（Web Speech API のロケール）：[コード, LANG_NAMES のキー, 補足]
   const RECOG_LANGS = [['ja', 'ja'], ['en-US', 'en', '(US)'], ['en-GB', 'en', '(UK)'], ['ko', 'ko'], ['zh-CN', 'zh-CN'], ['zh-TW', 'zh-TW'], ['zh-HK', 'zh-HK'],
-    ['fr-FR', 'fr'], ['it-IT', 'it'], ['de-DE', 'de'], ['es-ES', 'es'], ['pt-BR', 'pt', '(BR)'], ['pt-PT', 'pt', '(PT)'], ['ru-RU', 'ru'], ['uk-UA', 'uk'], ['pl-PL', 'pl'],
+    ['fr-FR', 'fr'], ['it-IT', 'it'], ['de-DE', 'de'],
+    ['es-ES', 'es', '(ES)'], ['es-MX', 'es', '(MX)'], ['es-US', 'es', '(US)'], ['es-AR', 'es', '(AR)'], ['es-CO', 'es', '(CO)'],
+    ['pt-BR', 'pt', '(BR)'], ['pt-PT', 'pt', '(PT)'], ['ru-RU', 'ru'], ['uk-UA', 'uk'], ['pl-PL', 'pl'],
     ['nl-NL', 'nl'], ['sv-SE', 'sv'], ['tr-TR', 'tr'], ['id-ID', 'id'], ['vi-VN', 'vi'], ['th-TH', 'th'], ['ar-SA', 'ar'], ['el-GR', 'el'], ['hi-IN', 'hi']];
   const recogLangOptions = () => RECOG_LANGS.map(([code, key, extra]) => { const l = LANG_NAMES.find(x => x[0] === key); return [code, langLabel(code, l[1], l[2], l[3], extra || '')]; });
 
@@ -268,8 +270,14 @@
     });
     R.addEventListener('state', e => setMicPill(e.detail));
     R.addEventListener('error', e => {
-      if (e.detail.fatal) { toast(e.detail.error === 'unsupported' ? t('msgUnsupported') : t('msgMicDenied'), 'err'); setRunning(false); }
-      else $('#engineStatus').textContent = e.detail.message || '';
+      const code = e.detail.error;
+      if (e.detail.fatal) {
+        const msg = code === 'unsupported' ? t('msgUnsupported')
+          : (code === 'language-not-supported' || code === 'phrases-not-supported') ? t('msgLangUnsupported')
+          : t('msgMicDenied');
+        toast(msg, 'err'); setRunning(false);
+        $('#engineStatus').textContent = msg;     // トーストは消えるので状態欄にも残す
+      } else $('#engineStatus').textContent = e.detail.message || '';
     });
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
     R.addEventListener('interim', e => onInterim(e.detail.text));

@@ -61,6 +61,7 @@
       linkGuide: '使い方ガイド', linkWords: '伏字リスト', devs: '開発者：さぁたん ＆ さよなりω/(大学教員)西村良太',
       // 動的メッセージ
       msgStarted: '認識をはじめました．話してみてください', msgStopped: '認識をとめました', msgMicDenied: 'マイクが許可されていません．アドレスバーのマイクアイコンから許可してください',
+      msgLangUnsupported: 'この認識言語はお使いの Chrome では使えませんでした．同じ言語の別の地域（例：スペイン語 (MX)）を選ぶか，Chrome を最新版に更新してください',
       msgUnsupported: 'このブラウザは音声認識に対応していません．Google Chrome を使ってください', msgFallbackCloud: 'ローカル認識が使えないためクラウド認識に切り替えました',
       msgObsConnected: 'OBS に接続しました', msgObsFailed: 'OBS に接続できません（OBS 起動・WebSocket 有効化・パスワードを確認）', msgObsAdded: 'OBS のシーンに字幕ソースを追加しました', msgObsUpdated: 'OBS の字幕ソースを更新しました',
       msgCopied: 'コピーしました', msgSaved: '保存しました', msgImported: '設定を読み込みました', msgImportErr: '読み込めないファイルです', msgReset: 'このプリセットを初期値に戻しました',
@@ -127,6 +128,7 @@
       hAbout: 'About', aboutText: 'jimakuChan is a real-time subtitle tool that runs entirely in the browser. No install, ultra light. Recognition is done by Chrome (Google).',
       linkGuide: 'Guide', linkWords: 'Word lists', devs: 'Dev: Saatan & Sayonari / Prof. Ryota Nishimura',
       msgStarted: 'Recognition started. Say something!', msgStopped: 'Recognition stopped', msgMicDenied: 'Microphone not allowed. Allow it from the address-bar mic icon',
+      msgLangUnsupported: 'Chrome could not start speech recognition for this language. Try another region of the same language (e.g. Spanish (MX)), or update Chrome to the latest version',
       msgUnsupported: 'This browser does not support speech recognition. Please use Google Chrome', msgFallbackCloud: 'Local model unavailable — switched to cloud recognition',
       msgObsConnected: 'Connected to OBS', msgObsFailed: 'Cannot connect to OBS (check OBS is running, WebSocket enabled, password)', msgObsAdded: 'Subtitle source added to the OBS scene', msgObsUpdated: 'OBS subtitle source updated',
       msgCopied: 'Copied', msgSaved: 'Saved', msgImported: 'Settings loaded', msgImportErr: 'Unreadable file', msgReset: 'Preset reset to defaults',

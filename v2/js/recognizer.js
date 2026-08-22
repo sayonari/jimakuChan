@@ -145,6 +145,13 @@
             this.restart();
             return;
           }
+          // クラウド認識でも未対応：再起動しても直らないので止めて利用者に伝える
+          this._wantRunning = false;
+          clearTimeout(this._pauseTimer); clearTimeout(this._restartTimer);
+          this._instances.forEach((r2, k) => { try { r2.abort(); } catch (e2) {} this._states[k] = 'stopped'; });
+          this._emit('error', { error: err, fatal: true, message: err + ': ' + this.lang });
+          this._emitState();
+          return;
         }
         this._errorCount++;
         this._emit('error', { error: err, fatal: false, message: err });
