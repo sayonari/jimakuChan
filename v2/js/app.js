@@ -713,7 +713,9 @@
     $('#btnStop').addEventListener('click', () => stopEngine(false));
     $('#btnPopup').addEventListener('click', openPopup); $('#btnPopup2').addEventListener('click', openPopup);
     $('#btnDisplayMode').addEventListener('click', () => setDisplayMode(true)); $('#btnDisplayMode2').addEventListener('click', () => setDisplayMode(true));
-    window.addEventListener('message', e => { if (e.data && e.data.jimakuChanEvent === 'click' && document.body.classList.contains('display-mode')) setDisplayMode(false); });
+    // 字幕表示領域（プレビュー）のクリックで表示モードを出入りする（v1 と同じ操作感・2026-08-27 西村指示）
+    window.addEventListener('message', e => { if (e.data && e.data.jimakuChanEvent === 'click') toggleDisplayMode(); });
+    $('#previewCard').querySelector('.frame').addEventListener('click', e => { if (!e.target.closest('.hud')) toggleDisplayMode(); });   // iframe の外側（枠）をクリックした場合
     window.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('display-mode')) setDisplayMode(false); });
     window.addEventListener('mousemove', () => { if (document.body.classList.contains('display-mode')) showHint(); });
     if (uiState.displayMode) setDisplayMode(true, false);      // 前回表示モードで終わっていれば同じ URL で表示モードから始まる

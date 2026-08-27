@@ -20,31 +20,30 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
 .stage[data-align="right"]   { text-align: right; }
 /*
  * 折り返さない（1 行ティッカー）モード：
- *   行を [左マーカー << ][ 流れる窓 ][ 右マーカー >> ] の 3 分割にする．
- *   窓は rtl ＋ overflow:hidden なので，最新が常に右端に見え，あふれた頭は左マーカーの内側へ吸い込まれる．
- *   中身 .txt は ltr に戻すので文字順は変わらない．マーカーは常に両端へ貼り付く．
+ *   窓（.win）を rtl ＋ overflow:hidden にして，最新が右端に見え，古い方が左へ流れて消えるようにする．
+ *   途中結果が長くなって「認識中マーカー」（既定 <<）が画面外へ出てしまうときだけ，
+ *   そのマーカーを行の左端へ貼り付けて残す（.line.is-over）．マーカーは途中結果があるときだけ出る．
  *   通常（折り返し）モードでは .mk を隠し，.win を display:contents にして従来どおりの表示に戻す．
  */
 .line:not([data-wrap="nowrap"]) > .mk { display: none; }
+.mk:empty { display: none; }
 .win { display: contents; }
 .line[data-wrap="nowrap"] {
-  display: flex; align-items: center; white-space: nowrap; direction: ltr;
+  position: relative; white-space: nowrap; direction: ltr;
 }
-.line[data-wrap="nowrap"] > .mk {
-  display: inline-block; flex: 0 0 auto; padding: 0 .08em;
-}
-.line[data-wrap="nowrap"] > .mk.is-off { display: none; }
 .line[data-wrap="nowrap"] > .win {
-  display: block; flex: 1 1 auto; min-width: 0;
-  direction: rtl;
+  display: block; direction: rtl;
   overflow: hidden;
-  padding: .4em .3em .4em 0; margin: -.4em 0;   /* 上下：縁取り・グローを切らない／右：最新の文字の縁とマーカーが接しないように */
+  padding: .4em .3em .4em 0; margin: -.4em 0;   /* 上下：縁取り・グローを切らない／右：最新の文字の縁が窓で切れないように */
 }
 .line[data-wrap="nowrap"] > .win > .txt { direction: ltr; unicode-bidi: isolate; max-width: none; }
-/* あふれている間だけ，吸い込まれる側（左）をぼかす */
-.line[data-wrap="nowrap"] > .win.is-over {
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.1em);
-          mask-image: linear-gradient(to right, transparent 0, #000 1.1em);
+/* 左端に残したマーカー（あふれている間だけ） */
+.line[data-wrap="nowrap"] > .mk { display: none; position: absolute; left: 0; top: 0; }
+.line[data-wrap="nowrap"].is-over > .mk { display: inline-block; }
+/* マーカーの右側で文字が吸い込まれて消えるように，その分だけ窓をぼかす */
+.line[data-wrap="nowrap"].is-over > .win {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, transparent calc(var(--mkw, 1.5em) * .55), #000 calc(var(--mkw, 1.5em) + .45em));
+          mask-image: linear-gradient(to right, transparent 0, transparent calc(var(--mkw, 1.5em) * .55), #000 calc(var(--mkw, 1.5em) + .45em));
 }
 
 /* ---- 1 行 = 1 スロット（認識 / 翻訳1 / 翻訳2 / 翻訳3） ---- */

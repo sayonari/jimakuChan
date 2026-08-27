@@ -19,8 +19,7 @@
   const lines = [0, 1, 2, 3].map(i => document.getElementById('line' + i));
   const txts = lines.map(l => l.querySelector('.win > .txt'));
   const wins = lines.map(l => l.querySelector('.win'));
-  const mkL = lines.map(l => l.querySelector('.mk.mkl'));
-  const mkR = lines.map(l => l.querySelector('.mk.mkr'));
+  const mks = lines.map(l => l.querySelector('.mk.mkl'));
   const params = new URLSearchParams(location.search);
   const isPreview = params.get('preview') === '1';
   const inOBS = !!window.obsstudio;
@@ -72,7 +71,6 @@
       const el = lines[i];
       el.dataset.stroke = cfg.strokeMode === 'sharp' ? 'sharp' : 'round';
       el.dataset.wrap = isTicker(i) ? 'nowrap' : 'wrap';
-      setMarks(i);
       el.classList.toggle('is-hidden', !(Number(l.size) > 0));   // サイズ 0 = その行を表示しない（翻訳だけ出したい等）
       const px = (Number(l.strokeWidth) || 0) * 4 / 3;               // pt → px
       const extra = themeShadows(cfg.theme, px, l.strokeColor);
@@ -140,46 +138,58 @@
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
   /*
-   * 1 行表示の両端マーカー：認識中マーカー（既定 '<<' '>>'）を行の左右へ貼り付けたまま動かさない．
-   * 文はその内側の窓を流れ，あふれた頭は左マーカーの内側へ吸い込まれていく（2026-08-27 西村指示）．
-   * 通常（折り返し）表示では従来どおり途中結果の前後にだけマーカーを付ける．
+   * 1 行表示（ティッカー）の左マーカー：
+   *   認識中マーカー（既定 '<<' '>>'）は従来どおり「途中結果」にだけ付く．
+   *   ただし途中結果が長くなって左の '<<' が窓の外へ流れ出てしまうときだけ，
+   *   そのマーカーを行の左端に貼り付けて残す（v1 と同じ見え方・2026-08-27 西村指示）．
+   *   判定は必ず「マーカーを本文に入れて描いた状態」の幅で行うので，付いたり外れたりで振動しない．
    */
-  function setMarks(i) {
-    const ticker = isTicker(i);
-    const a = ticker ? String(cfg.interimLeft == null ? '' : cfg.interimLeft).trim() : '';
-    const b = ticker ? String(cfg.interimRight == null ? '' : cfg.interimRight).trim() : '';
-    [[mkL[i], a], [mkR[i], b]].forEach(([el, v]) => {
-      if (!el) return;
-      el.textContent = v; el.dataset.text = v;
-      el.classList.toggle('is-off', !v);
-    });
+  const markL = () => String(cfg.interimLeft == null ? '' : cfg.interimLeft);
+  const markR = () => String(cfg.interimRight == null ? '' : cfg.interimRight);
+  const hasInter = i => !!(state[i].interim && state[i].interim.length);
+
+  // pinLeft=true … 本文から左マーカーを外す（代わりに行の左端の .mk が出る）
+  function paint(i, pinLeft) {
+    const s = state[i], txt = txts[i];
+    const inter = hasInter(i) ? (pinLeft ? '' : markL()) + s.interim + markR() : '';
+    txt.dataset.text = (s.text || '') + inter;
+    txt.innerHTML = esc(s.text || '') + (inter ? '<span class="interim">' + esc(inter) + '</span>' : '');
   }
-  // 窓からあふれている間だけ左側をぼかす（吸い込まれて見えるように）
-  function updateOverflow(i) {
-    const w = wins[i]; if (!w) return;
-    w.classList.toggle('is-over', isTicker(i) && w.scrollWidth > w.clientWidth + 1);
+  function plainOf(i) { return (state[i].text || '') + (hasInter(i) ? markL() + state[i].interim + markR() : ''); }
+
+  function updatePin(i) {
+    const line = lines[i], win = wins[i], mk = mks[i];
+    const v = markL().trim();
+    if (!isTicker(i) || !hasInter(i) || !v || line.classList.contains('is-empty')) {
+      if (line.classList.contains('is-over')) { line.classList.remove('is-over'); paint(i, false); }
+      return;
+    }
+    paint(i, false);                                        // 判定は必ずマーカー込みの状態で
+    const over = win.scrollWidth > win.clientWidth + 1;
+    line.classList.toggle('is-over', over);
+    if (!over) return;
+    if (mk.dataset.text !== v) { mk.textContent = v; mk.dataset.text = v; }
+    line.style.setProperty('--mkw', (mk.offsetWidth || 0) + 'px');
+    paint(i, true);                                         // 本文から '<<' を外し，左端のマーカーへ渡す
   }
 
   function render(i, animate) {
-    const s = state[i];
-    const hasInterim = s.interim && s.interim.length > 0;
-    const ticker = isTicker(i);
-    const inter = hasInterim ? (ticker ? (s.text ? ' ' : '') + s.interim : cfg.interimLeft + s.interim + cfg.interimRight) : '';
-    const plain = (s.text || '') + inter;
     const line = lines[i], txt = txts[i];
-    // 内容が同じなら DOM を触らない（OBS 定期同期の再送で再描画・アニメが起きないように）．フェード中は消去を中断して再表示する
-    if (!animate && plain === (txt.dataset.text || '') && line.classList.contains('is-empty') === !plain && !line.classList.contains('fade-out')) { updateOverflow(i); return; }
+    const plain = plainOf(i);
+    // 内容が同じなら DOM を触らない（OBS 定期同期の再送で再描画・アニメが起きないように）．
+    // ただし窓幅が変わっている可能性があるので，左マーカーの判定だけはやり直す．フェード中は消去を中断して再表示する
+    if (!animate && plain === (txt.dataset.full || '') && line.classList.contains('is-empty') === !plain && !line.classList.contains('fade-out')) { updatePin(i); return; }
     line.classList.remove('fade-out');
+    txt.dataset.full = plain;
     if (!plain) {
       txt.innerHTML = ''; txt.dataset.text = '';
       line.classList.add('is-empty');
-      updateOverflow(i);
+      line.classList.remove('is-over');
       return;
     }
     line.classList.remove('is-empty');
-    txt.dataset.text = plain;
-    txt.innerHTML = esc(s.text || '') + (hasInterim ? '<span class="interim">' + esc(inter) + '</span>' : '');
-    updateOverflow(i);
+    paint(i, false);
+    updatePin(i);
     if (animate) {
       line.classList.remove('animate'); void line.offsetWidth; line.classList.add('animate');
     }
@@ -262,7 +272,7 @@
   // ホストに設定を要求（同一ブラウザ内）
   reply({ type: 'hello', inOBS, preview: isPreview });
 
-  window.addEventListener('resize', () => { for (let i = 0; i < 4; i++) updateOverflow(i); });
+  window.addEventListener('resize', () => { for (let i = 0; i < 4; i++) updatePin(i); });
 
   window.jimakuOverlay = { handle, applyConfig, getConfig: () => cfg };
 })();

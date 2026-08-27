@@ -161,10 +161,10 @@
     </div>
 
     <div class="card">
-      <h3><span class="em">🔤</span><span data-i18n="hText">文字</span><small data-i18n="textHelp">認識・翻訳1・2・3 それぞれに設定できます（サイズ 0 でその行を非表示／「1行表示」= 折り返さず最新を右端に，あふれた文字は左端の印へ吸い込まれる）</small></h3>
+      <h3><span class="em">🔤</span><span data-i18n="hText">文字</span><small data-i18n="textHelp">認識・翻訳1・2・3 それぞれに設定できます（サイズ 0 でその行を非表示／「1行表示」= 折り返さず最新を右端に，長く喋ると左の「認識途中の印」が左端に残る）</small></h3>
       <div class="tblwrap">
       <table class="styletbl">
-        <thead><tr><th></th><th data-i18n="thFont">フォント</th><th data-i18n="thColor">文字色</th><th data-i18n="thStrokeColor">フチ色</th><th data-i18n="thSize">サイズ</th><th data-i18n="thWeight">太さ</th><th data-i18n="thStroke">縁取り</th><th data-i18n="thNowrap" title="折り返さず 1 行で表示．最新の結果が右端に見え，左右の端には「認識途中の印」（既定 &lt;&lt; &gt;&gt;）が固定表示されて，あふれた文字はその内側へ吸い込まれます">1行表示</th></tr></thead>
+        <thead><tr><th></th><th data-i18n="thFont">フォント</th><th data-i18n="thColor">文字色</th><th data-i18n="thStrokeColor">フチ色</th><th data-i18n="thSize">サイズ</th><th data-i18n="thWeight">太さ</th><th data-i18n="thStroke">縁取り</th><th data-i18n="thNowrap" title="折り返さず 1 行で表示．最新の結果が右端に見え，認識途中の文が長くなって左の印（既定 &lt;&lt;）が画面の外へ流れ出るときは，その印だけ左端に残ります">1行表示</th></tr></thead>
         <tbody id="styleRows"></tbody>
       </table>
       </div>
@@ -197,7 +197,7 @@
         <div class="row" style="margin:0">
           <span class="hint" data-i18n="left">左</span><input type="text" data-bind="interimLeft" class="sm" style="width:5em">
           <span class="hint" data-i18n="right">右</span><input type="text" data-bind="interimRight" class="sm" style="width:5em">
-          <span class="hint" data-i18n="interimHelp">確定前の文字を挟む記号（空欄で印なし）．「1行表示」の行では左右の端に固定表示されます</span>
+          <span class="hint" data-i18n="interimHelp">確定前の文字を挟む記号（空欄で印なし）．「1行表示」では左の印が流れて消えないよう左端に残ります</span>
           <span class="hint" data-i18n="lInterimOpacity">濃さ</span><input type="range" data-bind="interimOpacity" min="20" max="100" step="5" style="width:80px"><span class="num" data-num="interimOpacity"></span><span class="hint">%</span>
         </div>
       </div>
