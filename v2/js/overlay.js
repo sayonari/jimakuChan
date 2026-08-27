@@ -17,7 +17,10 @@
 
   const stage = document.getElementById('stage');
   const lines = [0, 1, 2, 3].map(i => document.getElementById('line' + i));
-  const txts = lines.map(l => l.querySelector('.txt'));
+  const txts = lines.map(l => l.querySelector('.win > .txt'));
+  const wins = lines.map(l => l.querySelector('.win'));
+  const mkL = lines.map(l => l.querySelector('.mk.mkl'));
+  const mkR = lines.map(l => l.querySelector('.mk.mkr'));
   const params = new URLSearchParams(location.search);
   const isPreview = params.get('preview') === '1';
   const inOBS = !!window.obsstudio;
@@ -69,6 +72,7 @@
       const el = lines[i];
       el.dataset.stroke = cfg.strokeMode === 'sharp' ? 'sharp' : 'round';
       el.dataset.wrap = isTicker(i) ? 'nowrap' : 'wrap';
+      setMarks(i);
       el.classList.toggle('is-hidden', !(Number(l.size) > 0));   // サイズ 0 = その行を表示しない（翻訳だけ出したい等）
       const px = (Number(l.strokeWidth) || 0) * 4 / 3;               // pt → px
       const extra = themeShadows(cfg.theme, px, l.strokeColor);
@@ -135,22 +139,47 @@
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+  /*
+   * 1 行表示の両端マーカー：認識中マーカー（既定 '<<' '>>'）を行の左右へ貼り付けたまま動かさない．
+   * 文はその内側の窓を流れ，あふれた頭は左マーカーの内側へ吸い込まれていく（2026-08-27 西村指示）．
+   * 通常（折り返し）表示では従来どおり途中結果の前後にだけマーカーを付ける．
+   */
+  function setMarks(i) {
+    const ticker = isTicker(i);
+    const a = ticker ? String(cfg.interimLeft == null ? '' : cfg.interimLeft).trim() : '';
+    const b = ticker ? String(cfg.interimRight == null ? '' : cfg.interimRight).trim() : '';
+    [[mkL[i], a], [mkR[i], b]].forEach(([el, v]) => {
+      if (!el) return;
+      el.textContent = v; el.dataset.text = v;
+      el.classList.toggle('is-off', !v);
+    });
+  }
+  // 窓からあふれている間だけ左側をぼかす（吸い込まれて見えるように）
+  function updateOverflow(i) {
+    const w = wins[i]; if (!w) return;
+    w.classList.toggle('is-over', isTicker(i) && w.scrollWidth > w.clientWidth + 1);
+  }
+
   function render(i, animate) {
     const s = state[i];
     const hasInterim = s.interim && s.interim.length > 0;
-    const plain = (s.text || '') + (hasInterim ? cfg.interimLeft + s.interim + cfg.interimRight : '');
+    const ticker = isTicker(i);
+    const inter = hasInterim ? (ticker ? (s.text ? ' ' : '') + s.interim : cfg.interimLeft + s.interim + cfg.interimRight) : '';
+    const plain = (s.text || '') + inter;
     const line = lines[i], txt = txts[i];
     // 内容が同じなら DOM を触らない（OBS 定期同期の再送で再描画・アニメが起きないように）．フェード中は消去を中断して再表示する
-    if (!animate && plain === (txt.dataset.text || '') && line.classList.contains('is-empty') === !plain && !line.classList.contains('fade-out')) return;
+    if (!animate && plain === (txt.dataset.text || '') && line.classList.contains('is-empty') === !plain && !line.classList.contains('fade-out')) { updateOverflow(i); return; }
     line.classList.remove('fade-out');
     if (!plain) {
       txt.innerHTML = ''; txt.dataset.text = '';
       line.classList.add('is-empty');
+      updateOverflow(i);
       return;
     }
     line.classList.remove('is-empty');
     txt.dataset.text = plain;
-    txt.innerHTML = esc(s.text || '') + (hasInterim ? '<span class="interim">' + esc(cfg.interimLeft + s.interim + cfg.interimRight) + '</span>' : '');
+    txt.innerHTML = esc(s.text || '') + (hasInterim ? '<span class="interim">' + esc(inter) + '</span>' : '');
+    updateOverflow(i);
     if (animate) {
       line.classList.remove('animate'); void line.offsetWidth; line.classList.add('animate');
     }
@@ -232,6 +261,8 @@
   if (isPreview) document.addEventListener('click', () => { try { window.parent.postMessage({ jimakuChanEvent: 'click' }, '*'); } catch (e) {} });
   // ホストに設定を要求（同一ブラウザ内）
   reply({ type: 'hello', inOBS, preview: isPreview });
+
+  window.addEventListener('resize', () => { for (let i = 0; i < 4; i++) updateOverflow(i); });
 
   window.jimakuOverlay = { handle, applyConfig, getConfig: () => cfg };
 })();

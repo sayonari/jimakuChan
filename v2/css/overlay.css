@@ -20,11 +20,32 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
 .stage[data-align="right"]   { text-align: right; }
 /*
  * 折り返さない（1 行ティッカー）モード：
- *   行を rtl にして，はみ出しを「左側」へ逃がす（右端に最新が常に見える）．短いうちは textAlign どおりに並ぶ．
- *   中身 .txt は ltr に戻すので文字順は変わらない．過去の確定結果は overlay.js が同じ行に蓄積する
+ *   行を [左マーカー << ][ 流れる窓 ][ 右マーカー >> ] の 3 分割にする．
+ *   窓は rtl ＋ overflow:hidden なので，最新が常に右端に見え，あふれた頭は左マーカーの内側へ吸い込まれる．
+ *   中身 .txt は ltr に戻すので文字順は変わらない．マーカーは常に両端へ貼り付く．
+ *   通常（折り返し）モードでは .mk を隠し，.win を display:contents にして従来どおりの表示に戻す．
  */
-.line[data-wrap="nowrap"]      { white-space: nowrap; direction: rtl; }
-.line[data-wrap="nowrap"] .txt { direction: ltr; unicode-bidi: isolate; max-width: none; }
+.line:not([data-wrap="nowrap"]) > .mk { display: none; }
+.win { display: contents; }
+.line[data-wrap="nowrap"] {
+  display: flex; align-items: center; white-space: nowrap; direction: ltr;
+}
+.line[data-wrap="nowrap"] > .mk {
+  display: inline-block; flex: 0 0 auto; padding: 0 .08em;
+}
+.line[data-wrap="nowrap"] > .mk.is-off { display: none; }
+.line[data-wrap="nowrap"] > .win {
+  display: block; flex: 1 1 auto; min-width: 0;
+  direction: rtl;
+  overflow: hidden;
+  padding: .4em .3em .4em 0; margin: -.4em 0;   /* 上下：縁取り・グローを切らない／右：最新の文字の縁とマーカーが接しないように */
+}
+.line[data-wrap="nowrap"] > .win > .txt { direction: ltr; unicode-bidi: isolate; max-width: none; }
+/* あふれている間だけ，吸い込まれる側（左）をぼかす */
+.line[data-wrap="nowrap"] > .win.is-over {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.1em);
+          mask-image: linear-gradient(to right, transparent 0, #000 1.1em);
+}
 
 /* ---- 1 行 = 1 スロット（認識 / 翻訳1 / 翻訳2 / 翻訳3） ---- */
 .line {
@@ -51,12 +72,12 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
  *                  ような miter のトゲが出ない）．影の本数は overlay.js が幅に応じて生成（最大 200 本程度）
  *   sharp        … -webkit-text-stroke（2倍幅）．軽量だが鋭角にトゲが出る
  */
-.txt {
+.txt, .mk {
   position: relative; z-index: 0;
   display: inline-block; max-width: 100%;
   white-space: inherit;
 }
-.txt::before {
+.txt::before, .mk::before {
   content: attr(data-text);
   position: absolute; inset: 0; z-index: -1;
   color: transparent;
@@ -64,7 +85,8 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
   pointer-events: none;
   white-space: inherit;
 }
-.line[data-stroke="sharp"] .txt::before {
+.line[data-stroke="sharp"] .txt::before,
+.line[data-stroke="sharp"] .mk::before {
   text-shadow: var(--extra-shadow, none);
   -webkit-text-stroke: calc(var(--sw) * 2) var(--sc);
   text-stroke: calc(var(--sw) * 2) var(--sc);
@@ -98,7 +120,8 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
 .stage[data-anim="fade"] .line.animate .txt { animation: jc-fade .22s ease-out both; }
 .stage[data-anim="rise"] .line.animate .txt { animation: jc-rise .28s cubic-bezier(.2,.8,.2,1) both; }
 .stage[data-anim="pop"]  .line.animate .txt { animation: jc-pop  .30s cubic-bezier(.2,.8,.2,1) both; }
-.line.fade-out .txt { transition: opacity .35s ease; opacity: 0; }
+.line.fade-out .txt,
+.line.fade-out .mk { transition: opacity .35s ease; opacity: 0; }
 
 /* プレビュー用の下地（設定画面の iframe 内でのみ .preview が付く） */
 body.preview.checker {
