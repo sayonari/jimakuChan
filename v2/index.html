@@ -103,10 +103,21 @@
             </div>
             <label data-i18n="lRecogModel">認識モデル</label>
             <div class="row" style="margin:0">
-              <div class="seg pinky" data-seg="recogModel"><button data-val="cloud" data-i18n="modelCloud">クラウド（Google）</button><button data-val="local" data-i18n="modelLocal">ローカル（PC内）</button></div>
+              <div class="seg pinky" data-seg="recogModel"><button data-val="cloud" data-i18n="modelCloud">クラウド（Google）</button><button data-val="local" data-i18n="modelLocal">ローカル（PC内）</button><button data-val="whisper" data-i18n="modelWhisper">Whisper（ローカル）</button></div>
               <span class="status" id="localModelStatus"></span>
               <button class="btn mini" id="btnInstallLocal" hidden data-i18n="btnInstallLocal">モデルを取得</button>
             </div>
+            <div class="row" id="rowWhisper" hidden style="gap:8px; flex-wrap:wrap;">
+              <label data-i18n="lWhisper">WhisperLiveKit</label>
+              <input type="text" data-bind="whisper.url" id="whisperUrl" style="width:16em" placeholder="ws://127.0.0.1:11437/asr" data-i18n-ph="phWhisperUrl">
+              <button class="btn mini" id="btnWhisperCheck" data-i18n="btnWhisperCheck">接続テスト</button>
+              <span class="dot" id="whisperDot"></span><span class="status" id="whisperStatus"></span>
+              <label data-i18n="lWhisperModel" style="margin-left:auto">モデル</label>
+              <select id="whisperModel" style="width:11em"></select>
+              <label data-i18n="lWhisperApiKey">API キー</label>
+              <input type="password" data-bind="whisper.apiKey" id="whisperApiKey" style="width:9em" data-i18n-ph="phWhisperApiKey" placeholder="（任意）">
+            </div>
+            <p class="help" id="whisperHelp" hidden data-i18n="whisperHelp">ローカルで動く WhisperLiveKit で認識します．別途サーバの起動が必要です（v2/tools/whisper_livekit の whisper_launcher.py start）．</p>
             <label data-i18n="lWordBoost">優先語句</label>
             <div>
               <textarea data-bind="wordBoost" rows="2" data-restart="1" data-i18n-ph="phWordBoost" placeholder="1行に1語句（ローカル認識時のみ有効）&#10;例：字幕ちゃん"></textarea>
@@ -126,7 +137,7 @@
       </div>
       <div class="row" style="margin-top:8px">
         <label data-i18n="lTransMethod">翻訳方法</label>
-        <div class="seg pinky" data-seg="translationMethod"><button data-val="chrome" data-i18n="methodChrome">Chrome内蔵（高速・無料）</button><button data-val="gas" data-i18n="methodGas">Google翻訳 (GAS)</button></div>
+        <div class="seg pinky" data-seg="translationMethod"><button data-val="chrome" data-i18n="methodChrome">Chrome内蔵（高速・無料）</button><button data-val="gas" data-i18n="methodGas">Google翻訳 (GAS)</button><button data-val="ollama" data-i18n="methodOllama">Ollama (ローカルAI)</button></div>
         <span class="status" id="chromeApiStatus"></span>
         <button class="btn mini" id="btnDownloadModels" hidden data-i18n="btnDlModels">翻訳モデルをダウンロード</button>
       </div>
@@ -135,7 +146,17 @@
         <input type="text" data-bind="gasKey" class="grow" data-i18n-ph="phGasKey" placeholder="Google Apps Script のデプロイ ID">
         <a target="_blank" href="http://www.sayonari.com/trans_asr/index_asr.html" class="hint" data-i18n="gasHow">[作成方法]</a>
       </div>
+      <div class="row" id="rowOllama" hidden style="gap:8px; flex-wrap:wrap;">
+        <label data-i18n="lOllama">Ollama</label>
+        <input type="text" data-bind="ollama.url" id="ollamaUrl" style="width:13em" placeholder="http://localhost:11434" data-i18n-ph="phOllamaUrl">
+        <button class="btn mini" id="btnOllamaCheck" data-i18n="btnOllamaCheck">接続テスト</button>
+        <span class="dot" id="ollamaDot"></span><span class="status" id="ollamaStatus"></span>
+        <label data-i18n="lOllamaModel" style="margin-left:auto">モデル</label>
+        <select id="ollamaModelSelect" style="min-width:11em" hidden></select>
+        <input type="text" data-bind="ollama.model" id="ollamaModelDirect" class="grow" placeholder="qwen2.5:3b" data-i18n-ph="phOllamaModel">
+      </div>
       <p class="help" id="chromeApiHelp" data-i18n="chromeApiHelp">Chrome 138 以降なら，PC 内で動く高速翻訳が使えます（言語ごとに初回だけモデルのダウンロードが必要）．それ以外のブラウザや言語では GAS キーを使った Google 翻訳になります．</p>
+      <p class="help" id="ollamaHelp" hidden data-i18n="ollamaHelp">PC で動く Ollama（ローカル LLM）を使って翻訳します．HTTP 直接接続時は OLLAMA_ORIGINS="*" が必要です．WebSocket ブリッジ（ws://localhost:11435）経由なら CORS 設定なしで利用できます．</p>
     </div>
   </section>
 
@@ -338,6 +359,7 @@
 <script src="./js/chrome_translator.js"></script>
 <script src="./js/filter.js"></script>
 <script src="./js/recognizer.js"></script>
+<script src="./js/whisper_recognizer.js"></script>
 <script src="./js/translator.js"></script>
 <script src="./js/obs.js"></script>
 <script src="./js/presets.js"></script>

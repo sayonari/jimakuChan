@@ -200,6 +200,11 @@ input[type=checkbox] { accent-color: var(--pink); width: 16px; height: 16px; }
 .badge.pink { color: var(--pink2); border-color: rgba(255,107,157,.4); }
 .status { font-size: 12.5px; color: var(--fg2); }
 .status.ok { color: var(--mint); } .status.err { color: var(--red); } .status.warn { color: var(--yellow); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--fg3); margin-right: 5px; vertical-align: middle; flex: 0 0 auto; }
+.dot.ok { background: var(--mint); animation: dotpulse 2s ease-out infinite; }
+.dot.busy { background: var(--yellow); }
+.dot.err { background: var(--red); }
+@keyframes dotpulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.5); } 70% { box-shadow: 0 0 0 6px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
 
 /* ---- 見た目テーブル ---- */
 table.styletbl { width: 100%; border-collapse: separate; border-spacing: 0 6px; }

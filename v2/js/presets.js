@@ -11,7 +11,7 @@
 (function (global) {
   'use strict';
 
-  const VERSION = '2026.08.27 22:57';   // 更新時に日付＋時刻（JST）を書き換える
+  const VERSION = '2026.09.11 13:06';   // 更新時に日付＋時刻（JST）を書き換える
   const KEY = 'jimakuChan_v2_presets';
   const KEY_UI = 'jimakuChan_v2_ui';
 
@@ -23,6 +23,8 @@
     wordBoost: '', wordBoostStrength: 5,
     // 翻訳
     trans: ['en', 'none', 'none'], translationMethod: 'chrome', gasKey: '',
+    ollama: { url: 'ws://localhost:11435', model: 'qwen3.5:4b' },
+    whisper: { url: 'ws://127.0.0.1:11437/asr', apiKey: '', controlUrl: 'http://127.0.0.1:11436' },
     // 見た目
     theme: 'outline', anim: 'none', boxColor: 'rgba(0,0,0,0.55)', boxRadius: 12, strokeMode: 'round',
     lines: [line(), line(), line(), line()],
