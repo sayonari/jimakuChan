@@ -47,3 +47,6 @@ v2/tools/promo_video/build/
 v2/tools/promo_video/assets/
 v2/tools/promo_video/.venv/
 .output/
+
+# WhisperLive local config
+v2/tools/whisper_livekit/whisperlivekit.env

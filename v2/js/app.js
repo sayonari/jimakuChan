@@ -14,6 +14,8 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const t = (k, ...a) => window.i18n.t(k, ...a);
+  const DEBUG = Number(new URLSearchParams(location.search).get('debug') || 0);
+  function dbg(level, ...args) { if (DEBUG >= level) console.log('[app]', ...args); }
 
   // ======================================================================
   // 状態
@@ -68,6 +70,7 @@
   // ======================================================================
   // ユーティリティ
   // ======================================================================
+  const escAttr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const getPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
   function setPath(obj, path, val) {
     const ks = path.split('.'); let o = obj;
@@ -264,15 +267,24 @@
   let utteranceSeq = 0;
   function buildRecognizer() {
     if (engine.recognizer) { engine.recognizer.stop(); }
-    const R = new window.JimakuRecognizer({
-      lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'restart',
-      phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
-    });
-    R.addEventListener('state', e => setMicPill(e.detail));
+    const R = S.recogModel === 'whisper'
+      ? new window.JimakuWhisperRecognizer({
+          url: (S.whisper && S.whisper.url) || 'ws://127.0.0.1:11437/asr',
+          apiKey: (S.whisper && S.whisper.apiKey) || '',
+          language: S.recog,
+          context: lines(S.wordBoost).join(' '),
+        })
+      : new window.JimakuRecognizer({
+          lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'restart',
+          phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
+        });
+    R.addEventListener('state', e => { setMicPill(e.detail); if (S.recogModel === 'whisper' && !renderWhisperRunning()) checkWhisperConnection(true); });
     R.addEventListener('error', e => {
       const code = e.detail.error;
+      if (/^whisper-/.test(code)) setDot('#whisperDot', 'err', e.detail.message || '');
       if (e.detail.fatal) {
-        const msg = code === 'unsupported' ? t('msgUnsupported')
+        const msg = /^whisper-/.test(code) ? (e.detail.message || t('whisperFailed'))
+          : code === 'unsupported' ? t('msgUnsupported')
           : (code === 'language-not-supported' || code === 'phrases-not-supported') ? t('msgLangUnsupported')
           : t('msgMicDenied');
         toast(msg, 'err'); setRunning(false);
@@ -296,6 +308,7 @@
   async function onFinal(text) {
     const replaced = applyReplace(tidy(text));
     const shown = filt(engine.filterRecog, replaced);
+    dbg(1, 'final received:', JSON.stringify(replaced));
     endWelcome();
     engine.lastFinal = shown; engine.interim = '';
     showLine(0, shown, '', true);
@@ -303,18 +316,21 @@
     if (S.bouyomi && window.BouyomiChanClient) { try { new BouyomiChanClient().talk(shown); } catch (e) {} }
     // 翻訳
     const targets = S.trans.slice();
-    if (!targets.some(x => x && x !== 'none')) return;
+    if (!targets.some(x => x && x !== 'none')) { dbg(1, 'translate skipped (no targets)', JSON.stringify(targets)); return; }
     const seq = ++utteranceSeq;
     setPill('#pillTrans', 'busy', t('pillTransBusy'));
+    dbg(1, 'translate send:', S.recog, '->', JSON.stringify(targets.filter(x => x && x !== 'none')), JSON.stringify(replaced));
     const results = await engine.translator.translateAll(replaced, S.recog, targets);
-    if (seq !== utteranceSeq) return;                 // 新しい発話が来ていたら古い結果は捨てる
+    if (seq !== utteranceSeq) { dbg(1, 'translate dropped (superseded):', JSON.stringify(replaced)); return; }
+    dbg(1, 'translate recv:', JSON.stringify(results.map(r => ({ slot: r.slot, ok: r.ok, via: r.via, err: r.error, text: r.text }))));
     let any = false;
     results.forEach(r => {
       const slot = r.slot + 1;
       if (r.ok) { showLine(slot, filt(engine.filterTrans[r.slot], r.text), '', true); any = true; }
     });
     if (any) startTransTimer();
-    const bad = results.filter(r => !r.ok);
+    const bad = results.filter(r => !r.ok && !r.superseded);
+    $('#engineStatus').textContent = bad.length ? t('msgTransError') + ': ' + (bad[0].error || 'error') : '';
     setPill('#pillTrans', bad.length ? 'err' : 'on', bad.length ? (bad[0].error || 'error') : (results[0].via === 'chrome' ? 'Chrome' : results[0].via === 'gas' ? 'GAS' : t('pillTransIdle')));
     updateTransCount();
   }
@@ -354,6 +370,11 @@
     p.querySelector('span').textContent = st.running ? (st.listening ? t('pillMicListen') : t('pillMicOn')) : t('pillMicOff');
   }
   function setPill(sel, cls, text) { const p = $(sel); p.className = 'pill ' + (cls || ''); p.querySelector('span').textContent = text; }
+  function setDot(sel, state, title) {
+    const d = $(sel); if (!d) return;
+    d.className = 'dot' + (state ? ' ' + state : '');
+    d.title = title || '';
+  }
 
   // ======================================================================
   // 翻訳（Chrome API 状態・モデル DL）
@@ -362,12 +383,33 @@
   async function refreshTranslatorUI() {
     const gen = ++modelCheckGen;
     const tr = engine.translator;
-    tr.method = S.translationMethod; tr.gasKey = S.gasKey;
+    tr.method = S.translationMethod;
+    tr.gasKey = S.gasKey;
+    tr.ollama = S.ollama || { url: 'http://localhost:11434', model: 'qwen2.5:3b' };
+
+    const isOllama = S.translationMethod === 'ollama';
+    const rowGas = $('#rowGas');
+    const rowOllama = $('#rowOllama');
+    const chromeHelp = $('#chromeApiHelp');
+    const ollamaHelp = $('#ollamaHelp');
+
+    if (rowGas) rowGas.hidden = isOllama;
+    if (rowOllama) rowOllama.hidden = !isOllama;
+    if (chromeHelp) chromeHelp.hidden = isOllama;
+    if (ollamaHelp) ollamaHelp.hidden = !isOllama;
+
     const ok = await tr.checkChrome();
     const st = $('#chromeApiStatus');
-    st.textContent = ok ? t('chromeApiOk') : t('chromeApiNo');
-    st.className = 'status ' + (ok ? 'ok' : 'warn');
-    $('#rowGas').style.opacity = (S.translationMethod === 'gas' || !ok) ? 1 : .6;
+    if (isOllama) {
+      st.textContent = '';
+      st.className = 'status';
+      checkOllamaConnection(true);
+    } else {
+      st.textContent = ok ? t('chromeApiOk') : t('chromeApiNo');
+      st.className = 'status ' + (ok ? 'ok' : 'warn');
+      if (rowGas) rowGas.style.opacity = (S.translationMethod === 'gas' || !ok) ? 1 : .6;
+    }
+
     // モデル状態バッジ
     let needDl = false;
     await Promise.all(S.trans.map(async (l, i) => {
@@ -381,7 +423,7 @@
       b.className = 'badge ' + cls; b.textContent = label;
       if (s === 'downloadable') needDl = true;
     }));
-    if (gen === modelCheckGen) $('#btnDownloadModels').hidden = !needDl;
+    if (gen === modelCheckGen) $('#btnDownloadModels').hidden = (!needDl || isOllama);
   }
   async function downloadModels() {
     const btn = $('#btnDownloadModels'); btn.disabled = true;
@@ -390,6 +432,80 @@
     for (const l of S.trans) { if (l && l !== 'none') { try { await tr.preloadChrome(S.recog, l); } catch (e) { console.warn(e); } } }
     btn.disabled = false;
     refreshTranslatorUI();
+  }
+
+  let ollamaModelGen = 0;
+  async function checkOllamaConnection(quiet = false) {
+    const gen = ++ollamaModelGen;
+    const st = $('#ollamaStatus');
+    const sel = $('#ollamaModelSelect');
+    const direct = $('#ollamaModelDirect');
+    const btn = $('#btnOllamaCheck');
+    if (!st || !sel || !direct) return;
+
+    if (!quiet) {
+      st.textContent = t('ollamaConnecting');
+      st.className = 'status busy';
+      if (btn) btn.disabled = true;
+    }
+
+    try {
+      const tr = engine.translator;
+      tr.ollama = S.ollama || { url: 'http://localhost:11434', model: 'qwen2.5:3b' };
+      const rawUrl = (S.ollama && S.ollama.url) ? S.ollama.url : 'http://localhost:11434';
+      const models = await tr.fetchOllamaModels(rawUrl);
+      if (gen !== ollamaModelGen) return;
+
+      if (btn) btn.disabled = false;
+      st.textContent = models.length ? t('ollamaConnected', models.length) : t('ollamaNoModels');
+      st.className = 'status ok';
+      setDot('#ollamaDot', models.length ? 'ok' : 'warn', '');
+
+      const cur = (S.ollama && S.ollama.model) ? S.ollama.model.trim() : '';
+      const hasCur = models.includes(cur);
+      // 保存されたモデルが未導入なら，インストール済みの先頭モデルを自動選択して即使えるようにする
+      const chosen = hasCur ? cur : (models[0] || cur || 'qwen2.5:3b');
+      if (!hasCur && models.length) {
+        setPath(S, 'ollama.model', chosen);
+        saveSettingsDebounced();
+        direct.value = chosen;
+      }
+      let html = models.map(m => `<option value="${escAttr(m)}"${m === chosen ? ' selected' : ''}>${escAttr(m)}</option>`).join('');
+      html += `<option value="__direct__"${!models.length ? ' selected' : ''}>${t('ollamaDirect')}</option>`;
+      sel.innerHTML = html;
+      sel.hidden = false;
+      direct.hidden = models.length > 0;
+    } catch (err) {
+      if (gen !== ollamaModelGen) return;
+      if (btn) btn.disabled = false;
+      st.textContent = t('ollamaFailed');
+      st.className = 'status err';
+      st.title = err && err.message ? err.message : '';
+      setDot('#ollamaDot', 'err', err && err.message ? err.message : '');
+      sel.hidden = true;
+      direct.hidden = false;
+      if (!quiet) toast(t('ollamaFailed') + ': ' + (err && err.message ? err.message : ''), 'err');
+    }
+  }
+
+  let ollamaHealthTimer = null;
+  function startOllamaHealth() {
+    if (ollamaHealthTimer) return;
+    ollamaHealthTimer = setInterval(async () => {
+      if (S.translationMethod !== 'ollama') return;
+      if (engine.translator._ollamaRunning) return;      // 翻訳中はブリッジに負荷をかけない
+      const rawUrl = (S.ollama && S.ollama.url) ? S.ollama.url : 'http://localhost:11434';
+      const st = $('#ollamaStatus');
+      try {
+        const models = await engine.translator.fetchOllamaModels(rawUrl);
+        setDot('#ollamaDot', models.length ? 'ok' : 'warn', '');
+        if (st && st.classList.contains('err')) { st.textContent = models.length ? t('ollamaConnected', models.length) : t('ollamaNoModels'); st.className = 'status ' + (models.length ? 'ok' : 'warn'); st.title = ''; }
+      } catch (err) {
+        const msg = (err && err.message) || '';
+        setDot('#ollamaDot', 'err', msg);
+        if (st && !st.classList.contains('err')) { st.textContent = t('ollamaFailed'); st.className = 'status err'; st.title = msg; }
+      }
+    }, 8000);
   }
 
   // ======================================================================
@@ -403,6 +519,60 @@
     const [cls, label] = map[a] || ['', a];
     el.className = 'status ' + cls; el.textContent = label;
     btn.hidden = a !== 'downloadable';
+  }
+
+  const checkWhisperDebounced = debounce(() => checkWhisperConnection(true), 500);
+  function refreshWhisperUI() {
+    const isW = S.recogModel === 'whisper';
+    const row = $('#rowWhisper'), help = $('#whisperHelp');
+    if (row) row.hidden = !isW;
+    if (help) help.hidden = !isW;
+    if (isW) { checkWhisperDebounced(); refreshWhisperModel(); }
+  }
+  async function probeWhisper() {
+    const cfg = S.whisper || {};
+    const ctl = (cfg.controlUrl || '').trim();
+    if (ctl) {
+      try {
+        const r = await fetch(ctl.replace(/\/+$/, '') + '/wlk/status', { cache: 'no-store' });
+        if (r.ok) {
+          const d = await r.json();
+          return { ok: !!d.running, ready: !!d.running, message: d.model ? (t('lWhisperModel') + ': ' + d.model) : '' };
+        }
+      } catch (e) { /* 制御 API が無い場合は WS で確認する */ }
+    }
+    return window.JimakuWhisperRecognizer.testConnection(cfg.url || 'ws://127.0.0.1:11437/asr', { language: S.recog, apiKey: cfg.apiKey });
+  }
+  function renderWhisperLive(state, text, title) {
+    setDot('#whisperDot', state, title);
+    const st = $('#whisperStatus');
+    if (st) { st.textContent = text; st.className = 'status ' + (state === 'ok' ? 'ok' : state === 'err' ? 'err' : state === 'busy' ? 'warn' : ''); st.title = title || ''; }
+  }
+  function renderWhisperRunning() {
+    const R = engine.recognizer;
+    if (!R || !R.running) return false;
+    if (R.listening) renderWhisperLive('ok', t('whisperLiveNow'));
+    else renderWhisperLive('busy', t('whisperConnecting'));
+    return true;
+  }
+  async function checkWhisperConnection(quiet = false) {
+    const st = $('#whisperStatus'), btn = $('#btnWhisperCheck');
+    if (!st || !window.JimakuWhisperRecognizer) return;
+    if (!quiet) { renderWhisperLive('busy', t('whisperConnecting')); if (btn) btn.disabled = true; }
+    if (renderWhisperRunning()) { if (btn) btn.disabled = false; return; }
+    const res = await probeWhisper();
+    if (btn) btn.disabled = false;
+    if (res.ok) renderWhisperLive('ok', t(res.ready ? 'whisperConnected' : 'whisperConnectedNoReady'));
+    else { renderWhisperLive('err', t('whisperFailed'), res.message); if (!quiet) toast(t('whisperFailed') + ': ' + (res.message || ''), 'err'); }
+  }
+  let whisperHealthTimer = null;
+  function startWhisperHealth() {
+    if (whisperHealthTimer) return;
+    whisperHealthTimer = setInterval(() => {
+      if (S.recogModel !== 'whisper') return;
+      if (renderWhisperRunning()) return;
+      checkWhisperConnection(true);
+    }, 5000);
   }
 
   // ======================================================================
@@ -542,8 +712,10 @@
     if (/^(recog|shortPause|recogModel|recogMode|wordBoost)/.test(path)) {
       if (el && el.dataset && el.dataset.restart) restartEngine(); else if (path === 'recogModel' || path === 'recogMode') restartEngine();
     }
-    if (path === 'recogModel' || path === 'recog') refreshLocalModelUI();
-    if (/^(recog$|trans\.|translationMethod|gasKey)/.test(path)) refreshTranslatorUI();
+    if (path === 'recogModel' || path === 'recog') { refreshLocalModelUI(); refreshWhisperUI(); }
+    if (/^whisper/.test(path)) { refreshWhisperUI(); if (engine.running) restartEngine(); }
+    if (/^(recog$|trans\.|translationMethod|gasKey|ollama)/.test(path)) refreshTranslatorUI();
+    if (path === 'ollama.url') checkOllamaConnection(true);
     if (/^(recog$|trans\.|filterOn|extraBad|extraGood)/.test(path)) rebuildFiltersDebounced();
     if (/^trans\.(\d)/.test(path)) { const k = Number(RegExp.$1); if (!S.trans[k] || S.trans[k] === 'none') clearLines([k + 1], false); }
     if (path === 'wordReplace') { rebuildReplace(); updateFilterTest(); }
@@ -553,7 +725,6 @@
   const rebuildFiltersDebounced = debounce(rebuildFilters, 500);
 
   // ---- 文字スタイル表 ---------------------------------------------------
-  const escAttr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   function fontOptionsHtml(current) {
     const local = engine.localFonts || [];
     const known = FONTS.includes(current) || local.includes(current);
@@ -621,7 +792,7 @@
     afterSettingsReplaced();
   }
   function afterSettingsReplaced() {
-    pushConfig(); rebuildReplace(); rebuildFilters(); refreshTranslatorUI(); refreshLocalModelUI(); updateTransCount();
+    pushConfig(); rebuildReplace(); rebuildFilters(); refreshTranslatorUI(); refreshLocalModelUI(); refreshWhisperUI(); updateTransCount();
     if (engine.running) restartEngine();
   }
 
@@ -631,6 +802,52 @@
     $$('.trans-select').forEach((sel, k) => { sel.innerHTML = TRANS_LANGS().map(opt).join(''); if (S && S.trans) sel.value = S.trans[k] || 'none'; });
     const rs = $('select[data-bind="recog"]');
     if (rs) { rs.innerHTML = recogLangOptions().map(opt).join(''); if (S && S.recog) rs.value = S.recog; }
+    fillWhisperModels();
+  }
+
+  // ---- WhisperLiveKit のモデル（サーバ側で切替） ------------------------
+  const WHISPER_MODELS = ['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en',
+    'medium', 'medium.en', 'large-v2', 'large-v3', 'large-v3-turbo'];
+  function whisperControlUrl() {
+    return ((S.whisper && S.whisper.controlUrl) || 'http://127.0.0.1:11436').replace(/\/+$/, '');
+  }
+  function fillWhisperModels() {
+    const sel = $('#whisperModel'); if (!sel || sel.options.length) return;
+    sel.innerHTML = WHISPER_MODELS.map(m => `<option value="${escAttr(m)}">${escAttr(m)}</option>`).join('');
+  }
+  async function whisperControl(path, method = 'GET', body) {
+    const res = await fetch(whisperControlUrl() + path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  async function refreshWhisperModel() {
+    const sel = $('#whisperModel'); if (!sel) return;
+    try {
+      const st = await whisperControl('/wlk/status');
+      if (Array.isArray(st.models) && st.models.length) {
+        sel.innerHTML = st.models.map(m => `<option value="${escAttr(m)}">${escAttr(m)}</option>`).join('');
+      }
+      if (st.model) sel.value = st.model;
+      sel.title = '';
+    } catch (e) {
+      sel.title = 'サーバ側の WHISPER_MODEL（whisperlivekit.env）で設定されています';
+    }
+  }
+  async function applyWhisperModel(model) {
+    fillWhisperModels();
+    const st = $('#whisperStatus'); if (!st) return;
+    try {
+      st.textContent = t('whisperApplying'); st.className = 'status busy';
+      const res = await whisperControl('/wlk/config', 'POST', { model });
+      st.textContent = t('whisperApplied', res.model || model); st.className = 'status ok'; st.title = '';
+    } catch (e) {
+      st.textContent = t('whisperApplyFailed'); st.className = 'status err'; st.title = e && e.message ? e.message : '';
+      toast(t('whisperApplyFailed') + ': ' + (e && e.message ? e.message : ''), 'err');
+    }
   }
 
   // ---- 保存・読込・起動ファイル -----------------------------------------
@@ -681,7 +898,7 @@
       fillTransSelects(); renderStyleRows(); renderPresetSelect(); setMicPill({ running: engine.running, listening: engine.recognizer && engine.recognizer.listening });
       setObsUI(engine.obs.connected ? 'connected' : 'disconnected', '');
       $$('#tabs button').forEach(() => {});
-      refreshTranslatorUI(); refreshLocalModelUI(); rebuildFilters();
+      refreshTranslatorUI(); refreshLocalModelUI(); refreshWhisperUI(); rebuildFilters();
     };
     $('#langJa').addEventListener('click', () => apply('ja'));
     $('#langEn').addEventListener('click', () => apply('en'));
@@ -706,7 +923,8 @@
     initTabs();
     initLang();
     initPreview();
-    rebuildReplace(); rebuildFilters(); refreshTranslatorUI(); refreshLocalModelUI();
+    rebuildReplace(); rebuildFilters(); refreshTranslatorUI(); refreshLocalModelUI(); refreshWhisperUI();
+    startWhisperHealth(); startOllamaHealth();
 
     // ボタン
     $('#btnStart').addEventListener('click', startEngine);
@@ -723,7 +941,28 @@
     $('#btnPresetSave').addEventListener('click', () => { saveSettings(); toast(t('msgSaved'), 'ok'); });
     $('#btnPresetReset').addEventListener('click', () => { S = store.reset(); renderAll(); afterSettingsReplaced(); toast(t('msgReset')); });
     $('#btnDownloadModels').addEventListener('click', downloadModels);
+    const btnOllama = $('#btnOllamaCheck');
+    if (btnOllama) btnOllama.addEventListener('click', () => checkOllamaConnection(false));
+    const selOllama = $('#ollamaModelSelect');
+    if (selOllama) {
+      selOllama.addEventListener('change', () => {
+        const direct = $('#ollamaModelDirect');
+        if (selOllama.value === '__direct__') {
+          direct.hidden = false;
+          direct.focus();
+        } else {
+          direct.hidden = true;
+          setPath(S, 'ollama.model', selOllama.value);
+          direct.value = selOllama.value;
+          onSettingChanged('ollama.model', direct);
+        }
+      });
+    }
     $('#btnInstallLocal').addEventListener('click', async () => { $('#localModelStatus').textContent = t('localDling'); await window.JimakuRecognizer.installLocal(S.recog); refreshLocalModelUI(); });
+    const btnWhisper = document.getElementById('btnWhisperCheck');
+    if (btnWhisper) btnWhisper.addEventListener('click', () => checkWhisperConnection(false));
+    const selWhisperModel = document.getElementById('whisperModel');
+    if (selWhisperModel) selWhisperModel.addEventListener('change', () => applyWhisperModel(selWhisperModel.value));
     $('#btnObsConnect').addEventListener('click', () => obsConnect(false));
     $('#btnObsDisconnect').addEventListener('click', () => engine.obs.disconnect());
     $('#btnObsAddSource').addEventListener('click', obsAddSource);

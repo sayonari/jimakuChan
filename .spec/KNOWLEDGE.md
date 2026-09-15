@@ -46,3 +46,54 @@
   共有リソース（goodBadWordlist）を更新するときは，古い側のアルゴリズムでも検証する．
   検証は両方を再現した Node スクリプトで文例を通すのが速い
 
+## 2026-09-12 Ollama ローカル AI 翻訳で「字幕が出ない」原因と対策
+- **思考型モデルは `think:false` を付けないと爆遅**．実測 qwen3.5:4b は 1 文で 24.6 秒（eval 340 tokens），
+  `think:false` で 0.29 秒（3 tokens）．リアルタイム字幕では `think:false` が必須．古いモデルは無視するだけ
+- **既定モデルが未導入だと 404**．接続テスト（/api/tags）は通るので気づきにくい．
+  未導入のときはインストール済みの先頭モデルを自動選択して，そのまま使えるようにした
+- **Ollama は 1 モデルを直列処理**．連続発話で要求が滞留し，固定 10 秒タイムアウトでは
+  待ち時間込みで全滅する（実測：req#3 が 13 秒，req#4 が 17 秒でタイムアウト）．
+  「実行中 1 件＋最新の待機 1 件」に直列化（latest-wins）して 30 秒に延長した
+- **`seq` ガードは古い結果を捨てるが，最新は必ず表示する必要がある**．直列化＋最新優先で保証する
+- 検証は Playwright（tools/promo_video の fake_sr.js）＋偽 Ollama（即時／遅延／直列キュー）で再現できる．
+  実 Ollama（qwen3.5:4b / gemma2:2b）で HTTP 直接・WebSocket ブリッジ両経路を確認済み
+
+## 2026-09-13 ローカル音声認識は WhisperLiveKit（WLK）に一本化
+- 旧 WhisperLive 連携（成長バッファの再文字起こしで commit が遅い）は**廃止**．以降は WLK 前提のみ
+- 構成：
+  - `v2/tools/whisper_livekit/whisper_launcher.py`（Python CLI：`setup`/`run`/`start`/`model`/`doctor`）．
+    venv 既定（Windows/macOS/Linux 共通．venv の python を直接使い Scripts/bin 差を吸収．PyAudio/PortAudio 不要）
+  - 127.0.0.1 に制御 API（`GET /wlk/status`, `POST /wlk/config`）を併設し，アプリのモデル ドロップダウンから
+    切替＝自動再起動．既定 WS は `ws://127.0.0.1:11437/asr`（8000 は衝突しやすいので回避），制御 11436
+  - アプリ：認識モデル「Whisper（ローカル）」．`v2/js/whisper_recognizer.js` が 16kHz モノラル Int16 PCM を送る
+    （`mode=full`）．設定は `whisperlivekit.env`
+- **WLK（0.2.26）の挙動（実装を読んで確認）**：
+  - `lines`＝確定セグメント（validated_segments）＋育っている行＋無音行（speaker:-2, text:""）
+  - **無音中はクライアントへ確定を送らない**．open line が確定するのは「次の発話開始」か end-of-stream のみ．
+    無音の進行は標準 `/asr` には通知されない（silence_started 等は Deepgram 互換経路のみ）．
+    しかも無音中も remaining_time が変化し push され続けるため「出力が静止したら無音」判定は不可
+  - `--pause-segmentation-seconds` は「無音の後に発話が再開したとき」に lines を区切る．0 にすると境界判定が
+    常に False になり確定が止まり，テキストは `buffer_transcription` に溜まる
+  - `remaining_time_transcription_processing` ≒ audio_received − processed（サーバ遅延）．0 なら追いついている
+- **クライアントの確定規則（`whisper_recognizer.js` 最終形）**：
+  - `lines` の内容行と `buffer_transcription` を **1 本のテキストに連結**して扱う（サーバは無音で lines を分断する
+    ため，そのままでは文が途中で切れる）．buffer が lines 末尾と同一なら足さない（二重防止）
+  - **文末記号（。．.!?）まで来た文はその場で確定**．未完の切れ端だけ次入力へ持ち越す（`...` は文末にしない）
+  - 既出分は raw 接頭辞 `_streamCommitted` で管理し差分だけ出す（言い直しに強い）
+  - **末尾フラッシュ**：テキストが 2s 変化せず，かつサーバ遅延 ≤ 0.5 のとき，未完の末尾も確定
+    （サーバは無音で末尾を確定しないため）
+  - **無音による確定はしない**．旧 clientSilence（「無音で確定」）は語中で切るため全廃（UI も撤去）．
+    停止時のみ残りを flush
+  - 診断：`?debug=1`＝`[wlk] commit "..."`，`?debug=2`＝毎メッセージの lines/buffer．起動ログは
+    `[wlk] whisper_recognizer <BUILD>`．スクリプトは `?v=<BUILD>` でキャッシュ破棄（index.html）
+- **接続状態のライブ表示**：
+  - Whisper / Ollama の行にライブ接続ドット（ok=緑＋脈動 / busy=黄 / err=赤）．5〜8s ごとにヘルスチェックし，
+    切断されると赤くなる
+  - Whisper：制御 API `/wlk/status`（無ければ WS `testConnection`）．認識中は WS の生状態を優先
+  - Ollama：`translator.fetchOllamaModels`（WS ブリッジ / HTTP `/api/tags`）．翻訳中はスキップ
+
+## 2026-09-13 Ollama 翻訳のタイムアウト対策
+- ブリッジ（`v2/tools/ollama_bridge`）は CORS/Mixed Content 回避の WS→HTTP 転送．Ollama HTTP タイムアウトは 25s
+- **30s タイムアウトの主因は，WS 切断時に pending を reject していなかったこと**．`_ollamaWsRequest` が
+  onclose/onerror/再接続で `_failOllamaPending` により即 reject するよう修正（済）
+- 実測：qwen3.5:4b（CPU, size_vram:0）で 1 文 ~1s．ブリッジは連続要求でも stall せず，遅さが原因ではなかった

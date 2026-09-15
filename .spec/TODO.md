@@ -1,6 +1,32 @@
 # TODO - タスクリスト
 
 ## 優先度：高
+- [x] Ollama ローカル AI 翻訳機能の実装
+  - [x] `v2/index.html`：翻訳方法セレクタに Ollama ボタン，設定行（URL/モデル名），接続テストボタン，モデル選択ドロップダウンを追加
+  - [x] `v2/js/presets.js`：`DEFAULTS` に `ollama` 設定（url, model）を追加・永続化対応
+  - [x] `v2/js/translator.js`：`_ollama()` 実装，`fetchOllamaModels()` によるタグ取得，`translateOne()` からの呼び出し分岐
+  - [x] `v2/js/app.js`：UI 切り替え表示ロジック，接続テスト，モデル自動検出・ドロップダウン連動
+  - [x] `v2/js/i18n.js`：日英の多言語ラベル・ステータス表示・プレースホルダー・ヘルプ文言追加
+  - [x] `v2/tools/ollama_bridge/ollama_bridge.py`：Python 標準ライブラリのみで動く WebSocket ブリッジスクリプト（モデル一覧取得も中継対応）を作成
+  - [x] 2026-09-12 「接続しても翻訳字幕が出ない」不具合を修正：Ollama を「実行中1件＋最新の待機1件」の直列化（latest-wins）に，
+        タイムアウト 10→30 秒，思考型モデルへ `think:false`，未導入モデルの自動選択，翻訳エラーを `#engineStatus` に表示．
+        Playwright＋偽 Ollama（即時／遅延／直列）＋実 Ollama（qwen3.5:4b / gemma2:2b）で HTTP 直接・WS ブリッジ両経路を自動検証済み
+  - [x] ユーザー実機テスト・動作確認（Ollama 連携検証）
+- [x] ローカル音声認識（WhisperLive → WhisperLiveKit へ差し替え）
+  - 経緯：WhisperLive は成長バッファを再文字起こしし，複数セグメントか出力安定まで commit しないため，
+    話し続けると確定せず（長い独話で悪化）．暫定でクライアント側の無音エンドポイントを入れていた
+  - [x] 2026-09-13 **WhisperLiveKit（WLK）へ差し替え**：
+    - `v2/js/whisper_recognizer.js`：WLK `/asr` クライアント．`--pcm-input` 前提で 16kHz モノラル Int16 PCM を送信．
+      接続直後の `config` 待ち→マイク開始．`snapshot`/`diff` の `lines`（確定）→ `final`，`buffer_transcription`（途中）→ `interim`．
+      終端は空バイト送信→`ready_to_stop`．再接続（5 回）・接続テスト付き．**クライアント側 endpoint は全廃**（確定はサーバ）
+    - `v2/index.html`：認識モデルに「Whisper（ローカル）」．URL（既定 `ws://127.0.0.1:11437/asr`）＋**モデル ドロップダウン**＋API キー＋接続テスト＋状態
+    - `v2/js/presets.js`：`DEFAULTS.whisper = { url: 'ws://127.0.0.1:11437/asr', apiKey: '', controlUrl: 'http://127.0.0.1:11436' }`
+    - `v2/tools/whisper_livekit/`：`whisper_launcher.py`（`setup`/`run`/`start`/`model`/`doctor`，venv・PyAudio/PortAudio 不要．
+      `run`/`start` は **127.0.0.1 の制御 API**（`GET /wlk/status`, `POST /wlk/config`）を併設し，アプリのドロップダウンからモデル切替＝自動再起動），
+      `start_all.bat`，`whisperlivekit.env.example`，README
+    - 検証：制御 API を curl（status/config/再起動後も生存）で確認し，Playwright でアプリのドロップダウンがサーバのモデル（`base`）を反映→
+      `tiny` に変更→`モデル: tiny` 表示＋env 更新を確認．偽 WLK サーバでの認識パイプライン検証は前項のとおり
+  - [x] 実機テスト：`whisper_launcher.py setup` → `start` → アプリで「Whisper（ローカル）」→ 接続テスト → 認識（`WHISPER_MODEL=small` 目安）
 - [x] 2026-08-22 X の報告「スペイン語だけ認識されない」対応：認識言語に es-ES/MX/US/AR/CO を追加，
       language-not-supported の可視化（従来は「マイク未許可」と誤表示）→ push（48d8acd, Ver 2026.08.22 17:41）
 - [x] 2026-08-27 しゅりみんさん報告「1行スタイルで左端が切れる」対応：
