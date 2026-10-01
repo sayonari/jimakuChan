@@ -13,6 +13,7 @@
  *   'state'    detail:{ running:boolean, listening:boolean }
  *   'error'    detail:{ error, fatal:boolean, message }
  *   'fallback' detail:{ from:'local', to:'cloud' } オンデバイス→クラウドへ自動切替
+ *   'recovered' detail:{ reason, count }          ウォッチドッグが止まった認識を作り直した
  */
 (function (global) {
   'use strict';
@@ -39,6 +40,10 @@
       this._errorCount = 0;
       this._localOK = null;                      // オンデバイス利用可否キャッシュ
       this._lastInterim = '';
+      this._lastEvent = 0;                       // 最後に認識側から何かイベントが届いた時刻（ウォッチドッグ用）
+      this._startingSince = [0, 0];              // 'starting' になった時刻
+      this._watchdog = null;
+      this.recoveries = 0;                       // ウォッチドッグが復旧させた回数
     }
 
     get running() { return this._wantRunning; }
@@ -78,11 +83,13 @@
       this._build();
       this._startInstance(0);
       this._emitState();
+      this._startWatchdog();
     }
 
     stop() {
       this._wantRunning = false;
       clearTimeout(this._pauseTimer); clearTimeout(this._restartTimer);
+      clearInterval(this._watchdog); this._watchdog = null;
       this._instances.forEach((r, i) => { try { r.abort(); } catch (e) {} this._states[i] = 'stopped'; });
       this._emitState();
     }
@@ -92,6 +99,37 @@
     // ---- 内部 ------------------------------------------------------------
     _emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
     _emitState() { this._emit('state', { running: this._wantRunning, listening: this.listening }); }
+
+    /**
+     * ウォッチドッグ：Chrome の認識セッションが黙って止まる（onstart も onend も来ない）と，
+     * 状態が 'starting'/'running' のまま固まって二度と再起動されない．定期的に見張り，
+     * 一定時間イベントが無ければインスタンスを作り直して再開する．
+     */
+    _startWatchdog() {
+      clearInterval(this._watchdog);
+      this._lastEvent = Date.now();
+      this._watchdog = setInterval(() => {
+        if (!this._wantRunning) return;
+        const now = Date.now();
+        const stuckStarting = this._states.some((s, k) => s === 'starting' && now - this._startingSince[k] > 8000);
+        // 文ごとに再起動：無音でも数秒おきに no-speech → onend が来るので 30 秒無反応なら異常．
+        // 連続モード：無音のあいだセッションが黙っていることがあるので長めに待つ．
+        const silentLimit = this.mode === 'continuous' ? 90000 : 30000;
+        const noEvents = now - this._lastEvent > silentLimit;
+        const allStopped = this._states.every(s => s === 'stopped') && now - this._lastEvent > 5000;
+        if (stuckStarting || noEvents || allStopped) {
+          this.recoveries++;
+          console.warn('[recog] watchdog: 認識が止まっているので作り直します', { states: this._states.slice(), idle: now - this._lastEvent });
+          this._emit('recovered', { reason: stuckStarting ? 'stuck-starting' : noEvents ? 'no-events' : 'all-stopped', count: this.recoveries });
+          clearTimeout(this._pauseTimer); clearTimeout(this._restartTimer);
+          this._soft = null; this._segBase = '';
+          this._lastEvent = now;
+          this._build();
+          this._startInstance(0);
+          this._emitState();
+        }
+      }, 3000);
+    }
 
     _build() {
       this._instances.forEach(r => { try { r.abort(); } catch (e) {} });
@@ -115,8 +153,14 @@
         } catch (e) { console.warn('[recog] phrases 設定失敗', e); }
       }
 
-      rec.onstart = () => { this._states[i] = 'running'; this._errorCount = 0; this._emitState(); };
+      // 作り直した後に古いインスタンスから遅れて届くイベントは無視する（新しい方の状態を壊さないため）
+      const live = () => this._instances[i] === rec;
+      const touch = () => { if (live()) this._lastEvent = Date.now(); };
+      rec.onaudiostart = touch;
+      rec.onstart = () => { if (!live()) return; touch(); this._states[i] = 'running'; this._errorCount = 0; this._emitState(); };
       rec.onend = () => {
+        if (!live()) return;
+        touch();
         this._states[i] = 'stopped';
         this._emitState();
         if (!this._wantRunning) return;
@@ -129,6 +173,8 @@
         }
       };
       rec.onerror = (ev) => {
+        if (!live()) return;
+        touch();
         this._states[i] = 'stopped';
         const err = ev.error;
         if (err === 'not-allowed' || err === 'service-not-allowed') {
@@ -161,7 +207,7 @@
           this._restartTimer = setTimeout(() => { if (this._wantRunning) this._startInstance(i); }, 3000);
         }
       };
-      rec.onresult = (ev) => this._onResult(ev, i);
+      rec.onresult = (ev) => { if (!live()) return; touch(); this._onResult(ev, i); };
     }
 
     _startInstance(i) {
@@ -169,6 +215,7 @@
       if (this._states[i] !== 'stopped') return;
       try {
         this._states[i] = 'starting';
+        this._startingSince[i] = Date.now();
         this._instances[i].start();
         this._active = i;
       } catch (e) {

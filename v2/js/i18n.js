@@ -62,7 +62,7 @@
       // 動的メッセージ
       msgStarted: '認識をはじめました．話してみてください', msgStopped: '認識をとめました', msgMicDenied: 'マイクが許可されていません．アドレスバーのマイクアイコンから許可してください',
       msgLangUnsupported: 'この認識言語はお使いの Chrome では使えませんでした．同じ言語の別の地域（例：スペイン語 (MX)）を選ぶか，Chrome を最新版に更新してください',
-      msgUnsupported: 'このブラウザは音声認識に対応していません．Google Chrome を使ってください', msgFallbackCloud: 'ローカル認識が使えないためクラウド認識に切り替えました',
+      msgUnsupported: 'このブラウザは音声認識に対応していません．Google Chrome を使ってください', msgFallbackCloud: 'ローカル認識が使えないためクラウド認識に切り替えました', msgRecovered: n => `音声認識が止まっていたので自動で再開しました（${n}回目）`,
       msgObsConnected: 'OBS に接続しました', msgObsFailed: 'OBS に接続できません（OBS 起動・WebSocket 有効化・パスワードを確認）', msgObsAdded: 'OBS のシーンに字幕ソースを追加しました', msgObsUpdated: 'OBS の字幕ソースを更新しました',
       msgCopied: 'コピーしました', msgSaved: '保存しました', msgImported: '設定を読み込みました', msgImportErr: '読み込めないファイルです', msgReset: 'このプリセットを初期値に戻しました',
       msgTest: 'これはテスト送信です', msgTestTrans: 'This is a test message.', obsTestSent: 'OBS へ送信しました（OBS に出ない場合：ブラウザソースを右クリック→「対話」でページが表示されているか確認）', obsTestFailed: 'OBS への送信に失敗（obs-browser の emit_event 非対応？ OBS 28 以降が必要）', obsNoteLocalhost: 'ローカル確認用に http://localhost:4444 のオーバーレイを登録しました（run_server.py の http ポート）', obsNoteFile: 'ローカルファイルとして登録しました（表示設定は接続中に自動配信）',
@@ -129,7 +129,7 @@
       linkGuide: 'Guide', linkWords: 'Word lists', devs: 'Dev: Saatan & Sayonari / Prof. Ryota Nishimura',
       msgStarted: 'Recognition started. Say something!', msgStopped: 'Recognition stopped', msgMicDenied: 'Microphone not allowed. Allow it from the address-bar mic icon',
       msgLangUnsupported: 'Chrome could not start speech recognition for this language. Try another region of the same language (e.g. Spanish (MX)), or update Chrome to the latest version',
-      msgUnsupported: 'This browser does not support speech recognition. Please use Google Chrome', msgFallbackCloud: 'Local model unavailable — switched to cloud recognition',
+      msgUnsupported: 'This browser does not support speech recognition. Please use Google Chrome', msgFallbackCloud: 'Local model unavailable — switched to cloud recognition', msgRecovered: n => `Speech recognition had stalled and was restarted automatically (#${n})`,
       msgObsConnected: 'Connected to OBS', msgObsFailed: 'Cannot connect to OBS (check OBS is running, WebSocket enabled, password)', msgObsAdded: 'Subtitle source added to the OBS scene', msgObsUpdated: 'OBS subtitle source updated',
       msgCopied: 'Copied', msgSaved: 'Saved', msgImported: 'Settings loaded', msgImportErr: 'Unreadable file', msgReset: 'Preset reset to defaults',
       msgTest: 'This is a test message', msgTestTrans: 'これはテスト送信です', obsTestSent: 'Sent to OBS (if nothing shows: right-click the browser source → Interact to check the page loads)', obsTestFailed: 'Send to OBS failed (emit_event unsupported? OBS 28+ required)', obsNoteLocalhost: 'Registered the http://localhost:4444 overlay for local testing (http port of run_server.py)', obsNoteFile: 'Registered as a local file (display settings are pushed while connected)',

@@ -1928,6 +1928,83 @@
         });
 
 
+        // ========================================================
+        // ウォッチドッグ（2026-10-01）：Chrome の認識セッションが黙って止まる（onstart も onend も来ない）と，
+        // 状態が 'starting'/'running' のまま固まり二度と再開しない．3 秒ごとに見張り，
+        // 一定時間イベントが無ければ両インスタンスを作り直して再開する（ページの再読み込みは不要）．
+        // ========================================================
+        var lastRecogEventTime = Date.now();
+        var seenStartingAt = [0, 0];
+        var watchdogRecoveries = 0;
+        var recognitionFatal = false;   // マイク未許可など：再開しても直らないので見張りを止める
+        function attachWatchdogListeners(rec) {
+            ['start', 'end', 'error', 'result', 'audiostart'].forEach(function(t) {
+                rec.addEventListener(t, function(ev) {
+                    if (rec.__retired) return;
+                    lastRecogEventTime = Date.now();
+                    if (t === 'error' && (ev.error === 'not-allowed' || ev.error === 'service-not-allowed')) recognitionFatal = true;
+                });
+            });
+        }
+        recognitions.forEach(function(rec) { attachWatchdogListeners(rec); });
+
+        function rebuildRecognitionInstances(reason) {
+            watchdogRecoveries++;
+            console.warn('🐶 watchdog: 音声認識が止まっているので作り直します（理由: ' + reason + '，' + watchdogRecoveries + '回目）', recognitionStates.slice());
+            if (typeof id_stop_recog !== 'undefined' && id_stop_recog !== null) { clearTimeout(id_stop_recog); id_stop_recog = null; }
+            recognitions.forEach(function(old, index) {
+                // 古いインスタンスの遅れたイベントが新しい状態を壊さないよう，ハンドラを外してから止める
+                old.__retired = true;
+                ['onstart', 'onend', 'onerror', 'onresult', 'onaudiostart', 'onaudioend', 'onsoundstart', 'onsoundend', 'onspeechstart', 'onspeechend', 'onnomatch']
+                    .forEach(function(h) { try { old[h] = null; } catch (e) {} });
+                try { old.abort(); } catch (e) {}
+                var rec = new webkitSpeechRecognition();
+                setupRecognitionInstance(rec, index);
+                if (arg_recog != null) rec.lang = arg_recog;
+                setupEventHandlers(rec, index);
+                rec.onresult = createOnResultHandler(index);
+                attachWatchdogListeners(rec);
+                recognitions[index] = rec;
+                recognitionStates[index] = 'stopped';
+            });
+            activeRecognitionIndex = 0;
+            recognition = recognitions[0];
+            nextInstanceStarted = false;
+            recognitionRestartInProgress = false;
+            seenStartingAt = [0, 0];
+            lastRecogEventTime = Date.now();
+            try {
+                recognitionStates[0] = 'starting';
+                recognitionState = 'starting';
+                recognitions[0].start();
+            } catch (e) {
+                console.error('watchdog: 再開に失敗', e);
+                recognitionStates[0] = 'stopped';
+            }
+        }
+
+        function startRecognitionWatchdog() {
+            setInterval(function() {
+                if (recognitionFatal) return;
+                var now = Date.now();
+                var stuckStarting = false;
+                for (var i = 0; i < 2; i++) {
+                    if (recognitionStates[i] === 'starting') {
+                        if (!seenStartingAt[i]) seenStartingAt[i] = now;
+                        else if (now - seenStartingAt[i] > 8000) stuckStarting = true;
+                    } else {
+                        seenStartingAt[i] = 0;
+                    }
+                }
+                // 文ごとに再起動する方式なので，無音でも数秒おきに no-speech → onend が来る．30 秒無反応なら異常
+                var noEvents = now - lastRecogEventTime > 30000;
+                var allStopped = recognitionStates[0] === 'stopped' && recognitionStates[1] === 'stopped' && now - lastRecogEventTime > 5000;
+                if (stuckStarting || noEvents || allStopped) {
+                    rebuildRecognitionInstances(stuckStarting ? 'stuck-starting' : noEvents ? 'no-events' : 'all-stopped');
+                }
+            }, 3000);
+        }
+
         // 音声デバイス初期化＋優先音声認識の可否チェック完了後に音声認識を開始
         // initRecognitionPromise は必ず待ち、initializeAudioDevice は失敗しても続行
         initRecognitionPromise.then(() => {
@@ -1940,6 +2017,8 @@
             recognitions[0].start();
             recognitionState = 'starting';  // 後方互換性
             console.log("[0] recog start: cnt:" + String(my_count));
+            lastRecogEventTime = Date.now();
+            startRecognitionWatchdog();
 
             // 初期ステータス設定
             if (gas_key != null && gas_key !== '') {
@@ -2005,7 +2084,7 @@
 <script type="text/javascript">
 
 // バージョン情報の表示 ---------------------------------
-const SoftwareVersion = "2026.03.05 20:43";
+const SoftwareVersion = "2026.10.01 19:28";
 
 // 言語設定を取得（localStorageから、なければ日本語）
 const currentLang = localStorage.getItem('jimakuChan_language') || 'ja';

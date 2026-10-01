@@ -280,6 +280,7 @@
       } else $('#engineStatus').textContent = e.detail.message || '';
     });
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
+    R.addEventListener('recovered', e => { $('#engineStatus').textContent = t('msgRecovered', e.detail.count); });   // 再起動せずに済んだことを残す
     R.addEventListener('interim', e => onInterim(e.detail.text));
     R.addEventListener('final', e => onFinal(e.detail.text));
     engine.recognizer = R;

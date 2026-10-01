@@ -15,6 +15,14 @@ class ChromeTranslatorV2 {
         this.cleanupTimer = null; // 定期クリーンアップタイマー
         this.translationCount = 0; // 翻訳回数カウンター
         this.maxTranslationsBeforeCleanup = 1000; // クリーンアップ実行の翻訳回数閾値
+        // 長時間配信で翻訳が詰まる・重くなる対策：使い続けている翻訳器も定期的に作り直す
+        this.translatorMeta = new Map();   // key -> { created, uses }
+        this.refreshing = new Set();       // 作り直し中の key
+        this.maxUsesPerTranslator = 300;   // この回数使ったら作り直す
+        this.maxAgePerTranslator = 20 * 60 * 1000; // 20 分たったら作り直す
+        this.translateTimeout = 10000;     // 1 回の翻訳がこれ以上返らなければ打ち切って作り直す
+        this.recycleCount = 0;             // 作り直した回数（診断用）
+        this.timeoutCount = 0;             // タイムアウトした回数（診断用）
         
         // 定期的なメモリクリーンアップを開始（30分間隔）
         this.startPeriodicCleanup();
@@ -250,6 +258,7 @@ class ChromeTranslatorV2 {
 
             // キャッシュに保存
             this.translators.set(key, translator);
+            this.translatorMeta.set(key, { created: Date.now(), uses: 0 });
             console.log(`翻訳器作成完了: ${sourceLang} → ${targetLang}`);
             
             return translator;
@@ -307,8 +316,13 @@ class ChromeTranslatorV2 {
             
             // 翻訳実行
             const startTime = performance.now();
-            const result = await translator.translate(text.trim());
+            let tid;
+            const result = await Promise.race([
+                translator.translate(text.trim()),
+                new Promise((_, rej) => { tid = setTimeout(() => rej(Object.assign(new Error('翻訳タイムアウト'), { name: 'TimeoutError' })), this.translateTimeout); }),
+            ]).finally(() => clearTimeout(tid));
             const endTime = performance.now();
+            this._noteUse(sourceLang, targetLang);
             
             console.log(`翻訳完了 (${Math.round(endTime - startTime)}ms): ${text.substring(0, 50)}... → ${result.substring(0, 50)}...`);
             
@@ -327,6 +341,13 @@ class ChromeTranslatorV2 {
         } catch (error) {
             console.error(`翻訳エラー (リトライ ${retryCount}/${this.maxRetries}):`, error);
             
+            // 返ってこない翻訳器は壊れているとみなして捨てる（次の翻訳で作り直す）．
+            // リトライはしない：字幕は先に出ているので，この文の翻訳は諦めて次の文に進む
+            if (error.name === 'TimeoutError') {
+                this.timeoutCount++;
+                this.resetTranslator(sourceLang, targetLang).catch(() => {});
+                throw error;
+            }
             // "Other generic failures occurred" エラーの場合はリトライ
             if (error.name === 'UnknownError' && retryCount < this.maxRetries) {
                 console.log(`翻訳をリトライします (${retryCount + 1}/${this.maxRetries})`);
@@ -352,6 +373,42 @@ class ChromeTranslatorV2 {
             }
             
             throw error;
+        }
+    }
+
+    // 使用回数を数え，規定回数・規定時間を超えたら裏で新しい翻訳器を作って差し替える
+    _noteUse(sourceLang, targetLang) {
+        const key = `${sourceLang}_${targetLang}`;
+        const meta = this.translatorMeta.get(key);
+        if (!meta) return;
+        meta.uses++;
+        if (meta.uses >= this.maxUsesPerTranslator || Date.now() - meta.created > this.maxAgePerTranslator) {
+            this._recycle(sourceLang, targetLang);
+        }
+    }
+
+    async _recycle(sourceLang, targetLang) {
+        const key = `${sourceLang}_${targetLang}`;
+        if (this.refreshing.has(key)) return;
+        this.refreshing.add(key);
+        try {
+            // 新しい方を先に作ってから差し替える（作っている間も古い方で翻訳を続けられる）
+            const fresh = await Translator.create({ sourceLanguage: sourceLang, targetLanguage: targetLang });
+            const old = this.translators.get(key);
+            this.translators.set(key, fresh);
+            this.translatorMeta.set(key, { created: Date.now(), uses: 0 });
+            this.recycleCount++;
+            console.log(`翻訳器を作り直しました: ${key}（${this.recycleCount}回目）`);
+            // 古い方で実行中の翻訳が終わるのを少し待ってから破棄
+            if (old && old !== fresh && typeof old.destroy === 'function') {
+                setTimeout(() => { try { old.destroy(); } catch (e) {} }, this.translateTimeout + 1000);
+            }
+        } catch (e) {
+            console.warn(`翻訳器の作り直しに失敗（古い方を使い続けます）: ${key}`, e);
+            const meta = this.translatorMeta.get(key);
+            if (meta) meta.created = Date.now();   // すぐに再試行し続けないように
+        } finally {
+            this.refreshing.delete(key);
         }
     }
 
@@ -485,6 +542,7 @@ class ChromeTranslatorV2 {
                     }
                 }
                 this.translators.delete(key);
+                this.translatorMeta.delete(key);
                 this.lastTranslationTime.delete(key);
                 console.log(`古い翻訳器を削除: ${key}`);
             }
@@ -537,6 +595,7 @@ class ChromeTranslatorV2 {
     async resetTranslator(sourceLang, targetLang) {
         const key = `${sourceLang}_${targetLang}`;
         
+        this.translatorMeta.delete(key);
         if (this.translators.has(key)) {
             const translator = this.translators.get(key);
             this.translators.delete(key);
