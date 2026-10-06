@@ -291,6 +291,19 @@
             return result;
         }
 
+        // 認識結果の整形：日本語・中国語で形態素ごとに入る半角スペースを除去
+        // （韓国語は分かち書きの言語なので対象外）
+        const CJK_CHAR = '[\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}ー、。，．！？「」（）・〜]';
+        const RE_CJK_SPACE = new RegExp('(?<=' + CJK_CHAR + ')[ \\u3000]+(?=' + CJK_CHAR + '|[A-Za-z0-9])|(?<=[A-Za-z0-9])[ \\u3000]+(?=' + CJK_CHAR + ')', 'gu');
+        const RE_CJK_SPACE_EDGE = new RegExp('(?<=' + CJK_CHAR + ')[ \\u3000]+(?=[!?,.、。，．！？])|(?<=[、。，．！？（「])[ \\u3000]+', 'gu');
+        function tidyRecogText(text) {
+            let result = String(text || '');
+            if (/^(ja|zh|cmn|yue)/i.test(arg_recog || 'ja')) {
+                result = result.replace(RE_CJK_SPACE, '').replace(RE_CJK_SPACE_EDGE, '');
+            }
+            return result.replace(/\s{2,}/g, ' ');
+        }
+
         // カスタム辞書の準備
         var customDictionary = {};
         if (arg_useCustomDictionary === 'true' && arg_customDictionary) {
@@ -1434,6 +1447,10 @@
                     }
                 }
 
+                // 形態素間のスペースを除去
+                finalText = tidyRecogText(finalText);
+                interimText = tidyRecogText(interimText);
+
                 // 語句置換を適用
                 finalText = applyWordReplace(finalText);
                 interimText = applyWordReplace(interimText);
@@ -2084,7 +2101,7 @@
 <script type="text/javascript">
 
 // バージョン情報の表示 ---------------------------------
-const SoftwareVersion = "2026.10.01 19:28";
+const SoftwareVersion = "2026.10.06 20:08";
 
 // 言語設定を取得（localStorageから、なければ日本語）
 const currentLang = localStorage.getItem('jimakuChan_language') || 'ja';

@@ -247,13 +247,13 @@
     }).filter(Boolean);
   }
   function applyReplace(text) { let r = text; for (const x of engine.replaceRules) r = r.replace(x.re, x.to); return r; }
-  // 認識結果の整形：日本語・中国語などで形態素ごとに入る半角スペースを除去
-  const CJK = '[\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}\\p{Script=Thai}ー、。，．！？「」（）・〜]';
+  // 認識結果の整形：日本語・中国語などで形態素ごとに入る半角スペースを除去（韓国語は分かち書きなので対象外）
+  const CJK = '[\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Thai}ー、。，．！？「」（）・〜]';
   const RE_CJK_SPACE = new RegExp('(?<=' + CJK + ')[ \\u3000]+(?=' + CJK + '|[A-Za-z0-9])|(?<=[A-Za-z0-9])[ \\u3000]+(?=' + CJK + ')', 'gu');
   const RE_CJK_SPACE_EDGE = new RegExp('(?<=' + CJK + ')[ \\u3000]+(?=[!?,.、。，．！？])|(?<=[、。，．！？（「])[ \\u3000]+', 'gu');
   function tidy(text) {
     let r = String(text || '');
-    if (/^(ja|zh|th|ko)/i.test(S.recog)) r = r.replace(RE_CJK_SPACE, '').replace(RE_CJK_SPACE_EDGE, '');
+    if (/^(ja|zh|th)/i.test(S.recog)) r = r.replace(RE_CJK_SPACE, '').replace(RE_CJK_SPACE_EDGE, '');
     return r.replace(/\s{2,}/g, ' ').trim();
   }
   const filt = (f, s) => (f ? f.apply(s) : s);
