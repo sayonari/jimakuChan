@@ -310,7 +310,7 @@
 
 <!-- # 言語選択設定 ######################### -->
 <span data-i18n="recognitionLanguage">音声認識言語　：</span>
-<select id="recog" onchange="updateOptionValues(only_url=false); checkAllTranslationModels(); if(getRecognitionModel()==='local') checkOnDeviceAvailability();">
+<select id="recog" onchange="updateOptionValues(only_url=false); checkAllTranslationModels(); checkOnDeviceAvailability();">
     <option value="ja" selected data-i18n="langJapanese">日本語</option>
     <option value="en-US" data-i18n="langEnglish">英語</option>
     <option value="ko" data-i18n="langKorean">韓国語</option>
@@ -334,6 +334,10 @@
     <option value="ar-SA" data-i18n="langArabic">アラビア語</option>
     <option value="el-GR" data-i18n="langGreek">ギリシャ語</option>
 </select>
+<div id="onDeviceNotice" style="display: none; background-color: #fff3e0; border-radius: 5px; padding: 6px 8px; margin: 5px 0; font-size: 12px;">
+    <div id="onDeviceNoticeMsg"></div>
+    <div id="recogNoResultWarn" style="display: none; color: #e65100; margin-top: 4px;"></div>
+</div>
 
 <span data-i18n="font">フォント　：</span>
 <select name="speech_text_font_selector" id="speech_text_font_selector" onchange="applySelectedFont(this, 'speech_text'); selectFont(); updateOptionValues();">
@@ -801,12 +805,10 @@ function switchRecognitionModel() {
     saveRecognitionModelToStorage(model);
 
     var boostSection = document.getElementById('wordBoostSection');
+    checkOnDeviceAvailability();
     if (model === 'local') {
-        checkOnDeviceAvailability();
         if (boostSection) boostSection.style.display = '';
     } else {
-        var statusEl = document.getElementById('recogModelStatus');
-        if (statusEl) statusEl.textContent = '';
         if (boostSection) boostSection.style.display = 'none';
     }
 
@@ -855,6 +857,7 @@ function applyRecognitionModelOnLoad() {
         } else {
             cloudRadio.checked = true;
             localRadio.checked = false;
+            checkOnDeviceAvailability();
             if (boostSection) boostSection.style.display = 'none';
         }
     }
@@ -874,27 +877,161 @@ function updateRecognitionModelInIframe(model) {
     }
 }
 
+// オンデバイス認識モデルのインストール（認識言語に加えて en-US も入れる．失敗したら1言語ずつ）
+function installOnDeviceModels(SpeechRecClass, lang, onlyLang) {
+    var langs = (onlyLang || /^en/i.test(lang)) ? [lang] : [lang, 'en-US'];
+    return SpeechRecClass.install({ langs: langs, processLocally: true }).then(function(success) {
+        if (success || langs.length === 1) return success;
+        throw new Error('install failed');
+    }).catch(function(e) {
+        if (langs.length === 1) throw e;
+        console.warn('まとめてのインストールに失敗．1言語ずつ試します:', e);
+        return langs.reduce(function(p, l) {
+            return p.then(function(ok) {
+                return SpeechRecClass.install({ langs: [l], processLocally: true }).then(function(r) { return ok && r; });
+            });
+        }, Promise.resolve(true));
+    });
+}
+
+// 通知エリア（#onDeviceNotice）は出すものが無いときは丸ごと隠す
+function updateOnDeviceNoticeVisibility() {
+    var noticeEl = document.getElementById('onDeviceNotice');
+    if (!noticeEl) return;
+    var msgEl = document.getElementById('onDeviceNoticeMsg');
+    var warnEl = document.getElementById('recogNoResultWarn');
+    var hasContent = (msgEl && msgEl.childNodes.length > 0) ||
+                     (warnEl && warnEl.style.display !== 'none');
+    noticeEl.style.display = hasContent ? '' : 'none';
+}
+
+// 詳しい人向け：ローカルモデルを消すには（折りたたみ．既定は閉じている）
+function createModelDeleteDetails() {
+    var details = document.createElement('details');
+    details.style.cssText = 'margin-top: 6px; font-size: 11px; color: #777;';
+    var summary = document.createElement('summary');
+    summary.textContent = i18n.t('recogModelGuideBtn');
+    summary.style.cssText = 'cursor: pointer;';
+    details.appendChild(summary);
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background: #fff8e1; border: 1px solid #ffb300; border-radius: 4px; padding: 8px; margin-top: 4px; font-size: 12px; line-height: 1.6; color: #333;';
+    var addrRow = document.createElement('div');
+    addrRow.style.marginTop = '4px';
+    var code = document.createElement('code');
+    code.textContent = 'chrome://settings/accessibility';
+    code.style.cssText = 'background: #eee; padding: 2px 6px; border-radius: 3px; user-select: all;';
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = i18n.t('recogModelCopyBtn');
+    copyBtn.style.cssText = 'font-size: 11px; padding: 2px 8px; cursor: pointer; margin-left: 6px;';
+    var copyMsg = document.createElement('span');
+    copyMsg.style.cssText = 'color: #2e7d32; margin-left: 6px;';
+    copyBtn.onclick = function() {
+        try {
+            navigator.clipboard.writeText('chrome://settings/accessibility').then(function() {
+                copyMsg.textContent = i18n.t('recogModelCopied');
+            }).catch(function() {
+                copyMsg.textContent = i18n.t('recogModelCopyFailed');
+            });
+        } catch (e) {
+            copyMsg.textContent = i18n.t('recogModelCopyFailed');
+        }
+    };
+    addrRow.appendChild(code);
+    addrRow.appendChild(copyBtn);
+    addrRow.appendChild(copyMsg);
+    box.appendChild(addrRow);
+
+    var steps = document.createElement('div');
+    steps.style.marginTop = '4px';
+    steps.innerHTML = [1, 2, 3, 4].map(function(n) { return i18n.t('recogModelGuideStep' + n); }).join('<br>');
+    box.appendChild(steps);
+
+    var warn = document.createElement('div');
+    warn.style.cssText = 'color: #e65100; margin-top: 4px;';
+    warn.textContent = i18n.t('recogModelGuideWarn');
+    box.appendChild(warn);
+    details.appendChild(box);
+    return details;
+}
+
 function checkOnDeviceAvailability() {
     var statusEl = document.getElementById('recogModelStatus');
     if (!statusEl) return;
+    var isCloud = getRecognitionModel() === 'cloud';
+    var noticeMsg = document.getElementById('onDeviceNoticeMsg');
+    if (noticeMsg) noticeMsg.innerHTML = '';
+    updateOnDeviceNoticeVisibility();
 
-    statusEl.textContent = i18n.t('recogModelStatusChecking');
+    statusEl.textContent = isCloud ? '' : i18n.t('recogModelStatusChecking');
     statusEl.style.color = '#999';
 
     var SpeechRecClass = window.webkitSpeechRecognition || window.SpeechRecognition;
     if (!SpeechRecClass || typeof SpeechRecClass.available !== 'function') {
-        statusEl.textContent = i18n.t('recogModelStatusUnsupported');
-        statusEl.style.color = '#e65100';
+        if (!isCloud) {
+            statusEl.textContent = i18n.t('recogModelStatusUnsupported');
+            statusEl.style.color = '#e65100';
+        }
         return;
     }
 
     var recogSelect = document.getElementById('recog');
     var checkLang = recogSelect ? recogSelect.value : 'ja';
+    var needEn = !/^en/i.test(checkLang);
+
+    // 詳しい人向けの削除案内（折りたたみ）を通知エリアに追加
+    function appendDeleteGuide() {
+        if (!noticeMsg) return;
+        noticeMsg.appendChild(createModelDeleteDetails());
+        updateOnDeviceNoticeVisibility();
+    }
+
+    // 認識言語が available のとき，en-US も入っているか確認（local選択時のみ）
+    function checkEnglishModel() {
+        if (!needEn || !noticeMsg) return;
+        SpeechRecClass.available({ langs: ['en-US'], processLocally: true }).then(function(r) {
+            if (r === 'available') return;
+            var note = document.createElement('div');
+            note.style.cssText = 'color: #e65100; margin-top: 4px;';
+            note.appendChild(document.createTextNode(i18n.t('recogModelEnMissing') + ' '));
+            var enBtn = document.createElement('button');
+            enBtn.textContent = i18n.t('recogModelEnInstallBtn');
+            enBtn.style.cssText = 'font-size: 11px; padding: 2px 8px; cursor: pointer; background: #1565c0; color: white; border: none; border-radius: 3px; margin-left: 4px;';
+            enBtn.onclick = function() {
+                enBtn.disabled = true;
+                enBtn.textContent = '...';
+                installOnDeviceModels(SpeechRecClass, 'en-US', true).then(function() {
+                    checkOnDeviceAvailability();
+                }).catch(function() {
+                    enBtn.textContent = i18n.t('recogModelStatusUnavailable');
+                });
+            };
+            note.appendChild(enBtn);
+            noticeMsg.appendChild(note);
+            updateOnDeviceNoticeVisibility();
+        }).catch(function() {});
+    }
 
     SpeechRecClass.available({ langs: [checkLang], processLocally: true }).then(function(result) {
-        if (result === 'available') {
-            statusEl.textContent = i18n.t('recogModelStatusAvailable');
-            statusEl.style.color = '#2e7d32';
+        if (result === 'available' || result === 'downloading') {
+            if (isCloud) {
+                if (noticeMsg) {
+                    var cw = document.createElement('span');
+                    cw.style.color = '#e65100';
+                    cw.textContent = i18n.t('recogModelCloudWarn') + ' ';
+                    noticeMsg.appendChild(cw);
+                }
+            } else if (result === 'available') {
+                statusEl.textContent = i18n.t('recogModelStatusAvailable');
+                statusEl.style.color = '#2e7d32';
+            } else {
+                statusEl.textContent = i18n.t('recogModelStatusDownloading');
+                statusEl.style.color = '#1565c0';
+            }
+            appendDeleteGuide();
+            if (result === 'available') checkEnglishModel();
+        } else if (isCloud) {
+            statusEl.textContent = '';
         } else if (result === 'downloadable') {
             statusEl.innerHTML = i18n.t('recogModelStatusDownloadable') + ' ';
             statusEl.style.color = '#1565c0';
@@ -905,10 +1042,9 @@ function checkOnDeviceAvailability() {
                 installBtn.disabled = true;
                 installBtn.textContent = '...';
                 statusEl.childNodes[0].textContent = i18n.t('recogModelStatusDownloading') + ' ';
-                SpeechRecClass.install({ langs: [checkLang], processLocally: true }).then(function(success) {
+                installOnDeviceModels(SpeechRecClass, checkLang, false).then(function(success) {
                     if (success) {
-                        statusEl.textContent = i18n.t('recogModelStatusAvailable');
-                        statusEl.style.color = '#2e7d32';
+                        checkOnDeviceAvailability();
                     } else {
                         statusEl.textContent = i18n.t('recogModelStatusUnavailable');
                         statusEl.style.color = '#e65100';
@@ -919,14 +1055,12 @@ function checkOnDeviceAvailability() {
                 });
             };
             statusEl.appendChild(installBtn);
-        } else if (result === 'downloading') {
-            statusEl.textContent = i18n.t('recogModelStatusDownloading');
-            statusEl.style.color = '#1565c0';
         } else {
             statusEl.textContent = i18n.t('recogModelStatusUnavailable');
             statusEl.style.color = '#e65100';
         }
     }).catch(function() {
+        if (isCloud) return;
         statusEl.textContent = i18n.t('recogModelStatusUnavailable');
         statusEl.style.color = '#e65100';
     });
@@ -1025,7 +1159,7 @@ window.addEventListener('DOMContentLoaded', function() {
                         installBtn.onclick = function() {
                             installBtn.disabled = true;
                             installBtn.textContent = 'ダウンロード中...';
-                            SpeechRecClass.install({ langs: [checkLang], processLocally: true }).then(function(success) {
+                            installOnDeviceModels(SpeechRecClass, checkLang, false).then(function(success) {
                                 if (success) {
                                     boostStatus.textContent = '✅ 利用可能（ダウンロード完了）';
                                     boostStatus.style.color = '#2e7d32';
@@ -2907,8 +3041,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 } else {
                     cloudRadioM.checked = true;
                     localRadioM.checked = false;
-                    var statusEl = document.getElementById('recogModelStatus');
-                    if (statusEl) statusEl.textContent = '';
+                    checkOnDeviceAvailability();
                     if (boostSectionM) boostSectionM.style.display = 'none';
                 }
                 saveRecognitionModelToStorage(modelToApply);
@@ -3021,8 +3154,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 } else {
                     cloudRadioM2.checked = true;
                     localRadioM2.checked = false;
-                    var statusEl2 = document.getElementById('recogModelStatus');
-                    if (statusEl2) statusEl2.textContent = '';
+                    checkOnDeviceAvailability();
                     if (boostSectionM2) boostSectionM2.style.display = 'none';
                 }
                 saveRecognitionModelToStorage(modelToApply2);

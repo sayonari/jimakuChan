@@ -14,6 +14,7 @@
  *   'error'    detail:{ error, fatal:boolean, message }
  *   'fallback' detail:{ from:'local', to:'cloud' } オンデバイス→クラウドへ自動切替
  *   'recovered' detail:{ reason, count }          ウォッチドッグが止まった認識を作り直した
+ *   'noresult' detail:{}                          発話は検出されているのに 20 秒間 onresult が 1 件も来ない（結果が来るまで再発火しない）
  */
 (function (global) {
   'use strict';
@@ -44,6 +45,8 @@
       this._startingSince = [0, 0];              // 'starting' になった時刻
       this._watchdog = null;
       this.recoveries = 0;                       // ウォッチドッグが復旧させた回数
+      this._noResultTimer = null;                // 音は来ているのに結果が来ない検出用
+      this._noResultFired = false;               // 'noresult' 発火後は結果が来るまで再発火しない
     }
 
     get running() { return this._wantRunning; }
@@ -55,10 +58,18 @@
       try { return await SR.available({ langs: [lang], processLocally: true }); }
       catch (e) { return 'unknown'; }
     }
-    static async installLocal(lang) {
+    /** 認識言語＋en-US を取得（ja のみ入れると結果が返らないことがあるため）．失敗時は 1 言語ずつ */
+    static async installLocal(lang, withEn = true) {
       if (!SR || typeof SR.install !== 'function') return false;
-      try { return await SR.install({ langs: [lang], processLocally: true }); }
-      catch (e) { return false; }
+      const langs = (withEn && !/^en/i.test(lang)) ? [lang, 'en-US'] : [lang];
+      try { return await SR.install({ langs, processLocally: true }); }
+      catch (e) {
+        let ok = true;
+        for (const l of langs) {
+          try { if (!(await SR.install({ langs: [l], processLocally: true }))) ok = false; } catch (e2) { ok = false; }
+        }
+        return ok;
+      }
     }
 
     configure(opts = {}) {
@@ -73,9 +84,10 @@
       }
       this._wantRunning = true;
       this._errorCount = 0;
+      this._clearNoResult();
       if (this.processLocally) {
         const a = await Recognizer.localAvailability(this.lang);
-        this._localOK = (a === 'available' || a === 'unknown');
+        this._localOK = (a === 'available');
         if (!this._localOK) {
           this._emit('fallback', { from: 'local', to: 'cloud', reason: a });
         }
@@ -90,6 +102,7 @@
       this._wantRunning = false;
       clearTimeout(this._pauseTimer); clearTimeout(this._restartTimer);
       clearInterval(this._watchdog); this._watchdog = null;
+      clearTimeout(this._noResultTimer); this._noResultTimer = null;
       this._instances.forEach((r, i) => { try { r.abort(); } catch (e) {} this._states[i] = 'stopped'; });
       this._emitState();
     }
@@ -131,6 +144,18 @@
       }, 3000);
     }
 
+    /** 発話を検出したら 20 秒タイマー（BGM だけで誤警告しないよう soundstart では張らない）を張る（既に張っていれば何もしない／発火済みなら結果が来るまで張らない） */
+    _armNoResult() {
+      if (this._noResultTimer || this._noResultFired || !this._wantRunning) return;
+      this._noResultTimer = setTimeout(() => {
+        this._noResultTimer = null;
+        if (!this._wantRunning) return;
+        this._noResultFired = true;
+        this._emit('noresult', {});
+      }, 20000);
+    }
+    _clearNoResult() { clearTimeout(this._noResultTimer); this._noResultTimer = null; this._noResultFired = false; }
+
     _build() {
       this._instances.forEach(r => { try { r.abort(); } catch (e) {} });
       this._instances = [new SR(), new SR()];
@@ -157,6 +182,7 @@
       const live = () => this._instances[i] === rec;
       const touch = () => { if (live()) this._lastEvent = Date.now(); };
       rec.onaudiostart = touch;
+      rec.onspeechstart = () => { if (live()) this._armNoResult(); };
       rec.onstart = () => { if (!live()) return; touch(); this._states[i] = 'running'; this._errorCount = 0; this._emitState(); };
       rec.onend = () => {
         if (!live()) return;
@@ -207,7 +233,7 @@
           this._restartTimer = setTimeout(() => { if (this._wantRunning) this._startInstance(i); }, 3000);
         }
       };
-      rec.onresult = (ev) => { if (!live()) return; touch(); this._onResult(ev, i); };
+      rec.onresult = (ev) => { if (!live()) return; touch(); this._clearNoResult(); this._onResult(ev, i); };
     }
 
     _startInstance(i) {

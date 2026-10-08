@@ -53,6 +53,7 @@
         <div class="tbar trans" title="翻訳テキストが消えるまで"><i id="barTrans"></i><b id="barTransT"></b></div>
       </div>
       <span class="status" id="engineStatus"></span>
+      <button class="btn mini" id="btnNoResultHelp" hidden data-i18n="btnNoResultHelp">英語モデルの取得へ</button>
       <button class="btn" id="btnDisplayMode" data-i18n-title="displayModeTitle" title="設定を隠して字幕だけにする（クリック／Esc で戻る）"><span class="ico">🖥</span><span data-i18n="btnDisplayMode">表示モード</span></button>
       <button class="btn ghost" id="btnPopup" title="別ウィンドウ（必要な場合）"><span class="ico">🪟</span><span data-i18n="btnPopup">別窓</span></button>
     </div>
@@ -102,10 +103,27 @@
               <div class="seg pinky" data-seg="recogMode"><button data-val="restart" data-i18n="modeRestart">文ごとに再起動（速い・従来）</button><button data-val="continuous" data-i18n="modeCont">連続（頭が切れにくい・確定は遅め）</button></div>
             </div>
             <label data-i18n="lRecogModel">認識モデル</label>
+            <div>
             <div class="row" style="margin:0">
               <div class="seg pinky" data-seg="recogModel"><button data-val="cloud" data-i18n="modelCloud">クラウド（Google）</button><button data-val="local" data-i18n="modelLocal">ローカル（PC内）</button></div>
               <span class="status" id="localModelStatus"></span>
               <button class="btn mini" id="btnInstallLocal" hidden data-i18n="btnInstallLocal">モデルを取得</button>
+              <button class="btn mini" id="btnInstallEn" hidden data-i18n="btnInstallEn">英語モデルも取得</button>
+            </div>
+            <div class="status" id="enModelNote" hidden style="margin-top:4px"></div>
+            <details id="delGuide" hidden style="margin-top:8px;font-size:12px;color:var(--mute,#888)">
+              <summary style="cursor:pointer" data-i18n="delGuideSummary">詳しい人向け：ローカルモデルを消すには</summary>
+              <div style="margin-top:6px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg2);line-height:1.7">
+                <div class="row" style="margin:4px 0"><code id="delUrlText">chrome://settings/accessibility</code><button class="btn mini" id="btnCopyChromeUrl" data-i18n="btnCopy">コピー</button></div>
+                <ol style="margin:6px 0 6px 18px;padding:0">
+                  <li data-i18n="delStep1">コピーしたアドレスを Chrome のアドレスバーに貼り付けて開く</li>
+                  <li data-i18n="delStep2">「自動字幕起こし」をオンにする（オンにすると，インストール済みの言語の一覧が表示されます）</li>
+                  <li data-i18n="delStep3">一覧の言語をすべて削除する</li>
+                  <li data-i18n="delStep4">「自動字幕起こし」をオフに戻し，Chrome を起動し直す</li>
+                </ol>
+                <div class="hint" data-i18n="delGuideNote">注意：ローカルを選ぶと，モデルの再ダウンロードが必要になります．</div>
+              </div>
+            </details>
             </div>
             <label data-i18n="lWordBoost">優先語句</label>
             <div>

@@ -716,13 +716,13 @@
                         }
                     } else {
                         // available() が存在しない場合、processLocally を試みる（フォールバック）
-                        console.log('SpeechRecognition.available() 未対応。オンデバイス認識を試みます。');
-                        onDeviceAvailable = true; // 試行してエラーハンドラでフォールバック
+                        console.log('SpeechRecognition.available() 未対応。クラウド認識として扱います。');
+                        onDeviceAvailable = false; // 判定できない場合はクラウドとして扱う
                     }
                 } catch (error) {
                     console.warn('オンデバイス認識の可否チェックに失敗:', error);
-                    // チェック失敗時も試行してエラーハンドラでフォールバック
-                    onDeviceAvailable = true;
+                    // チェック失敗時もクラウドとして扱う
+                    onDeviceAvailable = false;
                 }
             }
 
@@ -1243,6 +1243,51 @@
         };
 
         ///////////////////////////////////////////////////////////
+        // 無反応の検出（音は来ているのに onresult が来ない状態）
+        // 字幕には流さず，親の設定画面（iframe の場合）とコンソールにだけ通知する
+        var NO_RESULT_TIMEOUT_MS = 20000;
+        var noResultTimer = null;
+        var noResultWarned = false;
+        function showNoResultWarning(show) {
+            var fallbackMsg = '音は届いていますが，認識結果が返ってきません．英語モデルが入っていないと起きることがあります．『英語モデルも取得』を試してください．';
+            var msg = fallbackMsg;
+            try {
+                if (window.parent !== window) {
+                    var pe = window.parent.document.getElementById('recogNoResultWarn');
+                    if (window.parent.i18n) msg = window.parent.i18n.t('recogNoResultWarn');
+                    if (pe) {
+                        pe.textContent = show ? msg : '';
+                        pe.style.display = show ? '' : 'none';
+                    }
+                    if (typeof window.parent.updateOnDeviceNoticeVisibility === 'function') {
+                        window.parent.updateOnDeviceNoticeVisibility();
+                    }
+                }
+            } catch (e) {
+                // 親にアクセスできない場合（OBS ブラウザソース等）はコンソールのみ
+            }
+            if (show) console.warn('⚠️ ' + msg);
+        }
+        function armNoResultTimer() {
+            if (noResultTimer !== null || noResultWarned) return;
+            noResultTimer = setTimeout(function() {
+                noResultTimer = null;
+                noResultWarned = true;
+                showNoResultWarning(true);
+            }, NO_RESULT_TIMEOUT_MS);
+        }
+        function clearNoResultTimer() {
+            if (noResultTimer !== null) {
+                clearTimeout(noResultTimer);
+                noResultTimer = null;
+            }
+            if (noResultWarned) {
+                noResultWarned = false;
+                showNoResultWarning(false);
+            }
+        }
+
+        ///////////////////////////////////////////////////////////
         // 各種イベントへの対応（デュアルインスタンス対応）
         // 両方のインスタンスにイベントハンドラを設定する関数
         function setupEventHandlers(rec, index) {
@@ -1270,6 +1315,7 @@
 
             rec.onspeechstart = () => {
                 console.log(`[${index}] 🗣️ onspeechstart cnt:${my_count}`);
+                armNoResultTimer();
                 // アクティブなインスタンスからの発話開始時のみタイマーリセット
                 if (index === activeRecognitionIndex) {
                     resetSpeechTimer();
@@ -1420,6 +1466,7 @@
         // onresult ハンドラを作成する関数
         function createOnResultHandler(instanceIndex) {
             return function(event) {
+                clearNoResultTimer();
                 // アクティブでないインスタンスからの結果は無視（ただし先行起動中は除く）
                 if (instanceIndex !== activeRecognitionIndex && !nextInstanceStarted) {
                     console.log(`[${instanceIndex}] 非アクティブインスタンスからの結果を無視`);
@@ -2101,7 +2148,7 @@
 <script type="text/javascript">
 
 // バージョン情報の表示 ---------------------------------
-const SoftwareVersion = "2026.10.06 20:08";
+const SoftwareVersion = "2026.10.09 00:07";
 
 // 言語設定を取得（localStorageから、なければ日本語）
 const currentLang = localStorage.getItem('jimakuChan_language') || 'ja';

@@ -262,6 +262,12 @@
   // エンジン（認識 → 表示 → 翻訳）
   // ======================================================================
   let utteranceSeq = 0;
+  function clearNoResultUI() {
+    const b = $('#btnNoResultHelp');
+    if (b.hidden) return;
+    b.hidden = true;
+    if ($('#engineStatus').textContent === t('msgNoResult')) $('#engineStatus').textContent = '';
+  }
   function buildRecognizer() {
     if (engine.recognizer) { engine.recognizer.stop(); }
     const R = new window.JimakuRecognizer({
@@ -281,8 +287,9 @@
     });
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
     R.addEventListener('recovered', e => { $('#engineStatus').textContent = t('msgRecovered', e.detail.count); });   // 再起動せずに済んだことを残す
-    R.addEventListener('interim', e => onInterim(e.detail.text));
-    R.addEventListener('final', e => onFinal(e.detail.text));
+    R.addEventListener('noresult', () => { toast(t('msgNoResult'), 'err'); $('#engineStatus').textContent = t('msgNoResult'); $('#btnNoResultHelp').hidden = false; });
+    R.addEventListener('interim', e => { clearNoResultUI(); onInterim(e.detail.text); });
+    R.addEventListener('final', e => { clearNoResultUI(); onFinal(e.detail.text); });
     engine.recognizer = R;
     return R;
   }
@@ -397,13 +404,26 @@
   // ローカル認識モデル
   // ======================================================================
   async function refreshLocalModelUI() {
-    const el = $('#localModelStatus'), btn = $('#btnInstallLocal');
-    if (S.recogModel !== 'local') { el.textContent = ''; btn.hidden = true; return; }
-    const a = await window.JimakuRecognizer.localAvailability(S.recog);
-    const map = { available: ['ok', t('localOk')], downloadable: ['warn', t('localDl')], downloading: ['warn', t('localDling')], unavailable: ['err', t('localNo')], unknown: ['', t('localUnknown')] };
-    const [cls, label] = map[a] || ['', a];
-    el.className = 'status ' + cls; el.textContent = label;
-    btn.hidden = a !== 'downloadable';
+    const el = $('#localModelStatus'), btn = $('#btnInstallLocal'), btnEn = $('#btnInstallEn'), enNote = $('#enModelNote'), delGuide = $('#delGuide');
+    const Rc = window.JimakuRecognizer, local = S.recogModel === 'local';
+    const a = await Rc.localAvailability(S.recog);
+    const present = a === 'available' || a === 'downloading';
+    if (local) {
+      const map = { available: ['ok', t('localOk')], downloadable: ['warn', t('localDl')], downloading: ['warn', t('localDling')], unavailable: ['err', t('localNo')], unknown: ['', t('localUnknown')] };
+      const [cls, label] = map[a] || ['', a];
+      el.className = 'status ' + cls; el.textContent = label;
+    } else {
+      // クラウド選択でも，Chrome は入っているローカルモデルを使うことがある
+      el.className = 'status warn'; el.textContent = present ? t('localCloudWarn') : '';
+    }
+    btn.hidden = !local || a !== 'downloadable';
+    delGuide.hidden = !present;
+    if (!present) delGuide.open = false;
+    // 認識言語だけ入っていて en-US が無いと，結果が返らないことがある
+    let needEn = false;
+    if (a === 'available' && !/^en/i.test(S.recog)) needEn = (await Rc.localAvailability('en-US')) !== 'available';
+    enNote.hidden = btnEn.hidden = !needEn;
+    enNote.textContent = needEn ? t('enModelNote') : '';
   }
 
   // ======================================================================
@@ -725,6 +745,14 @@
     $('#btnPresetReset').addEventListener('click', () => { S = store.reset(); renderAll(); afterSettingsReplaced(); toast(t('msgReset')); });
     $('#btnDownloadModels').addEventListener('click', downloadModels);
     $('#btnInstallLocal').addEventListener('click', async () => { $('#localModelStatus').textContent = t('localDling'); await window.JimakuRecognizer.installLocal(S.recog); refreshLocalModelUI(); });
+    $('#btnInstallEn').addEventListener('click', async () => { $('#enModelNote').textContent = t('localDling'); await window.JimakuRecognizer.installLocal('en-US', false); refreshLocalModelUI(); });
+    $('#btnNoResultHelp').addEventListener('click', () => {
+      const target = !$('#btnInstallEn').hidden ? $('#btnInstallEn') : $('#localModelStatus');
+      const d = target.closest('details'); if (d) d.open = true;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus && target.focus();
+    });
+    $('#btnCopyChromeUrl').addEventListener('click', () => { navigator.clipboard.writeText($('#delUrlText').textContent).then(() => toast(t('msgCopied'), 'ok')); });
     $('#btnObsConnect').addEventListener('click', () => obsConnect(false));
     $('#btnObsDisconnect').addEventListener('click', () => engine.obs.disconnect());
     $('#btnObsAddSource').addEventListener('click', obsAddSource);
