@@ -17,6 +17,7 @@ css/app.css       設定画面のスタイル
 css/overlay.css   字幕表示のスタイル（縁取り・テーマ・アニメ）
 js/app.js         設定画面ロジック（設定 ⇄ DOM，エンジン制御，配信）
 js/overlay.js     表示ページ（BroadcastChannel / DOM イベント / postMessage で受信）
+js/mic.js         マイク選択（デバイス一覧・getUserMedia）・入力レベル計測（AnalyserNode / dBFS）・音声処理（ゲイン／ノイズゲート／2 つ目の入力／ミュート）
 js/recognizer.js  Web Speech API 音声認識（2 インスタンス交互・自動再開・ローカルモデル対応）
 js/translator.js  翻訳（Chrome 内蔵 Translator API → GAS フォールバック）
 js/chrome_translator.js  Chrome Translator API ラッパ（v1 から継承）
@@ -46,6 +47,17 @@ Chrome(index.html)  ── 音声認識 ──▶ 語句置換 → 伏字 → �
   再読み込み時は URL の `cfg`（ソース追加時点）と保存済み設定の `ts` を比べて新しい方を使う → OBS で「再読み込み」しても位置や見た目が戻らない
 - OBS 連携は OBS 28+ 同梱の WebSocket（ツール → WebSocket サーバー設定）を使う．「現在のシーンに字幕を追加」を押すとブラウザソースを自動作成する
 - 旧来の「ウィンドウキャプチャ＋クロマキー」は「表示モード」（設定を隠して字幕だけ，クリック／Esc で戻る）で．表示モードは記憶され，次回は同じ URL を開くだけで字幕画面になる（v1 と同じ運用）
+
+## 入力の音声処理・声量反応・ミュート（すべて既定オフ）
+`SpeechRecognition.start(audioTrack)` に対応した Chrome だけで有効（未対応なら自動で無効表示）．設定は「基本」タブのマイク欄．
+- **入力の調整**（折りたたみ）：音量（-12〜+24 dB）／ノイズゲート（しきい値 -70〜-30 dBFS，閉じるときは約 200ms でなめらかに）／**2 つ目の入力**（コラボ相手・ゲームの音声を混ぜる＋音量 0〜200%）．端末依存なので UI ストレージ（`jimakuChan_v2_ui`）に保存し，プリセットには入れない
+  - 経路：`source → GainNode → ミックス → ゲート(AudioWorklet) → ミュート → MediaStreamAudioDestinationNode`．処理後の track を認識に渡し，メーターも処理後の音を表示（ゲートで閉じている間は表示を暗くして「ゲート閉」）
+  - 音量 0 dB・ゲートなし・2 つ目なしのときは**生の track**を渡す．AudioContext が suspended（ページを開いて最初の操作の前）の間も生の track（処理後 track は無音になるため）．最初のクリック／キー操作で running になったら処理後 track に切り替えて認識を 1 回だけ再起動する．処理後 track を `start(track)` が拒否したら生の track にフォールバック（`recognizer.js` の `fallbackTrack` / `trackrejected`）
+  - ゲートの AudioWorklet は Blob URL（file:// では data URL）から読み込む．読み込めなければゲートだけ無効
+- **声の大きさで字幕が反応**（見た目タブ「声の大きさ」）：オンにすると，エンジンが約 15Hz で `{type:'level', v:0〜1}` を overlay へ送り，**認識中の行**（確定前）を拡大＋グロー（弱 1.18 倍／中 1.35 倍／強 1.6 倍＋軽い揺れ）．確定済みの行・翻訳行は動かさない．`v` は数値 1 個だけ（OBS の `emit_event` は配列を落とすため）．オフのときは何も送らない．設定（`loudReact` / `loudStrength`）はプリセットに入る
+  - 縁取りの 2 層方式（`.txt::before`）を壊さないよう，`transform` は行コンテナ（`.line.loud-live`）にかけ，`transform-origin` は配置（左/中央/右・上/中/下）に合わせる
+- **ミュート**：マイク欄のボタン／`Ctrl+Shift+M`（ページにフォーカスがあるとき）．ミュート中は track を無音（`track.enabled=false`＋gain 0）にし，途中結果を消し，結果を受けても表示しない．メーター横に「ミュート中」を表示．`start(track)` 未対応の Chrome では認識を stop/start する
+- テスト：`node tools/promo_video/test_audio_features.mjs`（Chromium のフェイクマイク．サーバー不要）
 
 ## 縁取りの描画（v1 の 3 層方式 → v2 の 2 層方式）
 ```html

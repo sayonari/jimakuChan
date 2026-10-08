@@ -11,7 +11,7 @@
 (function (global) {
   'use strict';
 
-  const VERSION = '2026.10.09 00:07';   // 更新時に日付＋時刻（JST）を書き換える
+  const VERSION = '2026.10.09 01:14';   // 更新時に日付＋時刻（JST）を書き換える
   const KEY = 'jimakuChan_v2_presets';
   const KEY_UI = 'jimakuChan_v2_ui';
 
@@ -28,6 +28,7 @@
     lines: [line(), line(), line(), line()],
     bgcolor: '#00ff00', bgTransparent: true, textAlign: 'center', vAlign: 'bottom', whiteSpace: 'normal',
     lineSpacing: [0, 0, 0], interimLeft: ' << ', interimRight: ' >>', interimOpacity: 100,
+    loudReact: false, loudStrength: 'mid',   // 声の大きさで字幕が反応（既定オフ）
     // フィルタ・辞書
     filterOn: true, extraBad: '', extraGood: '', wordReplace: '',
     // OBS

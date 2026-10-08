@@ -28,7 +28,8 @@
     lastFinal: '', interim: '', welcome: false,   // welcome: 起動時のタイトル表示中（喋るまで消さない）
     speechTimer: null, transTimer: null, speechTimerStart: 0, transTimerStart: 0, barRAF: null,
     popup: null, bc: null,
-    interimThrottle: 0, interimTrail: null,
+    mic: window.JimakuMic ? new window.JimakuMic() : null, trackSupported: null, micOpenGen: 0,   // trackSupported: start(track) 対応可否（null=未判定）
+    interimThrottle: 0, interimTrail: null, muted: false, loudTimer: null, lastLv: 0, loudSent: -1, loudAt: 0,
     shown: [0, 1, 2, 3].map(() => ({ text: '', interim: '' })),   // 各行の現在の表示内容（再送・OBS 同期用）
   };
   try { engine.bc = new BroadcastChannel('jimakuChan'); } catch (e) {}
@@ -110,6 +111,7 @@
       bgcolor: S.bgcolor, bgTransparent: S.bgTransparent, textAlign: S.textAlign, vAlign: S.vAlign, whiteSpace: S.whiteSpace,
       theme: S.theme, anim: S.anim, boxColor: S.boxColor, boxRadius: S.boxRadius, strokeMode: S.strokeMode || 'round',
       lines: S.lines, lineSpacing: S.lineSpacing, interimLeft: S.interimLeft, interimRight: S.interimRight, interimOpacity: S.interimOpacity,
+      loudReact: !!S.loudReact, loudStrength: S.loudStrength || 'mid',
       ts: Date.now(),   // 新旧判定用（overlay は URL の cfg と保存済み設定のうち新しい方を使う）
     };
   }
@@ -272,6 +274,7 @@
     if (engine.recognizer) { engine.recognizer.stop(); }
     const R = new window.JimakuRecognizer({
       lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'restart',
+      audioTrack: engine.mic && engine.mic.outTrack, fallbackTrack: engine.mic && engine.mic.rawFallback,
       phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
     });
     R.addEventListener('state', e => setMicPill(e.detail));
@@ -287,9 +290,19 @@
     });
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
     R.addEventListener('recovered', e => { $('#engineStatus').textContent = t('msgRecovered', e.detail.count); });   // 再起動せずに済んだことを残す
+    R.addEventListener('trackunsupported', () => {
+      // start(track) 未対応の Chrome：選択を無効にし，メーターも実際に聞かれる既定マイクに合わせる
+      engine.trackSupported = false; updateMicUI(); updateMicProcUI();
+      if (engine.mic && engine.running) engine.mic.open(null).catch(() => {});
+    });
+    R.addEventListener('trackrejected', () => {
+      // 処理後の音を start(track) が受け付けない：生の音で続ける（以後、音量調整は使わない）
+      if (engine.mic) engine.mic.procBlocked = true;
+      updateMicProcUI();
+    });
     R.addEventListener('noresult', () => { toast(t('msgNoResult'), 'err'); $('#engineStatus').textContent = t('msgNoResult'); $('#btnNoResultHelp').hidden = false; });
-    R.addEventListener('interim', e => { clearNoResultUI(); onInterim(e.detail.text); });
-    R.addEventListener('final', e => { clearNoResultUI(); onFinal(e.detail.text); });
+    R.addEventListener('interim', e => { clearNoResultUI(); if (!engine.muted) onInterim(e.detail.text); });
+    R.addEventListener('final', e => { clearNoResultUI(); if (!engine.muted) onFinal(e.detail.text); });
     engine.recognizer = R;
     return R;
   }
@@ -315,7 +328,7 @@
     const seq = ++utteranceSeq;
     setPill('#pillTrans', 'busy', t('pillTransBusy'));
     const results = await engine.translator.translateAll(replaced, S.recog, targets);
-    if (seq !== utteranceSeq) return;                 // 新しい発話が来ていたら古い結果は捨てる
+    if (seq !== utteranceSeq || engine.muted) return;   // 新しい発話が来ていたら（ミュートされたら）古い結果は捨てる
     let any = false;
     results.forEach(r => {
       const slot = r.slot + 1;
@@ -335,26 +348,197 @@
   function setRunning(on) {
     engine.running = on;
     $('#btnStart').hidden = on; $('#btnStop').hidden = !on;
-    if (!on) { setMicPill({ running: false, listening: false }); stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; }
+    if (!on) { if (engine.mic) engine.mic.close(); setMicPill({ running: false, listening: false }); stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; }
+    syncLoudTimer();
   }
   async function startEngine() {
     if (engine.running) return;
     setRunning(true);
     engine.lastFinal = ''; engine.interim = '';
     if (!engine.welcome) clearLines([0, 1, 2, 3], false);
+    // マイクを先に取り，その track で認識を始める（許可ダイアログが二重に出ない）
+    const gen = ++engine.micOpenGen;
+    if (engine.mic && engine.mic.supported) {
+      engine.mic.configure(micOpts());
+      try { await engine.mic.open(engine.trackSupported === false ? null : (uiState.micDeviceId || null)); }
+      catch (e) {
+        if (gen !== engine.micOpenGen || !engine.running) return;
+        if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
+          const msg = t('msgMicDenied'); toast(msg, 'err'); setRunning(false); $('#engineStatus').textContent = msg; return;
+        }
+        console.warn('[mic] open 失敗．既定マイクで認識します', e);    // 取れなくても認識は既定マイクで続ける
+      }
+      if (gen !== engine.micOpenGen || !engine.running) { engine.mic.close(); return; }
+      if (engine.trackSupported !== false && engine.mic.stream) {
+        // 2 つ目の入力（任意）と音声処理の準備ができるまで少し待つ（起動直後に認識を作り直さないため）
+        if (uiState.mic2DeviceId) await Promise.race([engine.mic.setSecond(uiState.mic2DeviceId), new Promise(r => setTimeout(r, 1500))]);
+        if (engine.mic.needsProcessing) await engine.mic.whenReady(500);
+        if (gen !== engine.micOpenGen || !engine.running) { engine.mic.close(); return; }
+      }
+      updateMicProcUI();
+    }
     const R = buildRecognizer();
     // 伏字リストの読込を待ってから開始（最大 4 秒）
     await Promise.race([filtersReady, new Promise(r => setTimeout(r, 4000))]);
     await R.start();
-    if (R.running) { toast(t('msgStarted'), 'ok'); $('#engineStatus').textContent = ''; }
+    if (engine.muted && engine.trackSupported === false) R.stop();     // 旧 Chrome：ミュート中は認識そのものを止める
+    if (R.running || engine.muted) { toast(t('msgStarted'), 'ok'); $('#engineStatus').textContent = ''; }
     else setRunning(false);
   }
   function stopEngine(silent) {
+    engine.micOpenGen++;
     if (engine.recognizer) engine.recognizer.stop();
     setRunning(false);
     if (!silent) toast(t('msgStopped'));
   }
   const restartEngine = debounce(() => { if (engine.running) { stopEngine(true); startEngine(); } }, 400);
+
+  // ======================================================================
+  // マイク選択 & 入力レベルメーター
+  // ======================================================================
+  const METER_MIN = -60, SILENT_DB = -55, SILENT_MS = 5000;
+  const meter = { lastLoud: 0, lastFrame: 0 };
+  function micLabel(d, i) { return d.label || t('micDevice', i + 1); }
+  function renderMicSelect() {
+    const sel = $('#micSelect'); if (!sel || !engine.mic) return;
+    const want = uiState.micDeviceId || '';
+    const devs = engine.mic.devices;
+    sel.innerHTML = '<option value="">' + t('micDefault') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('');
+    sel.value = devs.some(d => d.deviceId === want) ? want : '';
+    const sel2 = $('#mic2Select'); if (!sel2) return;
+    const want2 = uiState.mic2DeviceId || '';
+    sel2.innerHTML = '<option value="">' + t('mic2None') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('');
+    sel2.value = devs.some(d => d.deviceId === want2) ? want2 : '';
+  }
+  function updateMicUI() {
+    const old = engine.trackSupported === false;
+    $('#micSelect').disabled = old || !engine.mic || !engine.mic.supported;
+    $('#micOld').hidden = !old;
+    if (old) $('#micSelect').value = '';
+  }
+  function onMicLevel(e) {
+    const { db, smooth, peak } = e.detail, now = performance.now();
+    const pct = v => Math.max(0, Math.min(100, (v - METER_MIN) / -METER_MIN * 100));
+    $('#micFill').style.clipPath = `inset(0 ${100 - pct(smooth)}% 0 0)`;
+    const pk = $('#micPeak'); pk.style.left = pct(peak) + '%'; pk.style.opacity = peak > METER_MIN + 1 ? 1 : 0;
+    $('#micMeter').classList.toggle('hot', smooth > -6);
+    $('#micMeter').setAttribute('aria-valuenow', Math.round(smooth));
+    $('#micVal').textContent = db <= -99 && !engine.mic.stream ? '' : (smooth <= -99 ? '-∞' : Math.round(smooth) + ' dB');
+    $('#micBox').classList.toggle('idle', !engine.mic.stream);
+    // 認識中に 5 秒以上ほぼ無音なら案内（画面が隠れていて計測が止まっていた間は数えない）
+    if (now - meter.lastFrame > 1000 || db >= SILENT_DB || !engine.mic.stream) meter.lastLoud = now;
+    meter.lastFrame = now;
+    $('#micWarn').hidden = !(engine.running && engine.mic.stream && !engine.muted && !(engine.mic.gateOn && engine.mic.gateReady) && now - meter.lastLoud > SILENT_MS);
+  }
+
+  // ---- 入力の調整（音量・ノイズゲート・2 つ目の入力）・ミュート ----
+  const micOpts = () => ({ gainDb: uiState.micGain || 0, gateOn: !!uiState.micGateOn, gateDb: uiState.micGateDb == null ? -50 : uiState.micGateDb, mix2Vol: (uiState.mic2Vol == null ? 100 : uiState.mic2Vol) / 100, muted: engine.muted });
+  function renderMicAdv() {
+    const o = micOpts();
+    $('#micGain').value = o.gainDb; $('#micGainVal').textContent = (o.gainDb > 0 ? '+' : '') + o.gainDb + ' dB';
+    $('#micGateOn').checked = o.gateOn; $('#micGate').value = o.gateDb; $('#micGateVal').textContent = o.gateDb + ' dB';
+    $('#mic2Vol').value = Math.round(o.mix2Vol * 100); $('#mic2Val').textContent = Math.round(o.mix2Vol * 100) + ' %';
+    $('#micGate').disabled = !o.gateOn;
+  }
+  /** 音声処理まわりの案内・無効表示（旧 Chrome／処理後 track の拒否／AudioContext が未開始） */
+  function updateMicProcUI() {
+    const mic = engine.mic; if (!mic) return;
+    const blocked = engine.trackSupported === false || mic.procBlocked;
+    ['#micGain', '#micGateOn', '#micGate', '#mic2Select', '#mic2Vol'].forEach(sel => { $(sel).disabled = blocked || !mic.supported; });
+    if (!blocked) { $('#micGate').disabled = !uiState.micGateOn; if (!mic.gateSupported) $('#micGateOn').disabled = $('#micGate').disabled = true; }
+    const note = $('#micProcNote');
+    let msg = '';
+    if (engine.trackSupported === false) msg = t('micProcOld');
+    else if (mic.procBlocked) msg = t('micProcRejected');
+    else if (engine.running && mic.stream && mic.needsProcessing && mic.ctxState !== 'running') msg = t('micProcWait');
+    note.textContent = msg; note.hidden = !msg;
+  }
+  /** outTrack（処理後 or 生）が変わったら，認識中なら新しい track で認識を作り直す */
+  function syncAudioTrack() {
+    const R = engine.recognizer, mic = engine.mic;
+    if (R && mic && engine.running && engine.trackSupported !== false && mic.stream) {
+      const tr = mic.outTrack;
+      if (tr && tr !== R.audioTrack) { R.fallbackTrack = mic.rawFallback; R.configure({ audioTrack: tr }); }
+    }
+    updateMicProcUI();
+  }
+  function updateMuteUI() {
+    $('#btnMute').textContent = engine.muted ? t('btnUnmute') : t('btnMute');
+    $('#micMuted').hidden = !engine.muted;
+    $('#micBox').classList.toggle('muted', engine.muted);
+  }
+  function setMuted(on) {
+    on = !!on;
+    if (engine.muted === on) return;
+    engine.muted = on;
+    if (engine.mic) engine.mic.configure({ muted: on });
+    if (on) { engine.interim = ''; engine.lastFinal = ''; stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; clearLines([0, 1, 2, 3], false); }
+    // start(track) 未対応の Chrome：認識そのものを止める／再開する
+    if (engine.running && engine.trackSupported === false && engine.recognizer) { if (on) engine.recognizer.stop(); else engine.recognizer.start(); }
+    updateMuteUI();
+    toast(t(on ? 'msgMuted' : 'msgUnmuted'), on ? undefined : 'ok');
+  }
+
+  // ---- 声の大きさ（見た目設定 loudReact：overlay へ {type:'level', v} を約 15Hz で送る．オフのときは送らない） ----
+  function syncLoudTimer() {
+    const on = !!S.loudReact && engine.running;
+    if (on && !engine.loudTimer) { engine.loudSent = -1; engine.loudTimer = setInterval(sendLoud, 66); }
+    else if (!on && engine.loudTimer) { clearInterval(engine.loudTimer); engine.loudTimer = null; engine.lastLv = 0; }
+  }
+  function sendLoud() {
+    if (!engine.mic || !engine.mic.stream) return;
+    const now = performance.now(), dt = Math.min(0.3, (now - (engine.loudAt || now)) / 1000); engine.loudAt = now;
+    const x = Math.max(0, Math.min(1, (engine.mic.measure() + 40) / 30));       // -40〜-10 dBFS → 0〜1
+    let v = x * x;                                                            // 普通の声ではあまり動かさず，叫ぶと大きく
+    v = v > engine.lastLv ? v : Math.max(v, engine.lastLv - dt * 3);             // 立上りは即，下がりは約 0.3 秒
+    engine.lastLv = v;
+    const out = Math.round(v * 100) / 100;
+    if (out === engine.loudSent) return;
+    engine.loudSent = out;
+    broadcast({ type: 'level', v: out });                                    // スカラーのみ（OBS の emit_event は配列を落とすため）
+  }
+  function initMic() {
+    const mic = engine.mic;
+    if (!mic) { $('#micBox').hidden = true; return; }
+    mic.addEventListener('devices', renderMicSelect);
+    mic.addEventListener('level', onMicLevel);
+    mic.addEventListener('fallback', () => toast(t('msgMicFallback'), 'err'));
+    mic.addEventListener('ended', async () => {
+      // 使用中のマイクが外れた：既定マイクに戻して認識を続ける
+      if (!engine.running) return;
+      toast(t('msgMicEnded'), 'err');
+      try { await mic.open(null); } catch (e) { return; }
+      if (engine.recognizer) engine.recognizer.configure({ audioTrack: mic.outTrack, fallbackTrack: mic.rawFallback });
+      if (uiState.mic2DeviceId) mic.setSecond(uiState.mic2DeviceId);
+    });
+    mic.addEventListener('route', syncAudioTrack);
+    mic.addEventListener('gate', e => {
+      const closed = !e.detail.open && mic.gateOn && mic.gateReady;
+      $('#micGateTag').hidden = !closed; $('#micBox').classList.toggle('gated', closed);
+      if (e.detail.unsupported) updateMicProcUI();
+    });
+    mic.addEventListener('second', e => { if (!e.detail.ok) toast(t('mic2Failed'), 'err'); });
+    const apply = () => { mic.configure(micOpts()); renderMicAdv(); if (!uiState.micGateOn) { $('#micGateTag').hidden = true; $('#micBox').classList.remove('gated'); } updateMicProcUI(); };
+    $('#micGain').addEventListener('input', e => { uiState.micGain = Number(e.target.value); apply(); });
+    $('#micGateOn').addEventListener('change', e => { uiState.micGateOn = e.target.checked; apply(); });
+    $('#micGate').addEventListener('input', e => { uiState.micGateDb = Number(e.target.value); apply(); });
+    $('#mic2Vol').addEventListener('input', e => { uiState.mic2Vol = Number(e.target.value); apply(); });
+    ['#micGain', '#micGateOn', '#micGate', '#mic2Vol'].forEach(sel => $(sel).addEventListener('change', () => ui.save({ micGain: uiState.micGain, micGateOn: !!uiState.micGateOn, micGateDb: uiState.micGateDb, mic2Vol: uiState.mic2Vol })));
+    $('#mic2Select').addEventListener('change', e => {
+      uiState.mic2DeviceId = e.target.value; ui.save({ mic2DeviceId: e.target.value });
+      if (engine.running && mic.stream && engine.trackSupported !== false) mic.setSecond(e.target.value);
+    });
+    $('#btnMute').addEventListener('click', () => setMuted(!engine.muted));
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.shiftKey && !e.metaKey && !e.altKey && (e.code === 'KeyM' || e.key.toLowerCase() === 'm')) { e.preventDefault(); setMuted(!engine.muted); }
+    });
+    mic.configure(micOpts()); renderMicAdv(); updateMuteUI();
+    $('#micSelect').addEventListener('change', e => {
+      uiState.micDeviceId = e.target.value; ui.save({ micDeviceId: e.target.value });
+      restartEngine();       // 認識中ならストリームを開き直して認識を再起動
+    });
+    mic.refreshDevices(); updateMicUI();
+  }
 
   function setMicPill(st) {
     const p = $('#pillMic');
@@ -552,14 +736,16 @@
     renderStyleRows();
     renderPresetSelect();
     $('#overlayUrl').value = overlayUrl(true);
+    syncLoudTimer();
   }
 
   function onSettingChanged(path, el) {
     syncNums();
     saveSettingsDebounced();
     // 表示に関わるもの → overlay へ
-    if (/^(theme|anim|boxColor|boxRadius|strokeMode|lines|bgcolor|bgTransparent|textAlign|vAlign|whiteSpace|lineSpacing|interim)/.test(path)) pushConfig();
+    if (/^(theme|anim|boxColor|boxRadius|strokeMode|lines|bgcolor|bgTransparent|textAlign|vAlign|whiteSpace|lineSpacing|interim|loud)/.test(path)) pushConfig();
     if (path === 'theme') syncChips('theme');
+    if (path === 'loudReact') syncLoudTimer();
     if (/^(recog|shortPause|recogModel|recogMode|wordBoost)/.test(path)) {
       if (el && el.dataset && el.dataset.restart) restartEngine(); else if (path === 'recogModel' || path === 'recogMode') restartEngine();
     }
@@ -699,7 +885,7 @@
       window.i18n.setLanguage(l);
       $('#langJa').classList.toggle('on', l === 'ja'); $('#langEn').classList.toggle('on', l === 'en');
       ui.save({ lang: l });
-      fillTransSelects(); renderStyleRows(); renderPresetSelect(); setMicPill({ running: engine.running, listening: engine.recognizer && engine.recognizer.listening });
+      renderMicSelect(); updateMuteUI(); updateMicProcUI(); fillTransSelects(); renderStyleRows(); renderPresetSelect(); setMicPill({ running: engine.running, listening: engine.recognizer && engine.recognizer.listening });
       setObsUI(engine.obs.connected ? 'connected' : 'disconnected', '');
       $$('#tabs button').forEach(() => {});
       refreshTranslatorUI(); refreshLocalModelUI(); rebuildFilters();
@@ -727,6 +913,7 @@
     initTabs();
     initLang();
     initPreview();
+    initMic();
     rebuildReplace(); rebuildFilters(); refreshTranslatorUI(); refreshLocalModelUI();
 
     // ボタン

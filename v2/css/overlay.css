@@ -122,6 +122,32 @@ body { font-family: 'M PLUS Rounded 1c', 'Zen Kaku Gothic New', sans-serif; }
 .line.fade-out .txt,
 .line.fade-out .mk { transition: opacity .35s ease; opacity: 0; }
 
+/*
+ * 声の大きさで字幕が反応（loudReact）：認識中の行（#line0 に .loud-live）だけ，--lv(0〜1) に応じて拡大＋グロー（強は軽い揺れも）．
+ * 縁取り（.txt::before）を壊さないよう，transform は行コンテナ（.line）にかける．拡大の起点は配置に合わせる．
+ */
+.stage { --ox: center; --oy: bottom; --lvmax: .35; }
+.stage[data-align="left"]  { --ox: left; }
+.stage[data-align="right"] { --ox: right; }
+.stage[data-valign="top"]    { --oy: top; }
+.stage[data-valign="middle"] { --oy: center; }
+.stage[data-loud="weak"]   { --lvmax: .18; }
+.stage[data-loud="mid"]    { --lvmax: .35; }
+.stage[data-loud="strong"] { --lvmax: .6; }
+.line.loud-live {
+  --lv: 0;
+  transform-origin: var(--ox) var(--oy);
+  transform: scale(calc(1 + var(--lvfit, var(--lvmax)) * var(--lv)));   /* --lvfit：はみ出さない上限（overlay.js が文字幅から計算） */
+  filter: drop-shadow(0 0 calc(var(--lv) * .45em) var(--glow, #fff));
+  transition: transform .09s linear, filter .09s linear;
+}
+.stage[data-loud="strong"] .line.loud-live { animation: jc-shake .11s linear infinite; }
+@keyframes jc-shake {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  25% { translate: calc(var(--lv) * 3px) calc(var(--lv) * -2px); rotate: calc(var(--lv) * .7deg); }
+  75% { translate: calc(var(--lv) * -3px) calc(var(--lv) * 2px); rotate: calc(var(--lv) * -.7deg); }
+}
+
 /* プレビュー用の下地（設定画面の iframe 内でのみ .preview が付く） */
 body.preview.checker {
   background-color: #cfd3d8;

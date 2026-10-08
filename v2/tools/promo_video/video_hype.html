@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>jimakuChan v2 hype PV</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:1280px; height:720px; overflow:hidden; background:#000; }
+  :root { --font: 'Rounded M+ 2c', 'Hiragino Sans', 'Arial Rounded MT Bold', sans-serif; }
+  #stage { position:relative; width:1280px; height:720px; overflow:hidden; font-family:var(--font); font-weight:900; }
+  .layer { position:absolute; inset:0; }
+  #bg { }
+  #rays { position:absolute; left:-360px; top:-640px; width:2000px; height:2000px; }
+  #speed { position:absolute; left:-360px; top:-640px; width:2000px; height:2000px;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 22%, #000 46%); mask-image: radial-gradient(circle at 50% 50%, transparent 22%, #000 46%); }
+  #dots { background-image: radial-gradient(rgba(255,255,255,.22) 3px, transparent 4px); background-size: 22px 22px; mix-blend-mode: overlay; }
+  #wrap { position:absolute; inset:0; transform-origin: 50% 45%; }
+  #content { position:absolute; inset:0; }
+  #emo { position:absolute; inset:0; }
+  .emo { position:absolute; line-height:1; font-family:'Apple Color Emoji', sans-serif; filter: drop-shadow(0 6px 0 rgba(0,0,0,.35)); }
+  .ln { position:absolute; left:0; right:0; text-align:center; white-space:nowrap; line-height:1.05; isolation:isolate; }
+  .ln > span { display:inline-block; color:transparent; background:linear-gradient(180deg,#fff 0%,#fff 45%,var(--c) 100%); -webkit-background-clip:text; background-clip:text; }
+  .ln::before { content:attr(data-t); position:absolute; left:0; right:0; top:0; z-index:-1; color:#1a0030; -webkit-text-stroke: var(--sw) #1a0030;
+    text-shadow: 0 .07em 0 #1a0030, 0 0 .35em var(--g), 0 0 .6em var(--g); }
+  .ln::after { content:attr(data-t); position:absolute; left:0; right:0; top:0; z-index:-2; color:var(--g); -webkit-text-stroke: calc(var(--sw) * 1.9) var(--g); opacity:.9; transform: translateY(.04em); }
+  #panelwrap { position:absolute; left:0; top:0; width:1280px; height:500px; }
+  .panel { position:absolute; border:10px solid #fff; border-radius:18px; overflow:hidden; background:#fff; box-shadow: 0 0 0 6px #1a0030, 0 0 40px 8px var(--g), 0 14px 0 6px rgba(26,0,48,.6); }
+  .panel img { position:absolute; max-width:none; }
+  #flash { background:#fff; opacity:0; mix-blend-mode:normal; pointer-events:none; }
+  #vign { background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(20,0,40,.55) 100%); pointer-events:none; }
+  #sub { position:absolute; left:0; right:0; bottom:22px; text-align:center; white-space:nowrap; line-height:1.15; }
+  #sub .t { position:relative; display:inline-block; isolation:isolate; color:#fff; transform-origin: 50% 100%; }
+  #sub .t.interim { color:#ffe84d; }
+  #sub .t::before { content:attr(data-t); position:absolute; left:0; top:0; z-index:-1; color:#000; -webkit-text-stroke: 14px #000; }
+  #sub .t::after { content:attr(data-t); position:absolute; left:0; top:0; z-index:-2; color:#ff2d95; -webkit-text-stroke: 22px #ff2d95; }
+  #sub .mk { position:absolute; left:34px; bottom:6px; font-size:34px; font-family:'Apple Color Emoji'; }
+  #cap { position:absolute; left:0; right:0; text-align:center; white-space:nowrap; line-height:1.05; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="layer" id="bg"></div>
+  <div id="rays"></div>
+  <div class="layer" id="dots"></div>
+  <div id="speed"></div>
+  <div id="wrap"><div id="content"></div><div id="emo"></div></div>
+  <div class="layer" id="vign"></div>
+  <div id="sub"><span class="t" data-t=""></span></div>
+  <div class="layer" id="flash"></div>
+</div>
+<script>
+const PAL = [
+  ['#ff2d95', '#6a00ff', '#00f0ff'], ['#00d8ff', '#2b00ff', '#ffe600'], ['#ffe600', '#ff2d95', '#00f0ff'],
+  ['#8cff3a', '#00a2ff', '#ff2d95'], ['#ff8a00', '#ff00aa', '#ffe600'], ['#b400ff', '#00e5ff', '#fff200'],
+];
+const FILLS = ['#ffffff', '#fff200', '#00f0ff', '#ff6bf2', '#ffffff'];
+const GLOW = ['#ff2d95', '#00f0ff', '#ffe600', '#b400ff', '#ff2d95'];
+const $ = id => document.getElementById(id);
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const ease = { outBack: x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); } };
+let cutIdx = -1, cutEls = {};
+function units(s) { let u = 0; for (const ch of s) u += /[\x20-\x7e]/.test(ch) ? 0.6 : (/[！？!?．，。、…]/.test(ch) ? 0.9 : 1.0); return u; }
+function fitSize(s, max, width = 1140) { return Math.min(max, Math.floor(width / (units(s) + 0.5))); }
+
+function buildCut(c, i) {
+  const pal = PAL[c.bg % PAL.length];
+  $('bg').style.background = c.dark ? 'radial-gradient(circle at 50% 50%, #3a0030 0%, #0a0014 70%)' : `linear-gradient(${(i * 37) % 360}deg, ${pal[0]}, ${pal[1]})`;
+  $('rays').style.background = c.dark ? 'repeating-conic-gradient(rgba(255,40,80,.16) 0 5deg, transparent 5deg 10deg)' : `repeating-conic-gradient(rgba(255,255,255,.26) 0 7deg, transparent 7deg 14deg)`;
+  $('speed').style.background = 'repeating-conic-gradient(from 0deg, #fff 0 .5deg, transparent .5deg 3.1deg)';
+  $('speed').style.opacity = c.noLines ? 0 : (c.dark ? .22 : .32);
+  const root = $('content'); root.innerHTML = ''; cutEls = { lines: [] };
+  if (c.type === 'text' || c.type === 'end') {
+    const n = c.lines.length;
+    const sizes = c.lines.map(l => l.size || fitSize(l.t, c.type === 'end' ? 120 : (n === 1 ? 250 : 190)));
+    const total = sizes.reduce((a, b) => a + b * 1.08, 0);
+    const area = c.type === 'end' ? [10, 600] : [0, 600];
+    let y = area[0] + (area[1] - area[0] - total) / 2 + 6;
+    c.lines.forEach((l, k) => {
+      const d = document.createElement('div'); d.className = 'ln';
+      const col = l.fill || FILLS[(i + k) % FILLS.length], glow = l.glow || GLOW[(i + k) % GLOW.length];
+      if (c.tops) y = c.tops[k];
+      d.style.cssText = `top:${y}px;font-size:${sizes[k]}px;height:${sizes[k] * 1.08}px;--c:${col};--g:${glow};--sw:${Math.round(sizes[k] * .2)}px`;
+      d.dataset.t = l.t; d.innerHTML = `<span>${l.t}</span>`;
+      if (l.box) { d.firstChild.style.padding = '0 .25em'; }
+      y += sizes[k] * 1.08;
+      root.appendChild(d); cutEls.lines.push({ el: d, size: sizes[k], k, y: parseFloat(d.style.top) });
+    });
+  } else if (c.type === 'real') {
+    const cr = c.crop, s = Math.min(1160 / cr.w, 440 / cr.h);
+    const pw = cr.w * s, ph = cr.h * s;
+    const pn = document.createElement('div'); pn.className = 'panel';
+    pn.style.cssText = `width:${pw + 20}px;height:${ph + 20}px;left:${(1280 - pw - 20) / 2}px;top:${18 + (440 - ph) / 2}px;--g:${pal[2]}`;
+    const im = document.createElement('img'); im.style.cssText = `width:${1280 * s}px;height:${720 * s}px;left:${-cr.x * s}px;top:${-cr.y * s}px`;
+    pn.appendChild(im); root.appendChild(pn); cutEls.panel = pn; cutEls.img = im;
+    if (c.cap) {
+      const cp = document.createElement('div'); cp.className = 'ln'; const sz = fitSize(c.cap, 98, 1150);
+      cp.style.cssText = `top:${478 + (c.capDy || 0)}px;font-size:${sz}px;--c:${c.capFill || '#fff200'};--g:${pal[2]};--sw:${Math.round(sz * .2)}px`;
+      cp.dataset.t = c.cap; cp.innerHTML = `<span>${c.cap}</span>`; root.appendChild(cp); cutEls.cap = { el: cp, size: sz };
+    }
+  }
+  const emo = $('emo'); emo.innerHTML = ''; cutEls.emo = [];
+  (c.emoji || []).forEach((e, k) => {
+    const d = document.createElement('div'); d.className = 'emo'; d.textContent = e;
+    const side = k % 2 ? 1 : 0, sz = 90 + hash(i * 7 + k) * 70;
+    const x = side ? 1280 - 60 - sz * (0.3 + hash(i + k * 3) * 0.8) - 20 : 20 + sz * hash(i + k * 5) * 0.5;
+    const y = c.type === 'end' ? (k < 3 ? 14 + hash(k) * 40 : 520 + hash(k) * 20) : 40 + hash(i * 3 + k * 11) * 440;
+    d.style.cssText = `left:${x}px;top:${y}px;font-size:${sz}px`;
+    emo.appendChild(d); cutEls.emo.push({ el: d, ph: hash(k + i * 13) * 6.28, rot: (hash(k * 3 + i) - .5) * 50 });
+  });
+}
+
+async function seek(t) {
+  const TL = window.TL, B = TL.B;
+  let idx = TL.cuts.findIndex((c, i) => t >= c.s && (i === TL.cuts.length - 1 || t < TL.cuts[i + 1].s));
+  if (idx < 0) idx = 0;
+  const c = TL.cuts[idx];
+  if (idx !== cutIdx) { buildCut(c, idx); cutIdx = idx; }
+  const lt = Math.max(0, t - c.s), bp = (t / B) % 1, bi = Math.floor(t / B);
+  // 拍に合わせたズームパンチ・画面揺れ
+  const punch = 1 + (c.dark ? 0.02 : 0.075) * Math.exp(-bp * 7);
+  const shk = (c.dark ? 3 + 14 * Math.min(1, lt / c.d) ** 2 : 7 * Math.exp(-bp * 5));
+  const sx = (hash(bi * 2 + 1) - .5) * 2 * shk, sy = (hash(bi * 2 + 2) - .5) * 2 * shk;
+  const jit = c.dark ? (hash(Math.floor(t * 30)) - .5) * 2 * shk * .6 : 0;
+  const rot = (hash(bi * 5) - .5) * (c.dark ? 0 : 1.6) * Math.exp(-bp * 6);
+  $('wrap').style.transform = `translate(${sx + jit}px, ${sy}px) scale(${punch * (c.dark ? 1 + .12 * lt / c.d : 1)}) rotate(${rot}deg)`;
+  $('rays').style.transform = `rotate(${t * (c.dark ? 8 : 38) * (idx % 2 ? -1 : 1)}deg)`;
+  $('speed').style.transform = `rotate(${(Math.floor(t * 20) % 3) * 1.7}deg) scale(${1 + .05 * Math.exp(-bp * 6)})`;
+  $('dots').style.backgroundPosition = `${(t * 40) % 22}px ${(t * 40) % 22}px`;
+  // コンテンツ
+  if (cutEls.lines) cutEls.lines.forEach(L => {
+    const dl = lt - L.k * 0.07, x = Math.min(1, Math.max(0, dl / 0.16));
+    const sc = dl < 0 ? 0 : 0.2 + 0.8 * ease.outBack(x) + (x >= 1 ? 0.04 * Math.exp(-bp * 8) : 0);
+    const tilt = (L.k % 2 ? 1 : -1) * 2.2 * (c.dark ? 0 : 1) + (dl < 0.16 ? (1 - x) * 14 * (L.k % 2 ? 1 : -1) : 0);
+    L.el.style.transform = `translateY(${(1 - Math.min(1, dl / 0.1)) * -40}px) scale(${sc}) rotate(${tilt}deg)`;
+    L.el.style.opacity = dl < 0 ? 0 : 1;
+  });
+  if (cutEls.panel) {
+    const x = Math.min(1, lt / 0.2), sc = 0.55 + 0.45 * ease.outBack(x);
+    const tilt = (idx % 2 ? 1 : -1) * 1.4;
+    cutEls.panel.style.transform = `scale(${sc}) rotate(${tilt * (0.5 + 0.5 * x)}deg)`;
+    const m = TL.clips[c.clip], n = Math.min(m.n, Math.max(1, Math.floor((t - c.clipStart) * 30) + 1));
+    const im = cutEls.img, src = `build/hype/${c.clip}/${String(n).padStart(5, '0')}.jpg`;
+    if (im.dataset.src !== src) { im.dataset.src = src; im.src = src; try { await im.decode(); } catch (e) {} }
+    if (cutEls.cap) {
+      const dl = lt - 0.1, y = Math.min(1, Math.max(0, dl / 0.18));
+      cutEls.cap.el.style.transform = `scale(${dl < 0 ? 0 : .3 + .7 * ease.outBack(y)}) rotate(${-2.5}deg)`;
+    }
+  }
+  if (cutEls.emo) cutEls.emo.forEach((E, k) => {
+    const x = Math.min(1, Math.max(0, (lt - 0.05 * k) / 0.2));
+    E.el.style.transform = `translateY(${Math.sin(t * 6 + E.ph) * 10}px) scale(${x * (1 + .22 * Math.exp(-bp * 6))}) rotate(${E.rot + Math.sin(t * 4 + E.ph) * 8}deg)`;
+  });
+  // フラッシュ（カット頭）
+  const fl = c.flash === 0 ? 0 : (c.flashA || 0.85) * Math.exp(-lt * 16);
+  $('flash').style.opacity = Math.min(1, fl + (c.strobe ? 0.25 * Math.exp(-bp * 10) : 0));
+  $('flash').style.background = c.flashColor || '#fff';
+  // ナレーション字幕（字幕ちゃん風：しゃべりに合わせて出てくる．声量で膨らむ）
+  let sub = null;
+  for (const n of TL.nar) if (t >= n.start && t < n.start + n.dur + 0.7) sub = n;
+  const st = $('sub').firstChild;
+  if (sub) {
+    const el = t - sub.start, frac = Math.min(1, el / (sub.dur * 0.85)), chars = [...sub.text], k = Math.max(1, Math.ceil(chars.length * frac));
+    const txt = chars.slice(0, k).join(''), done = k >= chars.length;
+    const fs = Math.min(50, Math.floor(1150 / (units(sub.text) + 0.6)));
+    const env = (sub.env[Math.floor(el * 30)] || 0) * (el < sub.dur ? 1 : 0);
+    st.textContent = txt; st.dataset.t = txt; st.className = 't' + (el < sub.dur ? ' interim' : '');
+    $('sub').style.fontSize = fs + 'px';
+    st.style.transform = `scale(${1 + 0.16 * env})`;
+    $('sub').style.opacity = 1; $('sub').style.display = 'block';
+  } else { $('sub').style.display = 'none'; }
+  await 0;
+}
+window.seek = seek;
+window.__ready = document.fonts.ready.then(() => true);
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
   const insts = [];
   class FakeSR {
     constructor(){ this.lang='ja'; this.interimResults=true; this.continuous=false; this._running=false; insts.push(this); }
-    start(){ if (this._running) throw new Error('already started'); this._running=true; setTimeout(()=>{ this.onstart && this.onstart(); }, 5); FakeSR.active = this; }
+    start(track){ if (track !== undefined && window.__fakeSR && window.__fakeSR.rejectTrack) throw new TypeError("Failed to execute 'start' on 'SpeechRecognition': parameter 1 is not of type 'MediaStreamTrack'."); if (track && window.__fakeSR && window.__fakeSR.rejectProcessed && /Destination/i.test(track.label)) throw new TypeError('processed track rejected'); (window.__srStarts = window.__srStarts || []).push(track ? { kind: track.kind, label: track.label, state: track.readyState, id: track.id, enabled: track.enabled } : null); if (this._running) throw new Error('already started'); this._running=true; setTimeout(()=>{ this.onstart && this.onstart(); }, 5); FakeSR.active = this; }
     stop(){ if(!this._running) return; this._finish(); }
     abort(){ if(!this._running) return; this._running=false; this.onerror && this.onerror({error:'aborted'}); this.onend && this.onend(); }
     _finish(){ if(!this._running) return; this._running=false; setTimeout(()=>{ this.onend && this.onend(); }, 5); }
@@ -21,6 +21,8 @@
   FakeSR.available = async () => 'available';
   window.webkitSpeechRecognition = FakeSR; window.SpeechRecognition = FakeSR;
   window.__fakeSR = {
+    rejectProcessed: false,   // true にすると MediaStreamAudioDestinationNode の track だけ TypeError（処理後 track の拒否を再現）
+    rejectTrack: false,   // true にすると start(track) が TypeError（旧 Chrome の再現）
     /** 文字を少しずつ出してから確定 */
     say(text, opts={}) {
       const cps = opts.cps || 12; // chars per sec

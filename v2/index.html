@@ -83,6 +83,54 @@
 
       <div class="card">
         <h3><span class="em">🎤</span><span data-i18n="hRecog">音声認識</span></h3>
+        <div class="micbox" id="micBox">
+          <div class="microw">
+            <label for="micSelect" class="miclabel"><span class="micico">🎤</span><span data-i18n="lMic">マイク</span></label>
+            <select id="micSelect"></select>
+          </div>
+          <div class="microw">
+            <span class="miclabel dim" data-i18n="lMicLevel">入力レベル</span>
+            <div class="meterwrap">
+              <div class="meter" id="micMeter" role="meter" aria-valuemin="-60" aria-valuemax="0">
+                <i class="mfill" id="micFill"></i><i class="mpeak" id="micPeak"></i>
+              </div>
+              <div class="mticks"><span>-60</span><span>-40</span><span>-20</span><span>-10</span><span>0 dB</span></div>
+            </div>
+            <span class="mval" id="micVal">-∞</span>
+          </div>
+          <div class="microw">
+            <button class="btn mini" id="btnMute">ミュート</button>
+            <span class="mutetag" id="micMuted" hidden data-i18n="micMuted">ミュート中</span>
+            <span class="gatetag" id="micGateTag" hidden data-i18n="micGateClosed">ゲート閉</span>
+            <span class="hint" data-i18n="muteHelp">字幕を一時停止（Ctrl+Shift+M）</span>
+          </div>
+          <div class="micnote warn" id="micWarn" hidden data-i18n="micNoSound">音が届いていません（マイクの選択を確認）</div>
+          <div class="micnote" id="micOld" hidden data-i18n="micOld">マイクを選ぶには Chrome を最新版に更新してください</div>
+          <details class="adv micadv" id="micAdv">
+            <summary data-i18n="advMic">入力の調整（音量・ノイズゲート・2 つ目の入力）</summary>
+            <div class="microw">
+              <label for="micGain" class="miclabel dim" data-i18n="lMicGain">音量</label>
+              <input type="range" id="micGain" min="-12" max="24" step="1" value="0">
+              <span class="mval" id="micGainVal">0 dB</span>
+            </div>
+            <div class="microw">
+              <label class="miclabel dim switch" style="gap:6px"><input type="checkbox" id="micGateOn"><span data-i18n="lMicGate">ゲート</span></label>
+              <input type="range" id="micGate" min="-70" max="-30" step="1" value="-50">
+              <span class="mval" id="micGateVal">-50 dB</span>
+            </div>
+            <div class="microw">
+              <label for="mic2Select" class="miclabel dim" data-i18n="lMic2">2 つ目の入力</label>
+              <select id="mic2Select"></select>
+            </div>
+            <div class="microw">
+              <label for="mic2Vol" class="miclabel dim" data-i18n="lMic2Vol">音量</label>
+              <input type="range" id="mic2Vol" min="0" max="200" step="5" value="100">
+              <span class="mval" id="mic2Val">100 %</span>
+            </div>
+            <div class="micnote" id="micProcNote" hidden></div>
+            <div class="micnote" data-i18n="micProcHelp">ゲート：しきい値より小さい音を消します．2 つ目の入力：コラボ相手やゲームの音声も字幕にします．どちらも既定はオフです</div>
+          </details>
+        </div>
         <div class="kv">
           <label data-i18n="lRecogLang">認識する言語</label>
           <select data-bind="recog" data-restart="1"><!-- 選択肢は app.js（RECOG_LANGS）で生成 --></select>
@@ -217,6 +265,12 @@
           <span class="hint" data-i18n="right">右</span><input type="text" data-bind="interimRight" class="sm" style="width:5em">
           <span class="hint" data-i18n="interimHelp">確定前の文字を挟む記号（空欄で印なし）．「1行表示」では左の印が流れて消えないよう左端に残ります</span>
           <span class="hint" data-i18n="lInterimOpacity">濃さ</span><input type="range" data-bind="interimOpacity" min="20" max="100" step="5" style="width:80px"><span class="num" data-num="interimOpacity"></span><span class="hint">%</span>
+        </div>
+        <label data-i18n="lLoud">声の大きさ</label>
+        <div class="row" style="margin:0">
+          <label class="switch"><input type="checkbox" data-bind="loudReact"> <span data-i18n="loudOn">叫ぶと字幕が大きくなる</span></label>
+          <div class="seg" data-seg="loudStrength"><button data-val="weak" data-i18n="loudWeak">弱</button><button data-val="mid" data-i18n="loudMid">中</button><button data-val="strong" data-i18n="loudStrong">強</button></div>
+          <span class="hint" data-i18n="loudHelp">認識中の行だけ．強は揺れも付きます</span>
         </div>
       </div>
     </div>
@@ -355,6 +409,7 @@
 <script src="./js/bouyomichan_client.js"></script>
 <script src="./js/chrome_translator.js"></script>
 <script src="./js/filter.js"></script>
+<script src="./js/mic.js"></script>
 <script src="./js/recognizer.js"></script>
 <script src="./js/translator.js"></script>
 <script src="./js/obs.js"></script>

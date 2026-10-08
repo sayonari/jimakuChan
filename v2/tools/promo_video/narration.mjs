@@ -11,12 +11,12 @@ export const SCENES = [
   { id: 'outro',   tts: '音声認識字幕ちゃん、バージョン2。無料、インストール不要、超軽量。今日から、あなたの配信に字幕を。' },
 ];
 // 音声合成：既定は Microsoft ニューラル音声（edge-tts, ja-JP-NanamiNeural，要ネット）．失敗時は macOS say(Kyoko)
-export function synth(text, wav, { voice = 'ja-JP-NanamiNeural', rate = '+8%' } = {}) {
+export function synth(text, wav, { voice = 'ja-JP-NanamiNeural', rate = '+8%', pitch = '' } = {}) {
   const edge = './.venv/bin/edge-tts';
   const mp3 = wav.replace(/\.wav$/, '.mp3');
   try {
     if (!fs.existsSync(edge)) throw new Error('no edge-tts');
-    execSync(`${edge} --voice ${voice} --rate=${rate} --text ${JSON.stringify(text)} --write-media ${mp3}`, { stdio: 'pipe', timeout: 60000 });
+    execSync(`${edge} --voice ${voice} --rate=${rate} ${pitch ? `--pitch=${pitch} ` : ''}--text ${JSON.stringify(text)} --write-media ${mp3}`, { stdio: 'pipe', timeout: 60000 });
     execSync(`ffmpeg -y -loglevel error -i ${mp3} -ar 44100 -ac 1 ${wav}`);
     return 'edge';
   } catch (e) {
@@ -31,6 +31,11 @@ export function buildNarration(scenes = SCENES, opts = {}) {
   for (const s of scenes) {
     const wav = `build/${opts.prefix || ''}${s.id}.wav`;
     const engine = synth(s.tts, wav, opts);
+    if (opts.trim) {   // 前後の無音を削る（拍に合わせて置くため）
+      const tmp = wav.replace(/\.wav$/, '_trim.wav');
+      execSync(`ffmpeg -y -loglevel error -i ${wav} -af "silenceremove=start_periods=1:start_threshold=-42dB,areverse,silenceremove=start_periods=1:start_threshold=-42dB,areverse" ${tmp}`);
+      fs.renameSync(tmp, wav);
+    }
     const dur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${wav}`).toString());
     out.push({ ...s, wav, dur, env: envelope(wav, 30), engine });
   }

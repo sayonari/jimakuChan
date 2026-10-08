@@ -10,6 +10,7 @@
  *   {type:'config', config:{...}}                       表示設定
  *   {type:'text', slot:0-3, text:'', interim:'', animate:bool}   行の更新（slot0=認識，1..3=翻訳）
  *   {type:'clear', slots:[0,1,2,3]}                     行を消す
+ *   {type:'level', v:0-1}                               声の大きさ（loudReact が有効なときだけ使う．認識中の行を拡大）
  *   {type:'ping'}                                       生存確認 → 'pong' を返す（BroadcastChannel のみ）
  */
 (function () {
@@ -41,7 +42,7 @@
     ],
     lineSpacing: [0, 0, 0],
     interimLeft: ' << ', interimRight: ' >>',
-    keepHeight: false,
+    keepHeight: false, loudReact: false, loudStrength: 'mid',
   };
   let cfg = JSON.parse(JSON.stringify(DEFAULT));
   let lastCfgKey = null;                    // 直前に適用した設定（ts を除く JSON）．同一なら再適用しない（fade-out 中の再描画を避ける）
@@ -63,6 +64,7 @@
     stage.dataset.align = cfg.textAlign;
     stage.dataset.theme = cfg.theme;
     stage.dataset.anim = cfg.anim;
+    stage.dataset.loud = cfg.loudReact ? (cfg.loudStrength || 'mid') : 'off';
     stage.classList.toggle('keep-height', !!cfg.keepHeight);
     stage.style.setProperty('--box', cfg.boxColor);
     stage.style.setProperty('--radius', cfg.boxRadius + 'px');
@@ -85,6 +87,7 @@
       el.style.setProperty('--gap', (i < 3 ? (cfg.lineSpacing[i] || 0) : 0) + 'px');
       el.style.setProperty('--glow', l.strokeColor);
     });
+    setLoud(0);
     // 保持しているテキストを再描画（マーカー変更などを反映）．フェード消去中の行は消去を中断しない
     state.forEach((s, i) => { const fading = lines[i].classList.contains('fade-out'); render(i, false); if (fading) lines[i].classList.add('fade-out'); });
   }
@@ -173,6 +176,23 @@
     paint(i, true);                                         // 本文から '<<' を外し，左端のマーカーへ渡す
   }
 
+  // ---- 声の大きさ（認識中の行だけ．確定済みの行は動かさない） ----
+  let loudTimer = null, lastLv = 0;
+  function setLoud(v) {
+    lastLv = Number(v) || 0;
+    const line = lines[0], live = !!cfg.loudReact && hasInter(0) && !line.classList.contains('is-empty');
+    line.classList.toggle('loud-live', live);
+    line.style.setProperty('--lv', live ? Math.max(0, Math.min(1, Number(v) || 0)).toFixed(3) : '0');
+    if (live) {
+      // 拡大しても画面からはみ出さないよう，文字幅から拡大率の上限を決める（offsetWidth は transform の影響を受けない）
+      const max = parseFloat(getComputedStyle(stage).getPropertyValue('--lvmax')) || .35;
+      const w = Math.max(1, (txts[0] || line).offsetWidth);
+      line.style.setProperty('--lvfit', Math.max(0, Math.min(max, stage.clientWidth * .98 / w - 1)).toFixed(3));
+    }
+    clearTimeout(loudTimer);
+    if (live && v > 0) loudTimer = setTimeout(() => setLoud(0), 700);    // level が途絶えたら元の大きさへ
+  }
+
   function render(i, animate) {
     const line = lines[i], txt = txts[i];
     const plain = plainOf(i);
@@ -206,6 +226,7 @@
         state[i].text = msg.text || '';
         state[i].interim = msg.interim || '';
         render(i, isTicker(i) ? false : !!msg.animate);   // 1行表示では出現アニメは行全体が動いて見づらいので使わない
+        if (i === 0) setLoud(lastLv);
         break;
       }
       case 'clear': {
@@ -219,8 +240,10 @@
             setTimeout(() => { if (lines[i].classList.contains('fade-out')) { state[i] = { text: '', interim: '' }; render(i, false); } }, 360);
           } else { state[i] = { text: '', interim: '' }; render(i, false); }
         });
+        setLoud(lastLv);
         break;
       }
+      case 'level': if (cfg.loudReact) setLoud(msg.v); break;
       case 'previewMode': previewMode = msg.mode || 'auto'; applyBackground(); break;
       case 'ping': reply({ type: 'pong', inOBS }); break;
     }

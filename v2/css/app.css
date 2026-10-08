@@ -281,3 +281,51 @@ body.display-mode .toast { display: none; }
 .vlink { display: inline-block; border-radius: 12px; overflow: hidden; border: 1px solid var(--line2); box-shadow: 0 2px 10px rgba(0,0,0,.12); background: #111; line-height: 0; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
 .vlink:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.2); border-color: var(--pink); }
 .vthumb { display: block; width: 280px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+/* ---- マイク選択 & 入力レベルメーター ---- */
+.micbox {
+  margin-bottom: 14px; padding: 12px 14px; border-radius: 14px;
+  background: var(--bg2); border: 1px solid var(--line2);
+  background-image: linear-gradient(135deg, rgba(255,107,157,.10), rgba(94,200,255,.08));
+}
+.microw { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+.microw select { flex: 1; min-width: 0; font-weight: 700; }
+.miclabel { flex: 0 0 76px; font-size: 12.5px; font-weight: 800; color: var(--fg); display: flex; align-items: center; gap: 6px; }
+.miclabel.dim { color: var(--fg2); font-weight: 700; }
+.micico { font-size: 17px; }
+.meterwrap { flex: 1; min-width: 0; }
+.meter {
+  position: relative; height: 18px; border-radius: 999px; overflow: hidden;
+  background: #11162a; box-shadow: inset 0 2px 5px rgba(0,0,0,.55), 0 0 0 1px var(--line2);
+}
+.meter .mfill {
+  position: absolute; inset: 0; border-radius: 999px;
+  /* -60〜0 dB：緑（〜-18）→ 黄（-18〜-6）→ 赤（-6〜0） */
+  background: linear-gradient(90deg, #22d3a0 0%, #4ade80 55%, #a3e635 66%, #ffe066 76%, #ffb020 86%, #ff5c5c 96%, #ff2d55 100%);
+  clip-path: inset(0 100% 0 0);
+  transition: filter .12s;
+}
+.meter.hot .mfill { filter: drop-shadow(0 0 6px rgba(255,92,92,.9)) saturate(1.2); }
+.meter::after {   /* LED 風のすき間 */
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 6px, #11162a 6px 8px);
+}
+.meter .mpeak {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 3px; margin-left: -3px; z-index: 1;
+  background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.9); opacity: 0;
+}
+.mticks { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--fg3); margin: 3px 2px 0; font-variant-numeric: tabular-nums; }
+.mval { flex: 0 0 52px; text-align: right; font-size: 12px; font-weight: 800; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.micnote { font-size: 11.5px; color: var(--fg2); margin: 4px 0 0 88px; }
+.micnote.warn { color: var(--red); font-weight: 700; }
+.micbox.idle .meter { opacity: .55; }
+/* 入力の調整（既定は閉じている）・ミュート */
+.micadv { margin-top: 8px; }
+.micadv .microw input[type=range] { flex: 1; min-width: 0; }
+.micadv .microw .miclabel { flex-basis: 96px; }
+.micadv input:disabled, .micadv select:disabled { opacity: .45; }
+.mutetag { font-size: 12px; font-weight: 800; color: #fff; background: var(--red); padding: 2px 10px; border-radius: 999px; }
+.gatetag { font-size: 11px; font-weight: 700; color: var(--fg2); border: 1px solid var(--line2); padding: 1px 8px; border-radius: 999px; }
+.micbox.muted .meter { opacity: .35; }
+.micbox.gated .mfill { filter: brightness(.55) saturate(.6); }
+@media (max-width: 560px) { .micnote { margin-left: 0; } .miclabel { flex-basis: 64px; } }

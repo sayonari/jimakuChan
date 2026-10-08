@@ -14,6 +14,8 @@
  *   'error'    detail:{ error, fatal:boolean, message }
  *   'fallback' detail:{ from:'local', to:'cloud' } オンデバイス→クラウドへ自動切替
  *   'recovered' detail:{ reason, count }          ウォッチドッグが止まった認識を作り直した
+ *   'trackrejected' detail:{ track }              処理後 track（fallbackTrack ではない方）を start(track) が拒否した → fallbackTrack（生の track）で続ける
+ *   'trackunsupported' detail:{}                  start(audioTrack) に未対応の Chrome だった（以後は start() で既定マイクを使う．1 回だけ発火）
  *   'noresult' detail:{}                          発話は検出されているのに 20 秒間 onresult が 1 件も来ない（結果が来るまで再発火しない）
  */
 (function (global) {
@@ -29,6 +31,9 @@
       this.phrases = opts.phrases || [];        // [{phrase, boost}]
       this.shortPause = opts.shortPause || 0;   // ms, 0=無効
       this.mode = opts.mode || 'restart';       // 'restart'（既定）| 'continuous'
+      this.audioTrack = opts.audioTrack || null; // MediaStreamTrack（マイク選択．null なら Chrome の既定マイク）
+      this.fallbackTrack = opts.fallbackTrack || null; // audioTrack が拒否されたときに試す生の track（音声処理を使うとき）
+      this._trackSupported = null;               // start(track) 対応可否（null=未判定）
       this._soft = null;                         // 仮確定した文 {text}
       this._segBase = '';                        // continuous: 直前までに確定済みの結合テキスト（表示済み分）
       this.supported = !!SR;
@@ -242,7 +247,7 @@
       try {
         this._states[i] = 'starting';
         this._startingSince[i] = Date.now();
-        this._instances[i].start();
+        this._startWithTrack(this._instances[i]);
         this._active = i;
       } catch (e) {
         this._states[i] = 'stopped';
@@ -250,6 +255,25 @@
         clearTimeout(this._restartTimer);
         this._restartTimer = setTimeout(() => this._startInstance(i), 200);
       }
+    }
+
+    /** audioTrack があれば start(track)．未対応（TypeError 等）と分かったら以後は start() で起動し直す */
+    _startWithTrack(rec) {
+      const tr = this.audioTrack;
+      if (tr && tr.readyState !== 'ended' && this._trackSupported !== false) {
+        try { rec.start(tr); this._trackSupported = true; return; }
+        catch (e) {
+          if (!(e instanceof TypeError || e.name === 'TypeError' || e.name === 'NotSupportedError')) throw e;
+          const fb = this.fallbackTrack;
+          if (fb && fb !== tr && fb.readyState !== 'ended') {      // 処理後 track だけが拒否された：生の track で続ける
+            try { rec.start(fb); this._trackSupported = true; this.audioTrack = fb; this._emit('trackrejected', { track: tr }); return; }
+            catch (e2) { if (!(e2 instanceof TypeError || e2.name === 'TypeError' || e2.name === 'NotSupportedError')) throw e2; }
+          }
+          this._trackSupported = false;
+          this._emit('trackunsupported', {});
+        }
+      }
+      rec.start();
     }
 
     _onResult(ev, i) {
