@@ -274,7 +274,9 @@
     if (engine.recognizer) { engine.recognizer.stop(); }
     const R = new window.JimakuRecognizer({
       lang: S.recog, processLocally: S.recogModel === 'local', shortPause: Number(S.shortPause) || 0, mode: S.recogMode || 'restart',
-      audioTrack: engine.mic && engine.mic.outTrack, fallbackTrack: engine.mic && engine.mic.rawFallback,
+      // start(track) を使わないとき（未対応／「マイク選択を使わない」）は track を渡さない
+      audioTrack: !noTrack() && engine.mic ? engine.mic.outTrack : null,
+      fallbackTrack: !noTrack() && engine.mic ? engine.mic.rawFallback : null,
       phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
     });
     R.addEventListener('state', e => setMicPill(e.detail));
@@ -290,9 +292,15 @@
     });
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
     R.addEventListener('recovered', e => { $('#engineStatus').textContent = t('msgRecovered', e.detail.count); });   // 再起動せずに済んだことを残す
-    R.addEventListener('trackunsupported', () => {
-      // start(track) 未対応の Chrome：選択を無効にし，メーターも実際に聞かれる既定マイクに合わせる
-      engine.trackSupported = false; updateMicUI(); updateMicProcUI();
+    R.addEventListener('trackunsupported', e => {
+      if (e.detail && e.detail.reason === 'stalled') {
+        // 例外は出ないのに track では認識が始まらない環境（Issue #14）：「マイク選択を使わない」に切り替えて保存．
+        // 次回からは最初から start() で動く．元に戻すときは利用者がマイクを選び直す
+        uiState.micDeviceId = MIC_DIRECT; ui.save({ micDeviceId: MIC_DIRECT });
+        toast(t('msgTrackStalled'), 'err');
+      } else engine.trackSupported = false;   // start(track) 未対応の Chrome：選択を無効にする
+      // メーターも実際に聞かれる既定マイクに合わせる
+      renderMicSelect(); updateMicUI(); updateMicProcUI();
       if (engine.mic && engine.running) engine.mic.open(null).catch(() => {});
     });
     R.addEventListener('trackrejected', () => {
@@ -360,7 +368,7 @@
     const gen = ++engine.micOpenGen;
     if (engine.mic && engine.mic.supported) {
       engine.mic.configure(micOpts());
-      try { await engine.mic.open(engine.trackSupported === false ? null : (uiState.micDeviceId || null)); }
+      try { await engine.mic.open(noTrack() ? null : (uiState.micDeviceId || null)); }
       catch (e) {
         if (gen !== engine.micOpenGen || !engine.running) return;
         if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
@@ -369,7 +377,7 @@
         console.warn('[mic] open 失敗．既定マイクで認識します', e);    // 取れなくても認識は既定マイクで続ける
       }
       if (gen !== engine.micOpenGen || !engine.running) { engine.mic.close(); return; }
-      if (engine.trackSupported !== false && engine.mic.stream) {
+      if (!noTrack() && engine.mic.stream) {
         // 2 つ目の入力（任意）と音声処理の準備ができるまで少し待つ（起動直後に認識を作り直さないため）
         if (uiState.mic2DeviceId) await Promise.race([engine.mic.setSecond(uiState.mic2DeviceId), new Promise(r => setTimeout(r, 1500))]);
         if (engine.mic.needsProcessing) await engine.mic.whenReady(500);
@@ -381,7 +389,7 @@
     // 伏字リストの読込を待ってから開始（最大 4 秒）
     await Promise.race([filtersReady, new Promise(r => setTimeout(r, 4000))]);
     await R.start();
-    if (engine.muted && engine.trackSupported === false) R.stop();     // 旧 Chrome：ミュート中は認識そのものを止める
+    if (engine.muted && noTrack()) R.stop();     // track を使わないとき：ミュート中は認識そのものを止める
     if (R.running || engine.muted) { toast(t('msgStarted'), 'ok'); $('#engineStatus').textContent = ''; }
     else setRunning(false);
   }
@@ -399,12 +407,17 @@
   const METER_MIN = -60, SILENT_DB = -55, SILENT_MS = 5000;
   const meter = { lastLoud: 0, lastFrame: 0 };
   function micLabel(d, i) { return d.label || t('micDevice', i + 1); }
+  // プルダウンの「マイク選択を使わない」：start(track) を使わず start()（Chrome の既定マイク）で認識する．
+  // start(track) で認識が始まらない環境（Issue #14）向け．自動で切り替わることもある（localStorage に保存）
+  const MIC_DIRECT = 'direct';
+  function noTrack() { return engine.trackSupported === false || uiState.micDeviceId === MIC_DIRECT; }
   function renderMicSelect() {
     const sel = $('#micSelect'); if (!sel || !engine.mic) return;
     const want = uiState.micDeviceId || '';
     const devs = engine.mic.devices;
-    sel.innerHTML = '<option value="">' + t('micDefault') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('');
-    sel.value = devs.some(d => d.deviceId === want) ? want : '';
+    sel.innerHTML = '<option value="">' + t('micDefault') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('')
+      + '<option value="' + MIC_DIRECT + '">' + t('micDirect') + '</option>';
+    sel.value = want === MIC_DIRECT || devs.some(d => d.deviceId === want) ? want : '';
     const sel2 = $('#mic2Select'); if (!sel2) return;
     const want2 = uiState.mic2DeviceId || '';
     sel2.innerHTML = '<option value="">' + t('mic2None') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('');
@@ -413,7 +426,10 @@
   function updateMicUI() {
     const old = engine.trackSupported === false;
     $('#micSelect').disabled = old || !engine.mic || !engine.mic.supported;
-    $('#micOld').hidden = !old;
+    const direct = !old && uiState.micDeviceId === MIC_DIRECT;
+    $('#micOld').hidden = !old && !direct;
+    $('#micOld').dataset.i18n = direct ? 'micDirectNote' : 'micOld';   // 言語切替でも正しい文に戻るよう data-i18n ごと替える
+    $('#micOld').textContent = t($('#micOld').dataset.i18n);
     if (old) $('#micSelect').value = '';
   }
   function onMicLevel(e) {
@@ -443,12 +459,13 @@
   /** 音声処理まわりの案内・無効表示（旧 Chrome／処理後 track の拒否／AudioContext が未開始） */
   function updateMicProcUI() {
     const mic = engine.mic; if (!mic) return;
-    const blocked = engine.trackSupported === false || mic.procBlocked;
+    const blocked = noTrack() || mic.procBlocked;
     ['#micGain', '#micGateOn', '#micGate', '#mic2Select', '#mic2Vol'].forEach(sel => { $(sel).disabled = blocked || !mic.supported; });
     if (!blocked) { $('#micGate').disabled = !uiState.micGateOn; if (!mic.gateSupported) $('#micGateOn').disabled = $('#micGate').disabled = true; }
     const note = $('#micProcNote');
     let msg = '';
     if (engine.trackSupported === false) msg = t('micProcOld');
+    else if (noTrack()) msg = t('micProcDirect');
     else if (mic.procBlocked) msg = t('micProcRejected');
     else if (engine.running && mic.stream && mic.needsProcessing && mic.ctxState !== 'running') msg = t('micProcWait');
     note.textContent = msg; note.hidden = !msg;
@@ -456,7 +473,7 @@
   /** outTrack（処理後 or 生）が変わったら，認識中なら新しい track で認識を作り直す */
   function syncAudioTrack() {
     const R = engine.recognizer, mic = engine.mic;
-    if (R && mic && engine.running && engine.trackSupported !== false && mic.stream) {
+    if (R && mic && engine.running && !noTrack() && mic.stream) {
       const tr = mic.outTrack;
       if (tr && tr !== R.audioTrack) { R.fallbackTrack = mic.rawFallback; R.configure({ audioTrack: tr }); }
     }
@@ -474,7 +491,7 @@
     if (engine.mic) engine.mic.configure({ muted: on });
     if (on) { engine.interim = ''; engine.lastFinal = ''; stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; clearLines([0, 1, 2, 3], false); }
     // start(track) 未対応の Chrome：認識そのものを止める／再開する
-    if (engine.running && engine.trackSupported === false && engine.recognizer) { if (on) engine.recognizer.stop(); else engine.recognizer.start(); }
+    if (engine.running && noTrack() && engine.recognizer) { if (on) engine.recognizer.stop(); else engine.recognizer.start(); }
     updateMuteUI();
     toast(t(on ? 'msgMuted' : 'msgUnmuted'), on ? undefined : 'ok');
   }
@@ -526,7 +543,7 @@
     ['#micGain', '#micGateOn', '#micGate', '#mic2Vol'].forEach(sel => $(sel).addEventListener('change', () => ui.save({ micGain: uiState.micGain, micGateOn: !!uiState.micGateOn, micGateDb: uiState.micGateDb, mic2Vol: uiState.mic2Vol })));
     $('#mic2Select').addEventListener('change', e => {
       uiState.mic2DeviceId = e.target.value; ui.save({ mic2DeviceId: e.target.value });
-      if (engine.running && mic.stream && engine.trackSupported !== false) mic.setSecond(e.target.value);
+      if (engine.running && mic.stream && !noTrack()) mic.setSecond(e.target.value);
     });
     $('#btnMute').addEventListener('click', () => setMuted(!engine.muted));
     window.addEventListener('keydown', e => {
@@ -535,6 +552,7 @@
     mic.configure(micOpts()); renderMicAdv(); updateMuteUI();
     $('#micSelect').addEventListener('change', e => {
       uiState.micDeviceId = e.target.value; ui.save({ micDeviceId: e.target.value });
+      updateMicUI(); updateMicProcUI();
       restartEngine();       // 認識中ならストリームを開き直して認識を再起動
     });
     mic.refreshDevices(); updateMicUI();

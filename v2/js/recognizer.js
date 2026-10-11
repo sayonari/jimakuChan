@@ -15,7 +15,8 @@
  *   'fallback' detail:{ from:'local', to:'cloud' } オンデバイス→クラウドへ自動切替
  *   'recovered' detail:{ reason, count }          ウォッチドッグが止まった認識を作り直した
  *   'trackrejected' detail:{ track }              処理後 track（fallbackTrack ではない方）を start(track) が拒否した → fallbackTrack（生の track）で続ける
- *   'trackunsupported' detail:{}                  start(audioTrack) に未対応の Chrome だった（以後は start() で既定マイクを使う．1 回だけ発火）
+ *   'trackunsupported' detail:{ reason }          start(audioTrack) が使えない（以後は start() で既定マイクを使う．1 回だけ発火）
+ *                                                reason: 'error'＝例外（未対応の Chrome）／'stalled'＝例外は出ないが認識が始まらず作り直しが続いた
  *   'noresult' detail:{}                          発話は検出されているのに 20 秒間 onresult が 1 件も来ない（結果が来るまで再発火しない）
  */
 (function (global) {
@@ -52,6 +53,7 @@
       this.recoveries = 0;                       // ウォッチドッグが復旧させた回数
       this._noResultTimer = null;                // 音は来ているのに結果が来ない検出用
       this._noResultFired = false;               // 'noresult' 発火後は結果が来るまで再発火しない
+      this._trackStalls = 0;                     // start(track) 使用中に，結果が来ないまま作り直した回数（連続）
     }
 
     get running() { return this._wantRunning; }
@@ -89,6 +91,7 @@
       }
       this._wantRunning = true;
       this._errorCount = 0;
+      this._trackStalls = 0;
       this._clearNoResult();
       if (this.processLocally) {
         const a = await Recognizer.localAvailability(this.lang);
@@ -142,11 +145,33 @@
           clearTimeout(this._pauseTimer); clearTimeout(this._restartTimer);
           this._soft = null; this._segBase = '';
           this._lastEvent = now;
+          // 連続モードの無音は正常でも no-events になりうるので数えない
+          if (!(noEvents && !stuckStarting && this.mode === 'continuous')) this._onTrackStall();
           this._build();
           this._startInstance(0);
           this._emitState();
         }
       }, 3000);
+    }
+
+    /**
+     * start(track) が例外を出さずに黙って動かない環境がある（Issue #14：Win11 Chrome，start() なら動く）．
+     * track 使用中に結果が来ないまま作り直しが 2 回続いたら 1 段下げる：処理後 track → 生 track → start()．
+     */
+    _onTrackStall() {
+      if (!this.audioTrack || this._trackSupported === false) return;
+      if (++this._trackStalls < 2) return;
+      this._trackStalls = 0;
+      const fb = this.fallbackTrack;
+      if (fb && fb !== this.audioTrack && fb.readyState !== 'ended') {
+        console.warn('[recog] start(track) で認識が始まらないので，音声処理を通さない track に切り替えます');
+        this.audioTrack = fb;
+        this._emit('trackrejected', { track: null, reason: 'stalled' });
+        return;
+      }
+      console.warn('[recog] start(track) で認識が始まらないので，start()（Chrome の既定マイク）に切り替えます');
+      this._trackSupported = false;
+      this._emit('trackunsupported', { reason: 'stalled' });
     }
 
     /** 発話を検出したら 20 秒タイマー（BGM だけで誤警告しないよう soundstart では張らない）を張る（既に張っていれば何もしない／発火済みなら結果が来るまで張らない） */
@@ -238,7 +263,7 @@
           this._restartTimer = setTimeout(() => { if (this._wantRunning) this._startInstance(i); }, 3000);
         }
       };
-      rec.onresult = (ev) => { if (!live()) return; touch(); this._clearNoResult(); this._onResult(ev, i); };
+      rec.onresult = (ev) => { if (!live()) return; touch(); this._trackStalls = 0; this._clearNoResult(); this._onResult(ev, i); };
     }
 
     _startInstance(i) {
@@ -270,7 +295,7 @@
             catch (e2) { if (!(e2 instanceof TypeError || e2.name === 'TypeError' || e2.name === 'NotSupportedError')) throw e2; }
           }
           this._trackSupported = false;
-          this._emit('trackunsupported', {});
+          this._emit('trackunsupported', { reason: 'error' });
         }
       }
       rec.start();
