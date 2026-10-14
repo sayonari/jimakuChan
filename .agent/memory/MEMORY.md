@@ -32,3 +32,4 @@
 - **Chrome はオンデバイスモデルがあると processLocally=false でもローカル認識する**（2026-10 報告・Chrome 155）．ページから強制も削除もできない．ja のみ install すると available なのに結果ゼロ → en-US も入れると直る．削除は chrome://settings/accessibility →「自動字幕起こし」をオンにすると言語一覧が出てそこから消せる（オフのままだと一覧が出ない）．実体は ~/Library/Application Support/Google/Chrome/SODALanguagePacks/
 - **start(audioTrack)**：v2 は mic.js で getUserMedia → 処理（ゲイン・ゲート・2入力ミックス・ミュート）→ track を認識に渡す．AudioContext が suspended だと処理後 track は無音なので生 track を渡す．**Edge は 16kHz の track でないと結果が返らない**（AudioContext({sampleRate:16000}) を通す．ジュノーン先生 @junorn_1978 情報）
 - 宣伝 PV：v2/tools/promo_video/build_hype.mjs（ドパガキ仕様・170BPM）．X の文字数は日本語2・英数1・URL23 で 280 以内（scratchpad の xlen.py 方式で検算）
+- **start(track) は例外なしで黙って動かないことがある**（Issue #14・2026-10-11）：例外だけを見たフォールバックでは足りない．v2 は「結果ゼロのまま watchdog 作り直し 2 回」で検出し，プルダウンの「マイク選択を使わない」（'direct'，localStorage 保存）へ切替．判定は app.js の noTrack()（未対応 or direct）に集約してある
