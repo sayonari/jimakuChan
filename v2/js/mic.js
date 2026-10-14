@@ -8,7 +8,7 @@
  * 使い方：
  *   const mic = new JimakuMic();
  *   await mic.refreshDevices();
- *   const { track, fallback } = await mic.open(deviceId);   // deviceId 省略/null で Chrome の既定
+ *   const { track, fallback } = await mic.open(deviceId);   // deviceId 省略/null で Chrome の既定，'tab' で Chrome のタブの音声（getDisplayMedia）
  *   mic.close();
  *
  * 音声処理（既定オフ．mic.configure() で有効化）：
@@ -24,7 +24,7 @@
  *   'devices'  detail:{ devices:[{ deviceId, label }] }   デバイス一覧が更新された（devicechange・許可後のラベル取得）
  *   'level'    detail:{ db, smooth, peak }                毎フレーム．db=今の音量(dBFS)，smooth=なめらかに減衰する値，peak=ピークホールド値
  *   'fallback' detail:{ deviceId }                        指定デバイスが無く，既定のマイクに戻した
- *   'ended'    detail:{}                                  使用中のマイクが外れた等で track が終了した
+ *   'ended'    detail:{ tab }                             使用中のマイクが外れた／タブの共有が終わった等で track が終了した
  */
 (function (global) {
   'use strict';
@@ -32,6 +32,10 @@
   // Edge は start(track) に 16kHz の音声を渡さないと認識結果が返らない（Chrome は元のレートのままで可）．
   // Edge では常に 16kHz の AudioContext を通した track を渡す．
   const IS_EDGE = /\bEdg\//.test(navigator.userAgent || '');
+
+  // タブの音声（getDisplayMedia）を使うときの deviceId．タブのストリームは open('tab') を繰り返しても使い回す
+  // （設定変更で認識を作り直すたびにタブを選ばせないため）．close(true) なら残し，close() で共有を終える
+  const TAB = 'tab';
 
   const DB_MIN = -100;            // 無音の下限（log(0) 回避）
   const FALL_DB_PER_SEC = 40;     // 表示用の減衰速度
@@ -83,6 +87,8 @@ registerProcessor('jimaku-gate', JimakuGate);`;
       this.gateReady = false; this.gateSupported = true; this._gatePromise = null;
       this._g1 = this._g2 = this._gate = this._mute = this._dest = this._destTrack = null;
       this.stream2 = null; this._src2 = null; this._second2Gen = 0; this._lastOut = null;
+      this._tabStream = null; this._openGen = 0;
+      this.tabSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
       this.supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
       if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
         navigator.mediaDevices.addEventListener('devicechange', () => this.refreshDevices());
@@ -158,10 +164,13 @@ registerProcessor('jimaku-gate', JimakuGate);`;
 
     /** deviceId のマイクを開く（既存ストリームは先に閉じる）．無ければ既定に戻して 'fallback'．許可拒否などは throw */
     async open(deviceId) {
-      this.close();
+      const tab = deviceId === TAB;
+      this.close(tab);
+      const gen = ++this._openGen;
       const base = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
       let stream, fallback = false;
-      try {
+      if (tab) stream = await this._openTab();
+      else try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? Object.assign({ deviceId: { exact: deviceId } }, base) : base });
       } catch (e) {
         if (deviceId && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError')) {
@@ -169,11 +178,15 @@ registerProcessor('jimaku-gate', JimakuGate);`;
           fallback = true;
         } else throw e;
       }
+      if (gen !== this._openGen) { if (!tab) stream.getTracks().forEach(tr => tr.stop()); throw Object.assign(new Error('superseded'), { name: 'AbortError' }); }
       this.stream = stream;
       this.track = stream.getAudioTracks()[0] || null;
       const s = this.track && this.track.getSettings ? this.track.getSettings() : {};
       this.deviceId = fallback ? null : (deviceId || null);
-      if (this.track) this.track.addEventListener('ended', () => { if (this.track && this.stream === stream) this._emit('ended', {}); });
+      if (this.track) this.track.addEventListener('ended', () => {
+        if (tab && this._tabStream === stream) this._tabStream = null;
+        if (this.track && this.stream === stream && gen === this._openGen) this._emit('ended', { tab });
+      });
       this._startMeter(stream);
       this._applyParams();
       this._lastOut = this.outTrack;
@@ -182,7 +195,36 @@ registerProcessor('jimaku-gate', JimakuGate);`;
       return { track: this.track, fallback, actualId: s.deviceId || null };
     }
 
-    close() {
+    /** Chrome のタブ（Windows では画面全体＋システム音声も可）の音声を取る．生きているタブのストリームがあれば使い回す．
+     *  利用者の操作（クリック）直後でないと InvalidStateError．キャンセルは NotAllowedError，音声の共有なしは NoAudioError */
+    async _openTab() {
+      const cur = this._tabStream;
+      if (cur && cur.getAudioTracks().some(tr => tr.readyState === 'live')) return cur;
+      this.releaseTab();
+      if (!this.tabSupported) throw Object.assign(new Error('getDisplayMedia unsupported'), { name: 'NotSupportedError' });
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,      // 映像なしでは選べない（Chrome の仕様）．映像は使わないので止めておく
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, suppressLocalAudioPlayback: false },
+        preferCurrentTab: false, selfBrowserSurface: 'exclude', surfaceSwitching: 'include', systemAudio: 'include',
+      });
+      stream.getVideoTracks().forEach(tr => { tr.enabled = false; });
+      if (!stream.getAudioTracks().length) {
+        stream.getTracks().forEach(tr => tr.stop());
+        throw Object.assign(new Error('no tab audio'), { name: 'NoAudioError' });
+      }
+      this._tabStream = stream;
+      return stream;
+    }
+    /** タブの共有を終える */
+    releaseTab() {
+      if (this._tabStream) this._tabStream.getTracks().forEach(tr => { try { tr.stop(); } catch (e) {} });
+      this._tabStream = null;
+    }
+    get isTab() { return !!this.stream && this.stream === this._tabStream; }
+
+    /** keepTab=true ならタブのストリームは止めずに残す（すぐ open('tab') し直すとき） */
+    close(keepTab) {
+      this._openGen++;
       cancelAnimationFrame(this._raf); this._raf = 0;
       this._second2Gen++;
       if (this.stream2) { this.stream2.getTracks().forEach(tr => { try { tr.stop(); } catch (e) {} }); this.stream2 = null; }
@@ -191,7 +233,8 @@ registerProcessor('jimaku-gate', JimakuGate);`;
       this._ctx = this._analyser = this._src = this._buf = null;
       this._g1 = this._g2 = this._gate = this._mute = this._dest = this._destTrack = this._src2 = null;
       this.gateReady = false; this._lastOut = null;
-      if (this.stream) this.stream.getTracks().forEach(tr => { try { tr.stop(); } catch (e) {} });
+      if (this.stream && this.stream !== this._tabStream) this.stream.getTracks().forEach(tr => { try { tr.stop(); } catch (e) {} });
+      if (!keepTab) this.releaseTab();
       this.stream = null; this.track = null; this.deviceId = null;
       this._smooth = this._peak = DB_MIN;
       this._emit('level', { db: DB_MIN, smooth: DB_MIN, peak: DB_MIN });
@@ -300,5 +343,6 @@ registerProcessor('jimaku-gate', JimakuGate);`;
     }
   }
 
+  Mic.TAB = TAB;
   global.JimakuMic = Mic;
 })(typeof window !== 'undefined' ? window : globalThis);

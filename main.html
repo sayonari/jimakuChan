@@ -336,41 +336,55 @@
             return processedText;
         }
 
+        // 不適切語の伏字（2026-10 に v2 の js/filter.js と同じ判定へ変更）
+        //  - ラテン文字・キリル文字など空白で区切る言語の語は単語境界つきで照合（class の ass，culture の cul を伏字にしない）
+        //  - ハングルは語頭のみ境界チェック，日本語・中国語など分かち書きしない言語は従来どおり部分一致
+        //  - GoodList・BadList とも長い語を優先．全角英字（ＳＥＸ）も検出．404 の本文や # コメント行は語として扱わない
+        var filterRegexCache = new WeakMap();
+        function filterWordPattern(word) {
+            var esc = function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+            var variants = new Set([word]);
+            var nfkc = word.normalize('NFKC');
+            variants.add(nfkc);
+            if (/^[\x20-\x7e]+$/.test(nfkc)) variants.add(nfkc.replace(/[!-~]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0xFEE0); }));
+            var alt = Array.from(variants).map(function (v) { return esc(v).replace(/\s+/g, '\\s*'); }).join('|');
+            if (/^[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Armenian}\p{Script=Georgian}0-9'’\-\s.]+$/u.test(word)) {
+                return '(?<![\\p{L}\\p{N}])(?:' + alt + ')s?(?![\\p{L}\\p{N}])';
+            }
+            if (/^[\p{Script=Hangul}\s]+$/u.test(word)) return '(?<![\\p{L}])(?:' + alt + ')';
+            return '(?:' + alt + ')';
+        }
+        function filterRegex(words) {
+            if (!words || words.length === 0) return null;
+            if (filterRegexCache.has(words)) return filterRegexCache.get(words);
+            var uniq = Array.from(new Set(words.map(function (w) { return String(w).trim(); })
+                .filter(function (w) { return w && w.charAt(0) !== '#' && !/^404\b/.test(w); })));
+            uniq.sort(function (a, b) { return b.length - a.length; });
+            var re = null;
+            try { re = uniq.length ? new RegExp(uniq.map(filterWordPattern).join('|'), 'giu') : null; }
+            catch (e) { console.log('伏字リストの正規表現を作れませんでした', e); }
+            filterRegexCache.set(words, re);
+            return re;
+        }
+        function maskBadWords(text, badList, goodList) {
+            var badRe = filterRegex(badList);
+            if (!text || !badRe) return text;
+            var goodRe = filterRegex(goodList);
+            var stash = [];
+            var work = text;
+            // 1) 保護語を私用領域の文字に退避  2) 伏字  3) 復元
+            if (goodRe) work = work.replace(goodRe, function (m) { var id = stash.push(m) - 1; return '' + String.fromCharCode(0xE100 + id) + ''; });
+            work = work.replace(badRe, function (m) { return '*'.repeat(Array.from(m.replace(/[-]/g, '')).length || 3); });
+            if (stash.length) work = work.replace(/([-])/g, function (_, c) { return stash[c.charCodeAt(0) - 0xE100] || ''; });
+            return work;
+        }
+
         // 不適切語フィルタリング関数（音声認識用）
         function applyContentFilter(text) {
             if (anti_sexual === 'false' || badWords_forRecog.length === 0) {
                 return text;
             }
-            
-            let filteredText = text;
-            
-            // 保護する単語を一時的なプレースホルダーに置き換える
-            goodWords_forRecog.forEach((word, index) => {
-                if (word && word.trim() !== '') {
-                    let placeholder = `{{GOOD_WORD_${index}}}`;
-                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
-                    filteredText = filteredText.replace(regex, placeholder);
-                }
-            });
-
-            // 不適切語を***に置き換える
-            badWords_forRecog.forEach(word => {
-                if (word && word.trim() !== '') {
-                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
-                    filteredText = filteredText.replace(regex, "*".repeat(word.length));
-                }
-            });
-
-            // 一時的なプレースホルダーを保護する単語に戻す
-            goodWords_forRecog.forEach((word, index) => {
-                if (word && word.trim() !== '') {
-                    let placeholder = `{{GOOD_WORD_${index}}}`;
-                    const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g");
-                    filteredText = filteredText.replace(regex, word);
-                }
-            });
-
-            return filteredText;
+            return maskBadWords(text, badWords_forRecog, goodWords_forRecog);
         }
 
         // 翻訳結果用フィルタリング関数
@@ -378,60 +392,13 @@
             if (anti_sexual === 'false' || !text || text.trim() === '') {
                 return text;
             }
-            
-            let badWordsList, goodWordsList;
-            
-            // 翻訳タイプに応じて適切な不適切語リストを選択
-            switch(transType) {
-                case 1:
-                    badWordsList = badWords_forTrans1;
-                    goodWordsList = goodWords_forTrans1;
-                    break;
-                case 2:
-                    badWordsList = badWords_forTrans2;
-                    goodWordsList = goodWords_forTrans2;
-                    break;
-                case 3:
-                    badWordsList = badWords_forTrans3;
-                    goodWordsList = goodWords_forTrans3;
-                    break;
-                default:
-                    return text;
-            }
-            
-            if (badWordsList.length === 0) {
+            var lists = { 1: [badWords_forTrans1, goodWords_forTrans1], 2: [badWords_forTrans2, goodWords_forTrans2], 3: [badWords_forTrans3, goodWords_forTrans3] }[transType];
+            if (!lists) return text;
+            if (lists[0].length === 0) {
                 console.log('翻訳' + transType + '用の不適切語リストが空のため、フィルタリングをスキップ');
                 return text;
             }
-            
-            let filteredText = text;
-            
-            // 保護する単語を一時的なプレースホルダーに置き換える
-            goodWordsList.forEach((word, index) => {
-                if (word && word.trim() !== '') {
-                    let placeholder = `{{TRANS${transType}_GOOD_WORD_${index}}}`;
-                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
-                    filteredText = filteredText.replace(regex, placeholder);
-                }
-            });
-
-            // 不適切語を***に置き換える
-            badWordsList.forEach(word => {
-                if (word && word.trim() !== '') {
-                    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
-                    filteredText = filteredText.replace(regex, "*".repeat(word.length));
-                }
-            });
-
-            // 一時的なプレースホルダーを保護する単語に戻す
-            goodWordsList.forEach((word, index) => {
-                if (word && word.trim() !== '') {
-                    let placeholder = `{{TRANS${transType}_GOOD_WORD_${index}}}`;
-                    const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g");
-                    filteredText = filteredText.replace(regex, word);
-                }
-            });
-
+            var filteredText = maskBadWords(text, lists[0], lists[1]);
             console.log('翻訳' + transType + 'フィルタリング: "' + text + '" -> "' + filteredText + '"');
             return filteredText;
         }
@@ -2148,7 +2115,7 @@
 <script type="text/javascript">
 
 // バージョン情報の表示 ---------------------------------
-const SoftwareVersion = "2026.10.09 00:07";
+const SoftwareVersion = "2026.10.14 18:49";
 
 // 言語設定を取得（localStorageから、なければ日本語）
 const currentLang = localStorage.getItem('jimakuChan_language') || 'ja';

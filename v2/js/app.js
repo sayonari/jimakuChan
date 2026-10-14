@@ -277,6 +277,7 @@
       // start(track) を使わないとき（未対応／「マイク選択を使わない」）は track を渡さない
       audioTrack: !noTrack() && engine.mic ? engine.mic.outTrack : null,
       fallbackTrack: !noTrack() && engine.mic ? engine.mic.rawFallback : null,
+      noStallFallback: isTab(),
       phrases: S.recogModel === 'local' ? lines(S.wordBoost).map(p => ({ phrase: p, boost: Number(S.wordBoostStrength) || 5 })) : [],
     });
     R.addEventListener('state', e => setMicPill(e.detail));
@@ -293,6 +294,11 @@
     R.addEventListener('fallback', () => { toast(t('msgFallbackCloud'), 'err'); S.recogModel = 'cloud'; syncSeg('recogModel'); saveSettings(); });
     R.addEventListener('recovered', e => { $('#engineStatus').textContent = t('msgRecovered', e.detail.count); });   // 再起動せずに済んだことを残す
     R.addEventListener('trackunsupported', e => {
+      if (isTab()) {
+        // タブの音声は start(track) でしか認識に渡せない：既定マイクに切り替えず止める
+        if (!(e.detail && e.detail.reason === 'stalled')) engine.trackSupported = false;
+        stopWithMessage(t('msgTabUnsupported')); renderMicSelect(); updateMicUI(); return;
+      }
       if (e.detail && e.detail.reason === 'stalled') {
         // 例外は出ないのに track では認識が始まらない環境（Issue #14）：「マイク選択を使わない」に切り替えて保存．
         // 次回からは最初から start() で動く．元に戻すときは利用者がマイクを選び直す
@@ -353,10 +359,10 @@
     $('#transCountLabel').textContent = n ? t('transCount', n) : '';
   }
 
-  function setRunning(on) {
+  function setRunning(on, keepTab) {
     engine.running = on;
     $('#btnStart').hidden = on; $('#btnStop').hidden = !on;
-    if (!on) { if (engine.mic) engine.mic.close(); setMicPill({ running: false, listening: false }); stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; }
+    if (!on) { if (engine.mic) engine.mic.close(keepTab); setMicPill({ running: false, listening: false }); stopSpeechTimer(); clearTimeout(engine.transTimer); engine.transTimer = null; }
     syncLoudTimer();
   }
   async function startEngine() {
@@ -366,11 +372,18 @@
     if (!engine.welcome) clearLines([0, 1, 2, 3], false);
     // マイクを先に取り，その track で認識を始める（許可ダイアログが二重に出ない）
     const gen = ++engine.micOpenGen;
+    if (isTab() && (!engine.mic || !engine.mic.supported || !engine.mic.tabSupported)) { stopWithMessage(t('msgTabUnsupported')); return; }
     if (engine.mic && engine.mic.supported) {
       engine.mic.configure(micOpts());
       try { await engine.mic.open(noTrack() ? null : (uiState.micDeviceId || null)); }
       catch (e) {
         if (gen !== engine.micOpenGen || !engine.running) return;
+        if (isTab()) {
+          // タブの音声：取れなければ既定マイクで代わりに認識せず止める（別の音が字幕になるのを防ぐ）
+          const n = e && e.name;
+          stopWithMessage(t(n === 'InvalidStateError' ? 'msgTabClick' : n === 'NoAudioError' ? 'msgTabNoAudio' : n === 'NotSupportedError' ? 'msgTabUnsupported' : 'msgTabCancel'), n !== 'InvalidStateError');
+          return;
+        }
         if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
           const msg = t('msgMicDenied'); toast(msg, 'err'); setRunning(false); $('#engineStatus').textContent = msg; return;
         }
@@ -393,13 +406,20 @@
     if (R.running || engine.muted) { toast(t('msgStarted'), 'ok'); $('#engineStatus').textContent = ''; }
     else setRunning(false);
   }
-  function stopEngine(silent) {
+  function stopEngine(silent, keepTab) {
     engine.micOpenGen++;
     if (engine.recognizer) engine.recognizer.stop();
-    setRunning(false);
+    setRunning(false, keepTab);
     if (!silent) toast(t('msgStopped'));
   }
-  const restartEngine = debounce(() => { if (engine.running) { stopEngine(true); startEngine(); } }, 400);
+  /** 止めて理由を状態欄にも残す（トーストは消えるため） */
+  function stopWithMessage(msg, isErr = true) {
+    stopEngine(true);
+    toast(msg, isErr ? 'err' : undefined);
+    $('#engineStatus').textContent = msg;
+  }
+  // 設定変更での作り直し：タブの共有は続けたまま（タブを選び直させない）
+  const restartEngine = debounce(() => { if (engine.running) { stopEngine(true, true); startEngine(); } }, 400);
 
   // ======================================================================
   // マイク選択 & 入力レベルメーター
@@ -411,13 +431,18 @@
   // start(track) で認識が始まらない環境（Issue #14）向け．自動で切り替わることもある（localStorage に保存）
   const MIC_DIRECT = 'direct';
   function noTrack() { return engine.trackSupported === false || uiState.micDeviceId === MIC_DIRECT; }
+  // プルダウンの「Chrome のタブの音声」：開始時に Chrome の共有画面でタブを選ぶ（getDisplayMedia）．start(track) が必須
+  const MIC_TAB = 'tab';
+  function isTab() { return uiState.micDeviceId === MIC_TAB; }
   function renderMicSelect() {
     const sel = $('#micSelect'); if (!sel || !engine.mic) return;
     const want = uiState.micDeviceId || '';
     const devs = engine.mic.devices;
+    const tabOk = engine.mic.tabSupported && engine.trackSupported !== false;
     sel.innerHTML = '<option value="">' + t('micDefault') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('')
+      + (tabOk ? '<option value="' + MIC_TAB + '">' + t('micTab') + '</option>' : '')
       + '<option value="' + MIC_DIRECT + '">' + t('micDirect') + '</option>';
-    sel.value = want === MIC_DIRECT || devs.some(d => d.deviceId === want) ? want : '';
+    sel.value = want === MIC_DIRECT || (want === MIC_TAB && tabOk) || devs.some(d => d.deviceId === want) ? want : '';
     const sel2 = $('#mic2Select'); if (!sel2) return;
     const want2 = uiState.mic2DeviceId || '';
     sel2.innerHTML = '<option value="">' + t('mic2None') + '</option>' + devs.map((d, i) => `<option value="${d.deviceId}">${micLabel(d, i).replace(/</g, '&lt;')}</option>`).join('');
@@ -426,9 +451,9 @@
   function updateMicUI() {
     const old = engine.trackSupported === false;
     $('#micSelect').disabled = old || !engine.mic || !engine.mic.supported;
-    const direct = !old && uiState.micDeviceId === MIC_DIRECT;
-    $('#micOld').hidden = !old && !direct;
-    $('#micOld').dataset.i18n = direct ? 'micDirectNote' : 'micOld';   // 言語切替でも正しい文に戻るよう data-i18n ごと替える
+    const direct = !old && uiState.micDeviceId === MIC_DIRECT, tab = !old && isTab();
+    $('#micOld').hidden = !old && !direct && !tab;
+    $('#micOld').dataset.i18n = direct ? 'micDirectNote' : tab ? 'micTabNote' : 'micOld';   // 言語切替でも正しい文に戻るよう data-i18n ごと替える
     $('#micOld').textContent = t($('#micOld').dataset.i18n);
     if (old) $('#micSelect').value = '';
   }
@@ -520,9 +545,11 @@
     mic.addEventListener('devices', renderMicSelect);
     mic.addEventListener('level', onMicLevel);
     mic.addEventListener('fallback', () => toast(t('msgMicFallback'), 'err'));
-    mic.addEventListener('ended', async () => {
-      // 使用中のマイクが外れた：既定マイクに戻して認識を続ける
+    mic.addEventListener('ended', async (e) => {
       if (!engine.running) return;
+      // タブの共有が終わった（「共有を停止」・タブを閉じた）：既定マイクには切り替えず止める
+      if (e.detail && e.detail.tab) { stopWithMessage(t('msgTabEnded'), false); return; }
+      // 使用中のマイクが外れた：既定マイクに戻して認識を続ける
       toast(t('msgMicEnded'), 'err');
       try { await mic.open(null); } catch (e) { return; }
       if (engine.recognizer) engine.recognizer.configure({ audioTrack: mic.outTrack, fallbackTrack: mic.rawFallback });

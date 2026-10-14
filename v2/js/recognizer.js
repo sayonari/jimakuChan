@@ -34,6 +34,7 @@
       this.mode = opts.mode || 'restart';       // 'restart'（既定）| 'continuous'
       this.audioTrack = opts.audioTrack || null; // MediaStreamTrack（マイク選択．null なら Chrome の既定マイク）
       this.fallbackTrack = opts.fallbackTrack || null; // audioTrack が拒否されたときに試す生の track（音声処理を使うとき）
+      this.noStallFallback = !!opts.noStallFallback;  // true：結果が来なくても start()（既定マイク）へ下げない（タブの音声．無音の時間が長く，既定マイクでは意味がない）
       this._trackSupported = null;               // start(track) 対応可否（null=未判定）
       this._soft = null;                         // 仮確定した文 {text}
       this._segBase = '';                        // continuous: 直前までに確定済みの結合テキスト（表示済み分）
@@ -159,7 +160,7 @@
      * track 使用中に結果が来ないまま作り直しが 2 回続いたら 1 段下げる：処理後 track → 生 track → start()．
      */
     _onTrackStall() {
-      if (!this.audioTrack || this._trackSupported === false) return;
+      if (!this.audioTrack || this._trackSupported === false || this.noStallFallback) return;
       if (++this._trackStalls < 2) return;
       this._trackStalls = 0;
       const fb = this.fallbackTrack;
